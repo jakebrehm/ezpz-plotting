@@ -4,7 +4,7 @@
 
 -----------------
 
-**EZPZ Plotting** is a Python program that allows the user to easily create, view, and manipulate multiple plots from multiple files at once.
+**EZPZ Plotting** is a program that allows the user to easily create, view, and manipulate multiple plots from multiple files at once.
 
 # Main features
 
@@ -15,6 +15,7 @@
 # How to get it
 
 Clone this repository and run *main.py*.
+
 So far, *this program only works on Windows machines* - I will be adding support for other operating systems in the future.
 
 ## Dependencies
@@ -27,4 +28,4 @@ So far, *this program only works on Windows machines* - I will be adding support
 The **lemons** package is my own creation, and it is mainly used for GUI-related purposes. **Matplotlib** is used for plotting, **pandas** is used for data parsing, and **configobj** is used for saving and loading of presets.
 
 # Authors
-- **Jake Brehm** - *Initial Work* - [Email](mailto:jbrehm@tactair.com) | [Github](http://github.com/jakebrehm) | [LinkedIn](http://linkedin.com/in/jacobbrehm)
+- **Jake Brehm** - *Initial Work* - [Email](mailto:mail@jakebrehm.com) | [Github](http://github.com/jakebrehm) | [LinkedIn](http://linkedin.com/in/jacobbrehm)
