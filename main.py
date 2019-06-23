@@ -299,81 +299,6 @@ clipboard = {
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def test_function():
-    global inputs, files
-
-    location = 'Presets\\home.ini'
-    preset = configobj.ConfigObj(location)
-
-    if len(preset) == 0:
-        message = 'It looks like the preset file you chose is either empty or not ' \
-                  'formatted correctly. Please double check the file and try again.'
-        mb.showinfo('Oops!', message)
-        return
-
-    inputs = [info['filepath'] for file, info in preset.items()]
-
-    listbox.clear()
-    listbox.field['state'] = 'normal'
-    for filepath in inputs: listbox.field.insert('end', ' ' + filepath)
-    listbox.field['state'] = 'disable'
-    listbox.field['justify'] = 'left'
-
-    enable()
-    input_controls()
-
-    for f, (file, info) in enumerate(preset.items()):
-        if len(info) > 5:
-            rows_needed = len(info) - 5
-            for _ in range(rows_needed): plus_row(tab=f)
-
-    for f, (file, info) in enumerate(preset.items()):
-        files[f].data_row_entry.insert(0, info['data start'])
-        files[f].label_row_entry.insert(0, info['label row'])
-        files[f].unit_row_entry.insert(0, info['unit row'])
-        plots = [key for key in info.keys()
-                 if key not in ['filepath', 'data start', 'label row', 'unit row']]
-
-        for p, plot in enumerate(plots):
-            files[f]._titles[p].insert(0, info[plot]['title'])
-            files[f]._x_columns[p].insert(0, info[plot]['x column'])
-            files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
-            files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
-            files[f]._x_labels[p].insert(0, info[plot]['x label'])
-            files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
-            files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
-
-    plot_function()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class Flipbook(tk.Toplevel):
 
     def __init__(self, *args, info, **kwargs):
@@ -546,7 +471,7 @@ class Flipbook(tk.Toplevel):
         self.primary.minorticks_on()
         self.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
 
-        self.figure.suptitle(current.title)
+        self.figure.suptitle(current.title, fontweight='bold', fontsize=14)
         self.primary.set_xlabel(current.x_label)
         self.primary.set_ylabel(current.y1_label)
         if self.secondary_axis: self.secondary.set_ylabel(current.y2_label)
@@ -658,10 +583,10 @@ class Flipbook(tk.Toplevel):
         notebook = ttk.Notebook(primary, takefocus=0)
         notebook.grid(row=0, column=0, sticky='NSEW')
 
-        figure = gui.ScrollableTab(notebook, 'Figure')
-        appearance = gui.ScrollableTab(notebook, 'Appearance')
-        analysis = gui.ScrollableTab(notebook, 'Analysis')
-        annotations = gui.ScrollableTab(notebook, 'Annotations')
+        figure = gui.ScrollableTab(notebook, 'Figure', cwidth=350)
+        appearance = gui.ScrollableTab(notebook, 'Appearance', cwidth=350)
+        analysis = gui.ScrollableTab(notebook, 'Analysis', cwidth=350)
+        annotations = gui.ScrollableTab(notebook, 'Annotations', cwidth=350)
 
         gui.Separator(self.controls).grid(row=1, column=0, sticky='NSEW')
 
@@ -676,55 +601,65 @@ class Flipbook(tk.Toplevel):
 
         limits = gui.PaddedFrame(figure)
         limits.grid(row=0, column=0, sticky='NSEW')
+        limits.columnconfigure(0, weight=1)
+        limits.columnconfigure(1, weight=1)
+
+        LIMITS_PADDING = 10
 
         x_lower_label = tk.Label(limits, text='x-lower:')
-        x_lower_label.grid(row=0, column=0, sticky='NSEW')
-        self.x_lower_entry = ttk.Entry(limits)
-        self.x_lower_entry.grid(row=1, column=0, sticky='NSEW')
+        x_lower_label.grid(row=0, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_lower_entry = ttk.Entry(limits, width=20)
+        self.x_lower_entry.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
 
         x_upper_label = tk.Label(limits, text='x-upper:')
-        x_upper_label.grid(row=0, column=1, sticky='NSEW')
-        self.x_upper_entry = ttk.Entry(limits)
-        self.x_upper_entry.grid(row=1, column=1, sticky='NSEW')
+        x_upper_label.grid(row=0, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_upper_entry = ttk.Entry(limits, width=20)
+        self.x_upper_entry.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         gui.Space(limits, row=2, column=0, columnspan=2)
 
         y1_lower_label = tk.Label(limits, text='y1-lower:')
-        y1_lower_label.grid(row=3, column=0, sticky='NSEW')
-        self.y1_lower_entry = ttk.Entry(limits)
-        self.y1_lower_entry.grid(row=4, column=0, sticky='NSEW')
+        y1_lower_label.grid(row=3, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_lower_entry = ttk.Entry(limits, width=20)
+        self.y1_lower_entry.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
 
         y1_upper_label = tk.Label(limits, text='y1-upper:')
-        y1_upper_label.grid(row=3, column=1, sticky='NSEW')
-        self.y1_upper_entry = ttk.Entry(limits)
-        self.y1_upper_entry.grid(row=4, column=1, sticky='NSEW')
+        y1_upper_label.grid(row=3, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_upper_entry = ttk.Entry(limits, width=20)
+        self.y1_upper_entry.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         gui.Space(limits, row=5, column=0, columnspan=2)
 
         y2_lower_label = tk.Label(limits, text='y2_lower:')
-        y2_lower_label.grid(row=6, column=0, sticky='NSEW')
-        self.y2_lower_entry = ttk.Entry(limits)
-        self.y2_lower_entry.grid(row=7, column=0, sticky='NSEW')
+        y2_lower_label.grid(row=6, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_lower_entry = ttk.Entry(limits, width=20)
+        self.y2_lower_entry.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
 
         y2_upper_label = tk.Label(limits, text='y2_upper:')
-        y2_upper_label.grid(row=6, column=1, sticky='NSEW')
-        self.y2_upper_entry = ttk.Entry(limits)
-        self.y2_upper_entry.grid(row=7, column=1, sticky='NSEW')
+        y2_upper_label.grid(row=6, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_upper_entry = ttk.Entry(limits, width=20)
+        self.y2_upper_entry.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         # Start of Appearance tab
 
         background = gui.PaddedFrame(appearance)
         background.grid(row=0, column=0, sticky='NSEW')
+        background.columnconfigure(0, weight=1)
+        background.columnconfigure(1, weight=1)
 
         background_label = tk.Label(background, text='Background:')
-        background_label.grid(row=0, column=0, sticky='NSEW')
+        background_label.grid(row=0, column=0, padx=(0, 10), sticky='E')
 
         self.background_choice = tk.StringVar()
-        background_combo = ttk.Combobox(background, state='readonly',
+        background_combo = ttk.Combobox(background, width=20, state='readonly',
                                         textvariable=self.background_choice)
-        background_combo.grid(row=0, column=1, sticky='NSEW')
+        background_combo.grid(row=0, column=1, padx=(10, 0), sticky='W')
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
         background_combo.bind('<<ComboboxSelected>>', custom_background)
+
+        # End of controls
+
+        self.controls.bind('<Return>', self.update_controls)
 
         self.refresh_controls()
 
@@ -754,7 +689,7 @@ class Flipbook(tk.Toplevel):
 
         self.background_choice.set(current.background.get())
 
-    def update_controls(self):
+    def update_controls(self, event=None):
         current = self.plots[self.page]
 
         def update_axis(entry, original):
@@ -1162,6 +1097,55 @@ app.root.bind('<Control-=>', plus_row)
 app.root.bind('<Insert>', lambda event, direction='previous': switch_tab(event, direction)) # Insert
 app.root.bind('<Prior>', lambda event, direction='next': switch_tab(event, direction)) # Page Up
 
-app.after(0, test_function)
+
+
+def test_function():
+    global inputs, files
+
+    location = 'Presets\\home.ini'
+    preset = configobj.ConfigObj(location)
+
+    if len(preset) == 0:
+        message = 'It looks like the preset file you chose is either empty or not ' \
+                  'formatted correctly. Please double check the file and try again.'
+        mb.showinfo('Oops!', message)
+        return
+
+    inputs = [info['filepath'] for file, info in preset.items()]
+
+    listbox.clear()
+    listbox.field['state'] = 'normal'
+    for filepath in inputs: listbox.field.insert('end', ' ' + filepath)
+    listbox.field['state'] = 'disable'
+    listbox.field['justify'] = 'left'
+
+    enable()
+    input_controls()
+
+    for f, (file, info) in enumerate(preset.items()):
+        if len(info) > 5:
+            rows_needed = len(info) - 5
+            for _ in range(rows_needed): plus_row(tab=f)
+
+    for f, (file, info) in enumerate(preset.items()):
+        files[f].data_row_entry.insert(0, info['data start'])
+        files[f].label_row_entry.insert(0, info['label row'])
+        files[f].unit_row_entry.insert(0, info['unit row'])
+        plots = [key for key in info.keys()
+                 if key not in ['filepath', 'data start', 'label row', 'unit row']]
+
+        for p, plot in enumerate(plots):
+            files[f]._titles[p].insert(0, info[plot]['title'])
+            files[f]._x_columns[p].insert(0, info[plot]['x column'])
+            files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
+            files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
+            files[f]._x_labels[p].insert(0, info[plot]['x label'])
+            files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
+            files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
+
+    plot_function()
+app.after(100, test_function)
+
+
 
 app.mainloop()
