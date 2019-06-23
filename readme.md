@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/jakebrehm/ezpz-plotting/blob/master/Assets/logo.png" alt="EZPZ Plotting Logo"/>
+  <img src="https://github.com/jakebrehm/ezpz-plotting/blob/master/Assets/logo.png" width="558" height="126" alt="EZPZ Plotting Logo"/>
 </p>
 
 -----------------
