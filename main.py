@@ -467,19 +467,24 @@ class Flipbook(tk.Toplevel):
         plot = self.numbers[self.page]
         self.filename.set(f'{self.info[file].filename} - Plot {plot + 1}')
 
-        secondary_axis = True if current.y2 else False
-        if secondary_axis: self.secondary = self.primary.twinx()
+        if self.secondary:
+            self.secondary.clear()
+            self.secondary.axis('off')
+        self.secondary = None
+
+        self.secondary_axis = True if current.y2 else False
+        if self.secondary_axis: self.secondary = self.primary.twinx()
 
         self.primary.clear()
 
-        if secondary_axis:
+        if self.secondary_axis:
             self.primary.set_zorder(1)
             self.secondary.set_zorder(100)
             self.secondary.format_coord = self._coordinates(self.secondary, self.primary,
-                                                            secondary_axis)
-        if not secondary_axis:
+                                                            self.secondary_axis)
+        if not self.secondary_axis:
             self.primary.set_zorder(1000)
-            self.primary.format_coord = self._coordinates(self.primary, None, secondary_axis)
+            self.primary.format_coord = self._coordinates(self.primary, None, self.secondary_axis)
 
         colors = {
                   'gray':     '#808080',
@@ -511,7 +516,7 @@ class Flipbook(tk.Toplevel):
             column = self.info[file].y1_columns[y]
             labels.append(current.labels[column-1])
 
-        if secondary_axis:
+        if self.secondary_axis:
             repeated = 0
             for y, y2 in enumerate(current.y2):
 
@@ -527,7 +532,15 @@ class Flipbook(tk.Toplevel):
         min_x = min(current.x)
         max_x = max(current.x)
         padding = (max_x - min_x) * (100/90) * (0.05)
-        self.primary.set_xlim(min_x - padding, max_x + padding)
+        self.x_lower_original = min_x - padding
+        self.x_upper_original = max_x + padding
+        self.primary.set_xlim(self.x_lower_original, self.x_upper_original)
+
+        self.y1_lower_original = self.primary.get_ylim()[0]
+        self.y1_upper_original = self.primary.get_ylim()[1]
+        if self.secondary_axis:
+            self.y2_lower_original = self.secondary.get_ylim()[0]
+            self.y2_upper_original = self.secondary.get_ylim()[1]
 
         self.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
         self.primary.minorticks_on()
@@ -536,10 +549,10 @@ class Flipbook(tk.Toplevel):
         self.figure.suptitle(current.title)
         self.primary.set_xlabel(current.x_label)
         self.primary.set_ylabel(current.y1_label)
-        if secondary_axis: self.secondary.set_ylabel(current.y2_label)
+        if self.secondary_axis: self.secondary.set_ylabel(current.y2_label)
 
         lines = len(self.primary.lines)
-        if secondary_axis: lines += len(self.secondary.lines)
+        if self.secondary_axis: lines += len(self.secondary.lines)
         max_columns = 5
         rows = lines / max_columns
         if rows > 2: max_columns = math.ceil(lines / 2)
@@ -553,6 +566,15 @@ class Flipbook(tk.Toplevel):
                 mode = 'expand',
                 bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
+
+        # Controls
+
+        if current.x_lower: self.primary.set_xlim(left=current.x_lower)
+        if current.x_upper: self.primary.set_xlim(right=current.x_upper)
+        if current.y1_lower: self.primary.set_ylim(bottom=current.y1_lower)
+        if current.y1_upper: self.primary.set_ylim(top=current.y1_upper)
+        if current.y2_lower: self.secondary.set_ylim(bottom=current.y2_lower)
+        if current.y2_upper: self.secondary.set_ylim(top=current.y2_upper)
 
         if current.background.get() == 'Tactair':
             image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
@@ -579,10 +601,6 @@ class Flipbook(tk.Toplevel):
     def flip_page(self, event, direction):
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
         if destination in range(self.pages + 1):
-            if self.secondary:
-                self.secondary.clear()
-                self.secondary.axis('off')
-            self.secondary = None
             self.page += 1 if direction == 'right' else -1
             self.update_plot()
             self.update_arrows()
@@ -640,9 +658,9 @@ class Flipbook(tk.Toplevel):
         notebook = ttk.Notebook(primary, takefocus=0)
         notebook.grid(row=0, column=0, sticky='NSEW')
 
+        figure = gui.ScrollableTab(notebook, 'Figure')
         appearance = gui.ScrollableTab(notebook, 'Appearance')
         analysis = gui.ScrollableTab(notebook, 'Analysis')
-        legend = gui.ScrollableTab(notebook, 'Legend')
         annotations = gui.ScrollableTab(notebook, 'Annotations')
 
         gui.Separator(self.controls).grid(row=1, column=0, sticky='NSEW')
@@ -654,6 +672,47 @@ class Flipbook(tk.Toplevel):
         update_button = ttk.Button(secondary, text='Update', command=self.update_controls)
         update_button.grid(row=0, column=0, sticky='E')
 
+        # Start of Figure tab
+
+        limits = gui.PaddedFrame(figure)
+        limits.grid(row=0, column=0, sticky='NSEW')
+
+        x_lower_label = tk.Label(limits, text='x-lower:')
+        x_lower_label.grid(row=0, column=0, sticky='NSEW')
+        self.x_lower_entry = ttk.Entry(limits)
+        self.x_lower_entry.grid(row=1, column=0, sticky='NSEW')
+
+        x_upper_label = tk.Label(limits, text='x-upper:')
+        x_upper_label.grid(row=0, column=1, sticky='NSEW')
+        self.x_upper_entry = ttk.Entry(limits)
+        self.x_upper_entry.grid(row=1, column=1, sticky='NSEW')
+
+        gui.Space(limits, row=2, column=0, columnspan=2)
+
+        y1_lower_label = tk.Label(limits, text='y1-lower:')
+        y1_lower_label.grid(row=3, column=0, sticky='NSEW')
+        self.y1_lower_entry = ttk.Entry(limits)
+        self.y1_lower_entry.grid(row=4, column=0, sticky='NSEW')
+
+        y1_upper_label = tk.Label(limits, text='y1-upper:')
+        y1_upper_label.grid(row=3, column=1, sticky='NSEW')
+        self.y1_upper_entry = ttk.Entry(limits)
+        self.y1_upper_entry.grid(row=4, column=1, sticky='NSEW')
+
+        gui.Space(limits, row=5, column=0, columnspan=2)
+
+        y2_lower_label = tk.Label(limits, text='y2_lower:')
+        y2_lower_label.grid(row=6, column=0, sticky='NSEW')
+        self.y2_lower_entry = ttk.Entry(limits)
+        self.y2_lower_entry.grid(row=7, column=0, sticky='NSEW')
+
+        y2_upper_label = tk.Label(limits, text='y2_upper:')
+        y2_upper_label.grid(row=6, column=1, sticky='NSEW')
+        self.y2_upper_entry = ttk.Entry(limits)
+        self.y2_upper_entry.grid(row=7, column=1, sticky='NSEW')
+
+        # Start of Appearance tab
+
         background = gui.PaddedFrame(appearance)
         background.grid(row=0, column=0, sticky='NSEW')
 
@@ -661,10 +720,10 @@ class Flipbook(tk.Toplevel):
         background_label.grid(row=0, column=0, sticky='NSEW')
 
         self.background_choice = tk.StringVar()
-        background_combo = ttk.Combobox(background, state='readonly', textvariable=self.background_choice)
+        background_combo = ttk.Combobox(background, state='readonly',
+                                        textvariable=self.background_choice)
         background_combo.grid(row=0, column=1, sticky='NSEW')
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
-        # self.background_choice.trace('w', custom_background)
         background_combo.bind('<<ComboboxSelected>>', custom_background)
 
         self.refresh_controls()
@@ -675,14 +734,71 @@ class Flipbook(tk.Toplevel):
 
         current = self.plots[self.page]
 
+        self.x_lower_entry.delete(0, 'end')
+        self.x_lower_entry.insert(0, current.x_lower if current.x_lower else self.x_lower_original)
+
+        self.x_upper_entry.delete(0, 'end')
+        self.x_upper_entry.insert(0, current.x_upper if current.x_upper else self.x_upper_original)
+
+        self.y1_lower_entry.delete(0, 'end')
+        self.y1_lower_entry.insert(0, current.y1_lower if current.y1_lower else self.y1_lower_original)
+
+        self.y1_upper_entry.delete(0, 'end')
+        self.y1_upper_entry.insert(0, current.y1_upper if current.y1_upper else self.y1_upper_original)
+
+        if self.secondary_axis:
+            self.y2_lower_entry['state'] = 'normal'
+            self.y2_lower_entry.delete(0, 'end')
+            self.y2_lower_entry.insert(0, current.y2_lower if current.y2_lower else self.y2_lower_original)
+            self.y2_upper_entry['state'] = 'normal'
+            self.y2_upper_entry.delete(0, 'end')
+            self.y2_upper_entry.insert(0, current.y2_upper if current.y2_upper else self.y2_upper_original)
+        else:
+            self.y2_lower_entry.delete(0, 'end')
+            self.y2_lower_entry['state'] = 'disabled'
+            self.y2_upper_entry.delete(0, 'end')
+            self.y2_upper_entry['state'] = 'disabled'
+
         self.background_choice.set(current.background.get())
 
     def update_controls(self):
         current = self.plots[self.page]
 
+        if self.x_lower_entry.get():
+            current.x_lower = float(self.x_lower_entry.get())
+        else:
+            current.x_lower = float(self.x_lower_original)
+
+        if self.x_upper_entry.get():
+            current.x_upper = float(self.x_upper_entry.get())
+        else:
+            current.x_upper = float(self.x_upper_original)
+
+        if self.y1_lower_entry.get():
+            current.y1_lower = float(self.y1_lower_entry.get())
+        else:
+            current.y1_lower = float(self.y1_lower_original)
+
+        if self.y1_upper_entry.get():
+            current.y1_upper = float(self.y1_upper_entry.get())
+        else:
+            current.y1_upper = float(self.y1_upper_original)
+
+        if self.secondary_axis:
+            if self.y2_lower_entry.get():
+                current.y2_lower = float(self.y2_lower_entry.get())
+            else:
+                current.y2_lower = float(self.y2_lower_original)
+
+            if self.y2_upper_entry.get():
+                current.y2_upper = float(self.y2_upper_entry.get())
+            else:
+                current.y2_upper = float(self.y2_upper_original)
+
         current.background.set(self.background_choice.get())
 
         self.update_plot()
+        self.refresh_controls()
 
 
 class File(gui.ScrollableTab):
@@ -885,6 +1001,13 @@ class File(gui.ScrollableTab):
                 self.x_label = None
                 self.y1_label = None
                 self.y2_label = None
+
+                self.x_lower = None
+                self.x_upper = None
+                self.y1_lower = None
+                self.y1_upper = None
+                self.y2_lower = None
+                self.y2_upper = None
 
                 self.background = tk.StringVar()
                 self.background.set('None')
