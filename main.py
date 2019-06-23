@@ -324,7 +324,7 @@ class Flipbook(tk.Toplevel):
         left = tk.Frame(flipbook)
         left.grid(row=0, column=0, padx=(0, 12), sticky='NSEW')
         left.rowconfigure(0, weight=1)
-        self.previous_button = ttk.Button(left, text='◀', width=3)
+        self.previous_button = ttk.Button(left, text='◀', width=3, takefocus=0)
         self.previous_button.grid(row=0, column=0, sticky='NSEW')
         self.previous_button['command'] = lambda event=None, direction='left': \
                                           self.flip_page(event, direction)
@@ -332,7 +332,7 @@ class Flipbook(tk.Toplevel):
         right = tk.Frame(flipbook)
         right.grid(row=0, column=2, padx=(12, 0), sticky='NSEW')
         right.rowconfigure(0, weight=1)
-        self.next_button = ttk.Button(right, text='▶', width=3)
+        self.next_button = ttk.Button(right, text='▶', width=3, takefocus=0)
         self.next_button.grid(row=0, column=0, sticky='NSEW')
         self.next_button['command'] = lambda event=None, direction='right': \
                                       self.flip_page(event, direction)
@@ -363,7 +363,8 @@ class Flipbook(tk.Toplevel):
         test_frame = tk.Frame(toolbar_frame)
         test_frame.grid(row=0, column=1, sticky='NSEW')
 
-        controls_button = ttk.Button(toolbar_frame, text='Controls', command=self.controls_window)
+        controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
+                                     command=self.controls_window)
         controls_button.grid(row=0, column=1, sticky='E')
         global controls_image
         controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
@@ -572,17 +573,26 @@ class Flipbook(tk.Toplevel):
                     self.background_choice.set('None')
             else: current.background_path = None
 
-        self.controls = tk.Toplevel(self)
-        self.controls.protocol("WM_DELETE_WINDOW", on_close)
+        current = self.plots[self.page]
 
+        self.controls = tk.Toplevel(self)
         self.controls.title('Controls')
+        self.controls.columnconfigure(0, weight=1)
+        self.controls.rowconfigure(0, weight=1)
+        self.controls.protocol("WM_DELETE_WINDOW", on_close)
 
         primary = gui.PaddedFrame(self.controls)
         primary.grid(row=0, column=0, sticky='NSEW')
+        primary.columnconfigure(0, weight=1)
+        primary.rowconfigure(0, weight=1)
 
         notebook = ttk.Notebook(primary, takefocus=0)
         notebook.grid(row=0, column=0, sticky='NSEW')
 
+        # figure = gui.ScrollableTab(notebook, 'Figure')
+        # appearance = gui.ScrollableTab(notebook, 'Appearance')
+        # analysis = gui.ScrollableTab(notebook, 'Analysis')
+        # annotations = gui.ScrollableTab(notebook, 'Annotations')
         figure = gui.ScrollableTab(notebook, 'Figure', cwidth=350)
         appearance = gui.ScrollableTab(notebook, 'Appearance', cwidth=350)
         analysis = gui.ScrollableTab(notebook, 'Analysis', cwidth=350)
@@ -657,6 +667,14 @@ class Flipbook(tk.Toplevel):
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
         background_combo.bind('<<ComboboxSelected>>', custom_background)
 
+        # Start of Analysis tab
+
+        self.tolerance_bands = gui.PaddedFrame(analysis)
+        self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
+        self.tolerance_bands.columnconfigure(0, weight=1)
+
+        self.band_controls = None
+
         # End of controls
 
         self.controls.bind('<Return>', self.update_controls)
@@ -669,6 +687,7 @@ class Flipbook(tk.Toplevel):
 
         current = self.plots[self.page]
 
+        # Axes limits
         def axis_entry(entry, value, original):
             entry.delete(0, 'end')
             entry.insert(0, value if value else original)
@@ -687,11 +706,24 @@ class Flipbook(tk.Toplevel):
             self.y2_upper_entry.delete(0, 'end')
             self.y2_upper_entry['state'] = 'disabled'
 
+        # Background selection
         self.background_choice.set(current.background.get())
+
+        # Tolerance bands
+        if self.band_controls: self.band_controls.grid_forget()
+        self.band_controls = current.bands
+        self.band_controls.setup(self.tolerance_bands)
+        self.band_controls.grid(row=0, column=0, sticky='NSEW')
+
+        self.band_controls.series = current.series
+        self.band_controls.minus_tolerance = current.minus_tolerance
+        self.band_controls.plus_tolerance = current.plus_tolerance
+        self.band_controls.lag = current.lag
 
     def update_controls(self, event=None):
         current = self.plots[self.page]
 
+        # Axes limits
         def update_axis(entry, original):
             return float(entry.get()) if entry.get() else float(original)
 
@@ -703,11 +735,148 @@ class Flipbook(tk.Toplevel):
             current.y2_lower = update_axis(self.y2_lower_entry, self.y2_lower_original)
             current.y2_upper = update_axis(self.y2_upper_entry, self.y2_upper_original)
 
+        # Background selection
         current.background.set(self.background_choice.get())
+
+        # Tolerance bands
+        current.series = self.band_controls.series
+        current.minus_tolerance = self.band_controls.minus_tolerance
+        current.plus_tolerance = self.band_controls.plus_tolerance
+        current.lag = self.band_controls.lag
 
         self.update_plot()
         self.refresh_controls()
 
+
+class ToleranceBands(tk.Frame):
+
+    def __init__(self):
+
+        self.count = 0
+        self.bands = []
+
+        self.lag_entries = []
+        self.series_combos = []
+        self.plus_tolerance_entries = []
+        self.minus_tolerance_entries = []
+
+        self.initialized = False
+
+    def setup(self, master):
+
+        if not self.initialized:
+
+            tk.Frame.__init__(self, master=master)
+            self.columnconfigure(0, weight=1)
+
+            controls = tk.Frame(self)
+            controls.grid(row=0, column=0, sticky='NSEW')
+            controls.columnconfigure(0, weight=1)
+
+            title = tk.Label(controls, text='Tolerance Bands')
+            title.grid(row=0, column=0, sticky='W')
+
+            add_button = ttk.Button(controls, text='+', width=3, command=self.add_band)
+            add_button.grid(row=0, column=1)
+
+            delete_button = ttk.Button(controls, text='-', width=3, command=self.delete_band)
+            delete_button.grid(row=0, column=2)
+
+            self.initialized = True
+
+    def add_band(self):
+
+        PADDING = 2
+
+        frame = tk.Frame(self)
+        frame.grid(row=self.count + 1, column=0, pady=(10, 0))
+
+        series_label = ttk.Label(frame, text='series:')
+        series_label.grid(row=0, column=0, padx=PADDING)
+
+        plus_tolerance_label = ttk.Label(frame, text='+tolerance:')
+        plus_tolerance_label.grid(row=0, column=1, padx=PADDING)
+
+        minus_tolerance_label = ttk.Label(frame, text='-tolerance:')
+        minus_tolerance_label.grid(row=0, column=2, padx=PADDING)
+
+        lag_label = ttk.Label(frame, text='lag:')
+        lag_label.grid(row=0, column=3, padx=PADDING)
+
+        series_combo = ttk.Combobox(frame, width=15)
+        series_combo.grid(row=1, column=0, padx=PADDING)
+        self.series_combos.append(series_combo)
+
+        plus_tolerance_entry = ttk.Entry(frame, width=8)
+        plus_tolerance_entry.grid(row=1, column=1, padx=PADDING)
+        self.plus_tolerance_entries.append(plus_tolerance_entry)
+
+        minus_tolerance_entry = ttk.Entry(frame, width=8)
+        minus_tolerance_entry.grid(row=1, column=2, padx=PADDING)
+        self.minus_tolerance_entries.append(minus_tolerance_entry)
+
+        lag_entry = ttk.Entry(frame, width=8)
+        lag_entry.grid(row=1, column=3, padx=PADDING)
+        self.lag_entries.append(lag_entry)
+
+        self.count += 1
+        self.bands.append(frame)
+
+    def delete_band(self):
+        if len(self.bands) == 0: return
+        self.bands[-1].destroy()
+        del(self.bands[-1])
+
+        del(self.series_combos[-1])
+        del(self.minus_tolerance_entries[-1])
+        del(self.plus_tolerance_entries[-1])
+        del(self.lag_entries[-1])
+
+        self.count -= 1
+
+    @property
+    def series(self):
+        return [entry.get() for entry in self.series_combos]
+
+    @series.setter
+    def series(self, series):
+        if series:
+            for i in range(len(series)):
+                self.series_combos[i].delete(0, 'end')
+                self.series_combos[i].insert(0, series[i] if series[i] else '')
+    
+    @property
+    def minus_tolerance(self):
+        return [entry.get() for entry in self.minus_tolerance_entries]
+
+    @minus_tolerance.setter
+    def minus_tolerance(self, tolerances):
+        if tolerances:
+            for i in range(len(tolerances)):
+                self.minus_tolerance_entries[i].delete(0, 'end')
+                self.minus_tolerance_entries[i].insert(0, tolerances[i] if tolerances[i] else '')
+
+    @property
+    def plus_tolerance(self):
+        return [entry.get() for entry in self.lag_entries]
+
+    @plus_tolerance.setter
+    def plus_tolerance(self, tolerances):
+        if tolerances:
+            for i in range(len(tolerances)):
+                self.plus_tolerance_entries[i].delete(0, 'end')
+                self.plus_tolerance_entries[i].insert(0, tolerances[i] if tolerances[i] else '')
+
+    @property
+    def lag(self):
+        return [entry.get() for entry in self.lag_entries]
+
+    @lag.setter
+    def lag(self, lags):
+        if lags:
+            for i in range(len(lags)):
+                self.lag_entries[i].delete(0, 'end')
+                self.lag_entries[i].insert(0, lags[i] if lags[i] else '')
 
 class File(gui.ScrollableTab):
 
@@ -754,7 +923,6 @@ class File(gui.ScrollableTab):
         self.unit_row_entry.bind('<FocusIn>', self._scroll_into_view)
 
         self.add_row()
-        self.update()
 
     def add_row(self):
 
@@ -852,14 +1020,12 @@ class File(gui.ScrollableTab):
         self._count += 1
         self._rows.append(frame)
         self.add_plot()
-        self.update()
 
     def delete_row(self):
         if len(self._rows) <= 1: return
         self._rows[-1].destroy()
         del(self._rows[-1])
         del(self.plots[-1])
-        self.update()
         self._count -= 1
 
     def _scroll_into_view(self, event):
@@ -920,6 +1086,12 @@ class File(gui.ScrollableTab):
                 self.background = tk.StringVar()
                 self.background.set('None')
                 self.background_path = None
+
+                self.bands = ToleranceBands()
+                self.series = None
+                self.minus_tolerance = None
+                self.plus_tolerance = None
+                self.lag = None
 
             def _x_data(self, x_column):
                 x = self.data[self.labels[x_column-1]]
