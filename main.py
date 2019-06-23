@@ -734,25 +734,18 @@ class Flipbook(tk.Toplevel):
 
         current = self.plots[self.page]
 
-        self.x_lower_entry.delete(0, 'end')
-        self.x_lower_entry.insert(0, current.x_lower if current.x_lower else self.x_lower_original)
-
-        self.x_upper_entry.delete(0, 'end')
-        self.x_upper_entry.insert(0, current.x_upper if current.x_upper else self.x_upper_original)
-
-        self.y1_lower_entry.delete(0, 'end')
-        self.y1_lower_entry.insert(0, current.y1_lower if current.y1_lower else self.y1_lower_original)
-
-        self.y1_upper_entry.delete(0, 'end')
-        self.y1_upper_entry.insert(0, current.y1_upper if current.y1_upper else self.y1_upper_original)
-
+        def axis_entry(entry, value, original):
+            entry.delete(0, 'end')
+            entry.insert(0, value if value else original)
+        axis_entry(self.x_lower_entry, current.x_lower, self.x_lower_original)
+        axis_entry(self.x_upper_entry, current.x_upper, self.x_upper_original)
+        axis_entry(self.y1_lower_entry, current.y1_lower, self.y1_lower_original)
+        axis_entry(self.y1_upper_entry, current.y1_upper, self.y1_upper_original)
         if self.secondary_axis:
             self.y2_lower_entry['state'] = 'normal'
-            self.y2_lower_entry.delete(0, 'end')
-            self.y2_lower_entry.insert(0, current.y2_lower if current.y2_lower else self.y2_lower_original)
+            axis_entry(self.y2_lower_entry, current.y2_lower, self.y2_lower_original)
             self.y2_upper_entry['state'] = 'normal'
-            self.y2_upper_entry.delete(0, 'end')
-            self.y2_upper_entry.insert(0, current.y2_upper if current.y2_upper else self.y2_upper_original)
+            axis_entry(self.y2_upper_entry, current.y2_upper, self.y2_upper_original)
         else:
             self.y2_lower_entry.delete(0, 'end')
             self.y2_lower_entry['state'] = 'disabled'
@@ -764,36 +757,16 @@ class Flipbook(tk.Toplevel):
     def update_controls(self):
         current = self.plots[self.page]
 
-        if self.x_lower_entry.get():
-            current.x_lower = float(self.x_lower_entry.get())
-        else:
-            current.x_lower = float(self.x_lower_original)
+        def update_axis(entry, original):
+            return float(entry.get()) if entry.get() else float(original)
 
-        if self.x_upper_entry.get():
-            current.x_upper = float(self.x_upper_entry.get())
-        else:
-            current.x_upper = float(self.x_upper_original)
-
-        if self.y1_lower_entry.get():
-            current.y1_lower = float(self.y1_lower_entry.get())
-        else:
-            current.y1_lower = float(self.y1_lower_original)
-
-        if self.y1_upper_entry.get():
-            current.y1_upper = float(self.y1_upper_entry.get())
-        else:
-            current.y1_upper = float(self.y1_upper_original)
-
+        current.x_lower = update_axis(self.x_lower_entry, self.x_lower_original)
+        current.x_upper = update_axis(self.x_upper_entry, self.x_upper_original)
+        current.y1_lower = update_axis(self.y1_lower_entry, self.y1_lower_original)
+        current.y1_upper = update_axis(self.y1_upper_entry, self.y1_upper_original)
         if self.secondary_axis:
-            if self.y2_lower_entry.get():
-                current.y2_lower = float(self.y2_lower_entry.get())
-            else:
-                current.y2_lower = float(self.y2_lower_original)
-
-            if self.y2_upper_entry.get():
-                current.y2_upper = float(self.y2_upper_entry.get())
-            else:
-                current.y2_upper = float(self.y2_upper_original)
+            current.y2_lower = update_axis(self.y2_lower_entry, self.y2_lower_original)
+            current.y2_upper = update_axis(self.y2_upper_entry, self.y2_upper_original)
 
         current.background.set(self.background_choice.get())
 
