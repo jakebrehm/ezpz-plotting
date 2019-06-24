@@ -363,8 +363,13 @@ class Flipbook(tk.Toplevel):
         test_frame = tk.Frame(toolbar_frame)
         test_frame.grid(row=0, column=1, sticky='NSEW')
 
+        def show_controls():
+            self.controls.update()
+            self.controls.deiconify()
+
         controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
-                                     command=self.controls_window)
+                                     # command=self.controls_window)
+                                     command=show_controls)
         controls_button.grid(row=0, column=1, sticky='E')
         global controls_image
         controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
@@ -515,6 +520,10 @@ class Flipbook(tk.Toplevel):
 
         self.canvas.draw()
 
+        if not self.controls:
+            self.controls_window()
+            self.controls.withdraw()
+
     def update_arrows(self):
         if self.page == 0:
             self.previous_button.config(state='disabled')
@@ -557,10 +566,6 @@ class Flipbook(tk.Toplevel):
 
         if self.controls: return
 
-        def on_close():
-            self.controls.destroy()
-            self.controls = None
-
         def custom_background(event=None):
             before = self.background_choice.get()
             current = self.plots[self.page]
@@ -579,7 +584,7 @@ class Flipbook(tk.Toplevel):
         self.controls.title('Controls')
         self.controls.columnconfigure(0, weight=1)
         self.controls.rowconfigure(0, weight=1)
-        self.controls.protocol("WM_DELETE_WINDOW", on_close)
+        self.controls.protocol("WM_DELETE_WINDOW", lambda: self.controls.withdraw())
 
         primary = gui.PaddedFrame(self.controls)
         primary.grid(row=0, column=0, sticky='NSEW')
@@ -651,7 +656,6 @@ class Flipbook(tk.Toplevel):
         self.y2_upper_entry.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         # Start of Appearance tab
-
         background = gui.PaddedFrame(appearance)
         background.grid(row=0, column=0, sticky='NSEW')
         background.columnconfigure(0, weight=1)
@@ -844,7 +848,7 @@ class ToleranceBands(tk.Frame):
             for i in range(len(series)):
                 self.series_combos[i].delete(0, 'end')
                 self.series_combos[i].insert(0, series[i] if series[i] else '')
-    
+
     @property
     def minus_tolerance(self):
         return [entry.get() for entry in self.minus_tolerance_entries]
@@ -858,7 +862,7 @@ class ToleranceBands(tk.Frame):
 
     @property
     def plus_tolerance(self):
-        return [entry.get() for entry in self.lag_entries]
+        return [entry.get() for entry in self.plus_tolerance_entries]
 
     @plus_tolerance.setter
     def plus_tolerance(self, tolerances):
@@ -1274,7 +1278,7 @@ app.root.bind('<Prior>', lambda event, direction='next': switch_tab(event, direc
 def test_function():
     global inputs, files
 
-    location = 'Presets\\home.ini'
+    location = 'Presets\\preset.ini'
     preset = configobj.ConfigObj(location)
 
     if len(preset) == 0:
