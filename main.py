@@ -719,6 +719,10 @@ class Flipbook(tk.Toplevel):
         self.band_controls.setup(self.tolerance_bands)
         self.band_controls.grid(row=0, column=0, sticky='NSEW')
 
+        if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
+            longest = len(max(current.series, current.minus_tolerance,
+                              current.plus_tolerance, current.lag))
+            self.band_controls.recreate(rows=longest)
         self.band_controls.series = current.series
         self.band_controls.minus_tolerance = current.minus_tolerance
         self.band_controls.plus_tolerance = current.plus_tolerance
@@ -752,10 +756,76 @@ class Flipbook(tk.Toplevel):
         self.refresh_controls()
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ToleranceBands(tk.Frame):
 
     def __init__(self):
+        self.reset()
 
+    def setup(self, master):
+
+        tk.Frame.__init__(self, master=master)
+        self.columnconfigure(0, weight=1)
+
+        controls = tk.Frame(self)
+        controls.grid(row=0, column=0, sticky='NSEW')
+        controls.columnconfigure(0, weight=1)
+
+        title = tk.Label(controls, text='Tolerance Bands')
+        title.grid(row=0, column=0, sticky='W')
+
+        add_button = ttk.Button(controls, text='+', width=3, command=self.add_band)
+        add_button.grid(row=0, column=1)
+
+        delete_button = ttk.Button(controls, text='-', width=3, command=self.delete_band)
+        delete_button.grid(row=0, column=2)
+
+    def reset(self):
         self.count = 0
         self.bands = []
 
@@ -764,36 +834,19 @@ class ToleranceBands(tk.Frame):
         self.plus_tolerance_entries = []
         self.minus_tolerance_entries = []
 
-        self.initialized = False
+    def recreate(self, rows):
 
-    def setup(self, master):
+        self.reset()
 
-        if not self.initialized:
+        for row in range(rows):
+            self.add_band(recreate=row)
 
-            tk.Frame.__init__(self, master=master)
-            self.columnconfigure(0, weight=1)
-
-            controls = tk.Frame(self)
-            controls.grid(row=0, column=0, sticky='NSEW')
-            controls.columnconfigure(0, weight=1)
-
-            title = tk.Label(controls, text='Tolerance Bands')
-            title.grid(row=0, column=0, sticky='W')
-
-            add_button = ttk.Button(controls, text='+', width=3, command=self.add_band)
-            add_button.grid(row=0, column=1)
-
-            delete_button = ttk.Button(controls, text='-', width=3, command=self.delete_band)
-            delete_button.grid(row=0, column=2)
-
-            self.initialized = True
-
-    def add_band(self):
+    def add_band(self, recreate=None):
 
         PADDING = 2
 
         frame = tk.Frame(self)
-        frame.grid(row=self.count + 1, column=0, pady=(10, 0))
+        frame.grid(row=self.count+1 if not recreate else recreate+1, column=0, pady=(10, 0))
 
         series_label = ttk.Label(frame, text='series:')
         series_label.grid(row=0, column=0, padx=PADDING)
@@ -881,6 +934,47 @@ class ToleranceBands(tk.Frame):
             for i in range(len(lags)):
                 self.lag_entries[i].delete(0, 'end')
                 self.lag_entries[i].insert(0, lags[i] if lags[i] else '')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class File(gui.ScrollableTab):
 
