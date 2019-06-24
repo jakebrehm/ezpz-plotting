@@ -311,6 +311,7 @@ class Flipbook(tk.Toplevel):
         self.numbers = [p for f, file in enumerate(self.info) for p in range(len(file.plots))]
         self.secondary = None
         self.controls = None
+        self.band_controls = None
 
         tk.Toplevel.__init__(self, *args, **kwargs)
 
@@ -498,8 +499,7 @@ class Flipbook(tk.Toplevel):
                 bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
 
-        # Controls
-
+        # Axes limits
         if current.x_lower: self.primary.set_xlim(left=current.x_lower)
         if current.x_upper: self.primary.set_xlim(right=current.x_upper)
         if current.y1_lower: self.primary.set_ylim(bottom=current.y1_lower)
@@ -507,6 +507,7 @@ class Flipbook(tk.Toplevel):
         if current.y2_lower: self.secondary.set_ylim(bottom=current.y2_lower)
         if current.y2_upper: self.secondary.set_ylim(top=current.y2_upper)
 
+        # Background selection
         if current.background.get() == 'Tactair':
             image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
             x_low, x_high = self.primary.get_xlim()
@@ -517,6 +518,21 @@ class Flipbook(tk.Toplevel):
             x_low, x_high = self.primary.get_xlim()
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+        # Tolerance Bands
+        if self.band_controls:
+            for plus in self.band_controls.plus_bands:
+                if not plus: continue
+                elif plus[0] == 'primary':
+                    self.primary.plot(current.x, plus[1], 'c--')
+                elif plus[0] == 'secondary':
+                    self.secondary.plot(current.x, plus[1], 'c--')
+            for minus in self.band_controls.minus_bands:
+                if not minus: continue
+                elif minus[0] == 'primary':
+                    self.primary.plot(current.x, minus[1], 'c--')
+                elif minus[0] == 'secondary':
+                    self.secondary.plot(current.x, minus[1], 'c--')
 
         self.canvas.draw()
 
@@ -537,8 +553,9 @@ class Flipbook(tk.Toplevel):
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
         if destination in range(self.pages + 1):
             self.page += 1 if direction == 'right' else -1
-            self.update_plot()
+            self.refresh_controls()
             self.update_arrows()
+            self.update_plot()
             self.refresh_controls()
         return ('break')
 
@@ -677,13 +694,11 @@ class Flipbook(tk.Toplevel):
         self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
         self.tolerance_bands.columnconfigure(0, weight=1)
 
-        self.band_controls = None
-
         # End of controls
 
-        self.controls.bind('<Return>', self.update_controls)
-
         self.refresh_controls()
+
+        self.controls.bind('<Return>', self.update_controls)
 
     def refresh_controls(self):
 
@@ -728,6 +743,24 @@ class Flipbook(tk.Toplevel):
         self.band_controls.plus_tolerance = current.plus_tolerance
         self.band_controls.lag = current.lag
 
+        values = []
+        for column in current.y1_columns:
+            values.append(current.labels[column-1])
+        for column in current.y2_columns:
+            values.append(current.labels[column-1])
+        self.band_controls.update_series(values)
+
+        # self.
+        # for entry in self.band_controls.series_combos:
+        #     values = []
+        #     for column in current.y1_columns:
+        #         values.append(current.labels[column-1])
+        #     for column in current.y2_columns:
+        #         values.append(current.labels[column-1])
+        #     # entry['state'] = 'normal'
+        #     entry['values'] = values
+        #     # entry['state'] = 'readonly'
+
     def update_controls(self, event=None):
         current = self.plots[self.page]
 
@@ -751,6 +784,7 @@ class Flipbook(tk.Toplevel):
         current.minus_tolerance = self.band_controls.minus_tolerance
         current.plus_tolerance = self.band_controls.plus_tolerance
         current.lag = self.band_controls.lag
+        self.band_controls.calculate(current)
 
         self.update_plot()
         self.refresh_controls()
@@ -805,6 +839,13 @@ class Flipbook(tk.Toplevel):
 class ToleranceBands(tk.Frame):
 
     def __init__(self):
+
+        # self.plus_backup = []
+        # self.minus_backup = []
+
+        self.plus_bands = []
+        self.minus_bands = []
+
         self.reset()
 
     def setup(self, master):
@@ -834,12 +875,26 @@ class ToleranceBands(tk.Frame):
         self.plus_tolerance_entries = []
         self.minus_tolerance_entries = []
 
+        self.values = None
+
+        # self.plus_backup = self.plus_bands
+        # self.minus_backup = self.minus_bands
+
+        # print(f'Minus backup:\n\t\t\t{self.minus_backup}')
+
+        self.plus_bands = []
+        self.minus_bands = []
+
     def recreate(self, rows):
-
+        self.minus_backup = self.minus_bands
+        self.plus_backup = self.plus_bands
         self.reset()
-
         for row in range(rows):
             self.add_band(recreate=row)
+        self.minus_bands = self.minus_backup
+        self.plus_bands = self.plus_backup
+
+        # print(self.minus_bands)
 
     def add_band(self, recreate=None):
 
@@ -860,7 +915,8 @@ class ToleranceBands(tk.Frame):
         lag_label = ttk.Label(frame, text='lag:')
         lag_label.grid(row=0, column=3, padx=PADDING)
 
-        series_combo = ttk.Combobox(frame, width=15)
+        # series_combo = ttk.Combobox(frame, width=15, state='readonly')
+        series_combo = ttk.Combobox(frame, width=15, postcommand=self.update_entries)
         series_combo.grid(row=1, column=0, padx=PADDING)
         self.series_combos.append(series_combo)
 
@@ -876,6 +932,16 @@ class ToleranceBands(tk.Frame):
         lag_entry.grid(row=1, column=3, padx=PADDING)
         self.lag_entries.append(lag_entry)
 
+        # self.plus_bands.append(None)
+        # self.minus_bands.append(None)
+
+        if recreate:
+            self.plus_bands = self.plus_backup
+            self.minus_bands = self.minus_backup
+        else:
+            self.plus_bands.append(None)
+            self.minus_bands.append(None)
+
         self.count += 1
         self.bands.append(frame)
 
@@ -889,7 +955,78 @@ class ToleranceBands(tk.Frame):
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
 
+        del(self.minus_bands[-1])
+        del(self.plus_bands[-1])
+
+        # print(len(self.series_combos))
+        # print(len(self.minus_bands))
+
         self.count -= 1
+
+    def update_series(self, values):
+        self.values = values
+
+    def update_entries(self):
+        for entry in self.series_combos:
+            entry['values'] = self.values
+
+    def calculate(self, plot):
+    # def calculate(self):
+
+        def BandData(iterator, which):
+            series = self.series_combos[iterator].get()
+
+            MINUS_TOLERANCE = float(self.minus_tolerance_entries[iterator].get())
+            PLUS_TOLERANCE = float(self.plus_tolerance_entries[iterator].get())
+            LAG = float(self.lag_entries[iterator].get())
+
+
+            for l, label in enumerate(plot.labels):
+                if label == series:
+                    index = l
+
+            if index + 1 in plot.y1_columns:
+                axis = 'primary'
+                position = plot.y1_columns.index(index + 1)
+            else:
+                axis = 'secondary'
+                position = plot.y2_columns.index(index + 1)
+
+            x = plot.x
+            if axis == 'primary':
+                y = plot.y1[position]
+            elif axis == 'secondary':
+                y = plot.y2[position]
+            # else:
+            #     return (None, None)
+
+            # Maybe take average distance between each point in x instead?
+            resolution = x[1] - x[0]
+            lookback = round(LAG / resolution)
+
+            band = []
+            for i, c in enumerate(y):
+                if i >= lookback:
+                    if which == '+':
+                        # Get the maximum value in the lookback range and add tolerance
+                        maximum = max(y.loc[i-lookback:i+1])
+                        toleranced = maximum + PLUS_TOLERANCE
+                    elif which == '-':
+                        # Get the minimum value in the lookback range and subtract tolerance
+                        minimum = min(y.loc[i-lookback:i+1])
+                        toleranced = minimum - MINUS_TOLERANCE
+                    band.append(toleranced)
+                else:
+                    # Don't want to plot any values before a lookback can be done
+                    band.append(None)
+
+            return (axis, band)
+
+        for i in range(len(self.series_combos)):
+            # self.plus_bands.append(BandData(i, which='+'))
+            # self.minus_bands.append(BandData(i, which='-'))
+            self.plus_bands[i] = BandData(i, which='+')
+            self.minus_bands[i] = BandData(i, which='-')
 
     @property
     def series(self):
@@ -1205,6 +1342,10 @@ class File(gui.ScrollableTab):
                 self.labels = labels
                 self.units = units
 
+                self.x_column = x_column
+                self.y1_columns = y1_columns
+                self.y2_columns = y2_columns
+
                 self.x = self._x_data(x_column)
                 self.y1 = self._y_data(y1_columns)
                 self.y2 = self._y_data(y2_columns) if y2_columns else None
@@ -1277,7 +1418,8 @@ class File(gui.ScrollableTab):
             y1_label = self._y1_labels[p].get()
             y2_label = self._y2_labels[p].get()
 
-            plot._generate(self.data, self.labels, x_column, self.y1_columns, self.y2_columns, self.units)
+            plot._generate(self.data, self.labels, x_column, self.y1_columns,
+                           self.y2_columns, self.units)
             plot._labels(title, x_label, y1_label, y2_label)
 
 
