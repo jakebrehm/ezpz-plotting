@@ -30,6 +30,38 @@ import re
 import configobj
 import random
 
+# Initialize program constants
+flipbook_open = False
+
+clipboard = {
+        'title': None,
+        'x column': None,
+        'y1 columns': None,
+        'y2 columns': None,
+        'x label': None,
+        'y1 label': None,
+        'y2 label': None,
+    }
+
+plot_colors = {
+          'blue':     'b',
+          'green':    'g',
+          'red':      'r',
+          'cyan':     'c',
+          'magenta':  'm',
+          'yellow':   'y',
+          'white':    'w',
+          'black':    'k',
+          'gray':     '#808080',
+          'pink':     '#ff4d4d',
+          'purple':   '#660066',
+          'gold':     '#b38600',
+          'orange':   '#ff6600',
+          'brown':    '#663300',
+          'lime':     '#00ff00',
+}
+
+
 def save_preset():
     valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
     location = fd.asksaveasfilename(title='Choose where to save the preset file',
@@ -217,8 +249,12 @@ def switch_tab(event, direction):
 
 
 def plot_function(event=None):
+    global flipbook_open
+    if flipbook_open: return
+
     for file in files: file.generate()
     flipbook = Flipbook(app.root, info=files)
+    flipbook_open = True
 
 
 def paste_file():
@@ -288,50 +324,15 @@ def clear_all():
             file._y2_labels[row].delete(0, 'end')
 
 
-clipboard = {
-        'title': None,
-        'x column': None,
-        'y1 columns': None,
-        'y2 columns': None,
-        'x label': None,
-        'y1 label': None,
-        'y2 label': None,
-    }
-
-
-# colors = {
-#         'blue': 'b',
-#         'green': 'g',
-#         'red':  'r',
-#         'cyan': 'c',
-#         'magenta': 'm',
-#         'yellow': 'y',
-#         'white': 'w',
-#         'black': 'k',
-# }
-
-
-plot_colors = {
-          'blue':     'b',
-          'green':    'g',
-          'red':      'r',
-          'cyan':     'c',
-          'magenta':  'm',
-          'yellow':   'y',
-          'white':    'w',
-          'black':    'k',
-          'gray':     '#808080',
-          'pink':     '#ff4d4d',
-          'purple':   '#660066',
-          'gold':     '#b38600',
-          'orange':   '#ff6600',
-          'brown':    '#663300',
-          'lime':     '#00ff00',
-}
-
 class Flipbook(tk.Toplevel):
 
     def __init__(self, *args, info, **kwargs):
+
+        def on_close():
+            global flipbook_open
+            self.destroy()
+            flipbook_open = False
+
 
         self.info = info
         self.page = 0
@@ -348,6 +349,8 @@ class Flipbook(tk.Toplevel):
         self.title('Flipbook')
         self.resizable(width=False, height=False)
         self.focus_set()
+        self.protocol("WM_DELETE_WINDOW", on_close)
+
 
         flipbook = gui.PaddedFrame(self)
         flipbook.grid(row=0, column=0, sticky='NSEW')
@@ -521,6 +524,10 @@ class Flipbook(tk.Toplevel):
                 bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
 
+        if not self.controls:
+            self.controls_window()
+            self.controls.withdraw()
+
         # Axes limits
         if current.x_lower: self.primary.set_xlim(left=current.x_lower)
         if current.x_upper: self.primary.set_xlim(right=current.x_upper)
@@ -542,33 +549,24 @@ class Flipbook(tk.Toplevel):
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
         # Tolerance Bands
-        if self.band_controls:
-            for p, plus in enumerate(self.band_controls.plus_bands):
-                if not plus: continue
-                elif plus[0] == 'primary':
-                    self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
-                                      linestyle='dashed')
-                    # self.primary.plot(current.x, plus[1], 'c--')
-                elif plus[0] == 'secondary':
-                    self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
-                                      linestyle='dashed')
-                    # self.secondary.plot(current.x, plus[1], 'c--')
-            for m, minus in enumerate(self.band_controls.minus_bands):
-                if not minus: continue
-                elif minus[0] == 'primary':
-                    self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
-                                      linestyle='dashed')
-                    # self.primary.plot(current.x, minus[1], 'c--')
-                elif minus[0] == 'secondary':
-                    self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
-                                      linestyle='dashed')
-                    # self.secondary.plot(current.x, minus[1], 'c--')
+        for p, plus in enumerate(self.band_controls.plus_bands):
+            if not plus: continue
+            elif plus[0] == 'primary':
+                self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                  linestyle='dashed')
+            elif plus[0] == 'secondary':
+                self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                  linestyle='dashed')
+        for m, minus in enumerate(self.band_controls.minus_bands):
+            if not minus: continue
+            elif minus[0] == 'primary':
+                self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                  linestyle='dashed')
+            elif minus[0] == 'secondary':
+                self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                  linestyle='dashed')
 
         self.canvas.draw()
-
-        if not self.controls:
-            self.controls_window()
-            self.controls.withdraw()
 
     def update_arrows(self):
         if self.page == 0:
@@ -586,6 +584,7 @@ class Flipbook(tk.Toplevel):
             self.refresh_controls()
             self.update_arrows()
             self.update_plot()
+            # Update controls again or else the controls for the wrong page will display
             self.refresh_controls()
         return ('break')
 
@@ -641,14 +640,6 @@ class Flipbook(tk.Toplevel):
         notebook = ttk.Notebook(primary, takefocus=0)
         notebook.grid(row=0, column=0, sticky='NSEW')
 
-        # figure = gui.ScrollableTab(notebook, 'Figure')
-        # appearance = gui.ScrollableTab(notebook, 'Appearance')
-        # analysis = gui.ScrollableTab(notebook, 'Analysis')
-        # annotations = gui.ScrollableTab(notebook, 'Annotations')
-        # figure = gui.ScrollableTab(notebook, 'Figure', cwidth=350)
-        # appearance = gui.ScrollableTab(notebook, 'Appearance', cwidth=350)
-        # analysis = gui.ScrollableTab(notebook, 'Analysis', cwidth=350)
-        # annotations = gui.ScrollableTab(notebook, 'Annotations', cwidth=350)
         figure = gui.ScrollableTab(notebook, 'Figure', cheight=400, cwidth=400)
         appearance = gui.ScrollableTab(notebook, 'Appearance', cheight=400, cwidth=400)
         analysis = gui.ScrollableTab(notebook, 'Analysis', cheight=400, cwidth=400)
@@ -664,7 +655,6 @@ class Flipbook(tk.Toplevel):
         update_button.grid(row=0, column=0, sticky='E')
 
         # Start of Figure tab
-
         limits = gui.PaddedFrame(figure)
         limits.grid(row=0, column=0, sticky='NSEW')
         limits.columnconfigure(0, weight=1)
@@ -723,7 +713,6 @@ class Flipbook(tk.Toplevel):
         background_combo.bind('<<ComboboxSelected>>', custom_background)
 
         # Start of Analysis tab
-
         self.tolerance_bands = gui.PaddedFrame(analysis)
         self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
         self.tolerance_bands.columnconfigure(0, weight=1)
@@ -784,17 +773,6 @@ class Flipbook(tk.Toplevel):
         for column in current.y2_columns:
             values.append(current.labels[column-1])
         self.band_controls.update_series(values)
-
-        # self.
-        # for entry in self.band_controls.series_combos:
-        #     values = []
-        #     for column in current.y1_columns:
-        #         values.append(current.labels[column-1])
-        #     for column in current.y2_columns:
-        #         values.append(current.labels[column-1])
-        #     # entry['state'] = 'normal'
-        #     entry['values'] = values
-        #     # entry['state'] = 'readonly'
 
     def update_controls(self, event=None):
         current = self.plots[self.page]
@@ -876,9 +854,6 @@ class ToleranceBands(tk.Frame):
 
     def __init__(self):
 
-        # self.plus_backup = []
-        # self.minus_backup = []
-
         self.plus_bands = []
         self.minus_bands = []
 
@@ -917,11 +892,6 @@ class ToleranceBands(tk.Frame):
 
         self.values = None
 
-        # self.plus_backup = self.plus_bands
-        # self.minus_backup = self.minus_bands
-
-        # print(f'Minus backup:\n\t\t\t{self.minus_backup}')
-
         self.plus_bands = []
         self.minus_bands = []
 
@@ -931,12 +901,8 @@ class ToleranceBands(tk.Frame):
         self.reset()
         for row in range(rows):
             self.add_band(recreate=row)
-            # self.plus_bands.append(None)
-            # self.minus_bands.append(None)
         self.minus_bands = self.minus_backup
         self.plus_bands = self.plus_backup
-
-        # print(self.minus_bands)
 
     def add_band(self, recreate=None):
 
@@ -989,16 +955,6 @@ class ToleranceBands(tk.Frame):
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
 
-        # self.plus_bands.append(None)
-        # self.minus_bands.append(None)
-
-        # if recreate:
-        #     self.plus_bands = self.plus_backup
-        #     self.minus_bands = self.minus_backup
-        # else:
-        #     self.plus_bands.append(None)
-        #     self.minus_bands.append(None)
-
         if not recreate:
             self.plus_bands.append(None)
             self.minus_bands.append(None)
@@ -1020,17 +976,14 @@ class ToleranceBands(tk.Frame):
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
 
-        # print(len(self.series_combos))
-        # print(len(self.minus_bands))
-
         self.count -= 1
 
     def update_series(self, values):
         self.values = values
 
     def update_entries(self):
-        for entry in self.series_combos:
-            entry['values'] = self.values
+        for combo in self.series_combos:
+            combo['values'] = self.values
 
     def calculate(self, plot):
 
@@ -1040,9 +993,6 @@ class ToleranceBands(tk.Frame):
             def get_value(entry):
                 return float(entry.get()) if entry.get() else 0
 
-            # MINUS_TOLERANCE = float(self.minus_tolerance_entries[iterator].get())
-            # PLUS_TOLERANCE = float(self.plus_tolerance_entries[iterator].get())
-            # LAG = float(self.lag_entries[iterator].get())
             MINUS_TOLERANCE = get_value(self.minus_tolerance_entries[iterator])
             PLUS_TOLERANCE = get_value(self.plus_tolerance_entries[iterator])
             LAG = get_value(self.lag_entries[iterator])
