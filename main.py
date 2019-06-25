@@ -484,7 +484,7 @@ class Flipbook(tk.Toplevel):
 
             line = self.primary.plot(current.x, y1, color)
             handles.append(line[0])
-            column = self.info[file].y1_columns[y]
+            column = current.y1_columns[y]
             labels.append(current.labels[column-1])
 
         if self.secondary_axis:
