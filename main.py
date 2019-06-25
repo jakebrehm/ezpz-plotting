@@ -32,6 +32,7 @@ import random
 
 # Initialize program constants
 flipbook_open = False
+help_open = False
 
 clipboard = {
         'title': None,
@@ -248,13 +249,22 @@ def switch_tab(event, direction):
         files[destination].data_row_entry.focus_set()
 
 
-def plot_function(event=None):
+def open_flipbook(event=None):
     global flipbook_open
     if flipbook_open: return
 
     for file in files: file.generate()
+    app.root.withdraw()
     flipbook = Flipbook(app.root, info=files)
     flipbook_open = True
+
+
+def open_help(event=None):
+    global help_open
+    if help_open: return
+
+    help_window = Help(app.root)
+    help_open = True
 
 
 def paste_file():
@@ -331,8 +341,8 @@ class Flipbook(tk.Toplevel):
         def on_close():
             global flipbook_open
             self.destroy()
+            app.root.deiconify()
             flipbook_open = False
-
 
         self.info = info
         self.page = 0
@@ -345,12 +355,12 @@ class Flipbook(tk.Toplevel):
         self.band_controls = None
 
         tk.Toplevel.__init__(self, *args, **kwargs)
+        self.withdraw()
 
         self.title('Flipbook')
         self.resizable(width=False, height=False)
-        self.focus_set()
+        self.grab_set()
         self.protocol("WM_DELETE_WINDOW", on_close)
-
 
         flipbook = gui.PaddedFrame(self)
         flipbook.grid(row=0, column=0, sticky='NSEW')
@@ -401,11 +411,11 @@ class Flipbook(tk.Toplevel):
             self.controls.update()
             self.controls.deiconify()
 
+        global controls_image
         controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
                                      # command=self.controls_window)
                                      command=show_controls)
         controls_button.grid(row=0, column=1, sticky='E')
-        global controls_image
         controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
         controls_button['image'] = controls_image
 
@@ -418,6 +428,7 @@ class Flipbook(tk.Toplevel):
         graph_widget = self.canvas.get_tk_widget()
         graph_widget.grid(row=2, column=0, sticky='NSEW')
 
+
         left_bind = self.bind('<Left>',
                               lambda event, direction='left': self.flip_page(event, direction))
         right_bind = self.bind('<Right>',
@@ -425,6 +436,9 @@ class Flipbook(tk.Toplevel):
 
         self.update_arrows()
         self.update_plot()
+
+        self.deiconify()
+        gui.CenterWindow(self)
 
     def update_plot(self):
         current = self.plots[self.page]
@@ -628,6 +642,7 @@ class Flipbook(tk.Toplevel):
 
         self.controls = tk.Toplevel(self)
         self.controls.title('Controls')
+        self.controls.resizable(width=False, height=False)
         self.controls.columnconfigure(0, weight=1)
         self.controls.rowconfigure(0, weight=1)
         self.controls.protocol("WM_DELETE_WINDOW", lambda: self.controls.withdraw())
@@ -802,52 +817,6 @@ class Flipbook(tk.Toplevel):
 
         self.update_plot()
         self.refresh_controls()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class ToleranceBands(tk.Frame):
@@ -1094,45 +1063,6 @@ class ToleranceBands(tk.Frame):
         if colors:
             for i in range(len(colors)):
                 self.color_choices[i].set(colors[i] if colors[i] else '')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class File(gui.ScrollableTab):
@@ -1446,6 +1376,324 @@ class File(gui.ScrollableTab):
             plot._labels(title, x_label, y1_label, y2_label)
 
 
+class Help(tk.Toplevel):
+
+    def __init__(self, *args, **kwargs):
+
+        def on_close():
+            global help_open
+            self.destroy()
+            help_open = False
+
+        MARGIN_SIZE = 12
+        CANVAS_WIDTH = 375
+        CANVAS_HEIGHT = 400
+        VERDANA = ('Verdana', 10, 'bold')
+        HELVETICA = ('Helvetica', 10, 'bold')
+
+        tk.Toplevel.__init__(self, *args, **kwargs)
+
+        self.title('Help')
+        self.resizable(width=False, height=False)
+        self.grab_set()
+        self.protocol("WM_DELETE_WINDOW", on_close)
+
+        help_book = ttk.Notebook(self)
+        help_book.grid(row=0, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+
+        # Inputs tab
+        inputs = gui.ScrollableTab(help_book, 'Inputs', cheight=400, cwidth=375)
+
+        input_labels = [
+                    'Data start rows',
+                    'Label rows',
+                    'Unit rows [optional]',
+                    'x column',
+                    'y1 columns [multiple inputs]',
+                    'y2 columns [optional] [multiple inputs]',
+                    'Title [optional]',
+                    'x axis label [optional]',
+                    'y1 axis label [optional]',
+                    'y2 axis label [optional]',
+                    'Other',
+                   ]
+
+        input_text = [
+                       'The row number that the data starts on.',
+                       'The row number that the series labels are found on.',
+                       'The row number that the units are found on.',
+                       'The column that you want to plot on the x-axis.',
+                       'The column(s) that you want to plot on the primary y-axis.',
+                       'The column(s) that you want to plot on the secondary y-axis.',
+                       'Overwrites the pregenerated title.',
+                       'Overwrites the pregenerated x-axis label.',
+                       'Overwrites the pregenerated primary y-axis label.',
+                       'Overwrites the pregenerated secondary y-axis label.',
+                       'In a field where multiple inputs are allowed (i.e. \'y1 columns\' and \'y2 columns\'), separate the inputs with any non-numeric character(s).\n' \
+                       '\nFor example, \'1;3;5;7\' and \'1abc3.5 7\' will successfully plot columns 1, 3, 5, and 7, but \'1357\' or \'1133577\' will not.'
+                     ]
+
+        help_row = 0
+
+        for i, INPUT in enumerate(input_text):
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE)
+            help_row += 1
+
+            title = tk.Label(inputs, text=input_labels[i], wraplength=345, font=('Helvetica', 8, 'bold'))
+            title.grid(row=help_row, column=0, padx=10, sticky="W")
+            help_row += 1
+
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE/2)
+            help_row += 1
+
+            label = tk.Label(inputs, text=INPUT, wraplength=345)
+            label.grid(row=help_row, column=0, padx=10, sticky="W")
+            help_row += 1
+
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE)
+            help_row += 1
+
+            if INPUT != input_text[-1]:
+                separation = tk.Frame(inputs)
+                ttk.Separator(separation, orient='horizontal').grid(row=1, column=0, sticky="EW")
+                separation.columnconfigure(0, weight=1)
+                separation.grid(row=help_row, column=0, sticky="EW")
+                help_row += 1
+
+        # Controls tab
+        controls = gui.ScrollableTab(help_book, 'Controls', cheight=400, cwidth=375)
+        controls_row = 0
+
+        global plus_image
+        plus_frame = tk.Frame(controls)
+        plus_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\plus.png', downscale=5)
+        plus_label = ttk.Button(plus_frame, takefocus=0, image=plus_image)
+        plus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
+        plus_separator = gui.Separator(plus_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        plus_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        plus_title = ttk.Label(plus_frame, text='Create Row', font=HELVETICA)
+        plus_title.grid(row=0, column=2, sticky='EW')
+        plus_description = ttk.Label(plus_frame, text='Creates a row at the bottom of the selected file.')
+        plus_description.grid(row=1, column=2, sticky='EW')
+        plus_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        controls_row += 1
+
+        global minus_image
+        minus_frame = tk.Frame(controls)
+        minus_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\minus.png', downscale=5)
+        minus_label = ttk.Button(minus_frame, takefocus=0, image=minus_image)
+        minus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
+        minus_separator = gui.Separator(minus_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        minus_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        minus_title = ttk.Label(minus_frame, text='Delete Row', font=HELVETICA)
+        minus_title.grid(row=0, column=2, sticky='EW')
+        minus_description = ttk.Label(minus_frame, text='Deletes the bottom row of the selected file.')
+        minus_description.grid(row=1, column=2, sticky='EW')
+        minus_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        controls_row += 1
+
+        global copy_image
+        copy_frame = tk.Frame(controls)
+        copy_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\copy.png', downscale=5)
+        copy_label = ttk.Button(copy_frame, takefocus=0, image=copy_image)
+        copy_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
+        copy_separator = gui.Separator(copy_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        copy_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        copy_title = ttk.Label(copy_frame, text='Copy', font=HELVETICA)
+        copy_title.grid(row=0, column=2, sticky='EW')
+        copy_description = ttk.Label(copy_frame, text='Copy data from the respective fields.')
+        copy_description.grid(row=1, column=2, sticky='EW')
+        copy_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        controls_row += 1
+
+        global paste_image
+        paste_frame = tk.Frame(controls)
+        paste_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\paste.png', downscale=5)
+        paste_label = ttk.Button(paste_frame, takefocus=0, image=paste_image)
+        paste_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
+        paste_separator = gui.Separator(paste_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        paste_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        paste_title = ttk.Label(paste_frame, text='Paste', font=HELVETICA)
+        paste_title.grid(row=0, column=2, sticky='EW')
+        paste_description = ttk.Label(paste_frame, text='Pastes data into the respective fields.')
+        paste_description.grid(row=1, column=2, sticky='EW')
+        paste_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        controls_row += 1
+
+        global clear_image
+        clear_frame = tk.Frame(controls)
+        clear_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\clear.png', downscale=5)
+        clear_label = ttk.Button(clear_frame, takefocus=0, image=clear_image)
+        clear_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
+        clear_separator = gui.Separator(clear_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        clear_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        clear_title = ttk.Label(clear_frame, text='Clear', font=HELVETICA)
+        clear_title.grid(row=0, column=2, sticky='EW')
+        clear_description = ttk.Label(clear_frame, text='Clear data from the respective fields.')
+        clear_description.grid(row=1, column=2, sticky='EW')
+        clear_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        controls_row += 1
+
+        edit_menu_frame = tk.Frame(controls)
+
+        label_frame = tk.Frame(edit_menu_frame)
+        menu1_label = ttk.Label(label_frame, text='Edit', anchor='center', font=HELVETICA)
+        menu1_label.grid(row=1, column=0, sticky='NSEW')
+        menu2_label = ttk.Label(label_frame, text='Menu', anchor='center', font=HELVETICA)
+        menu2_label.grid(row=2, column=0, sticky='NSEW')
+        label_frame.grid_rowconfigure(0, weight=1)
+        label_frame.grid_rowconfigure(3, weight=1)
+        label_frame.grid(row=0, column=0, padx=(6, 15), sticky='NSEW')
+
+        ttk.Separator(edit_menu_frame, orient='vertical').grid(row=0, column=1, padx=(0, 10), sticky="NS")
+
+        descriptions_frame = tk.Frame(edit_menu_frame)
+
+        clear_form_frame = tk.Frame(descriptions_frame)
+        clear_form_title = ttk.Label(clear_form_frame, text='Edit > Clear Form', font=HELVETICA)
+        clear_form_title.grid(row=0, column=2, sticky='EW')
+        clear_form_description = ttk.Label(clear_form_frame,
+            text='Clear data from all fields.')
+        clear_form_description.grid(row=1, column=2, sticky='EW')
+        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN_SIZE/2), sticky='NSEW')
+
+        reset_frame = tk.Frame(descriptions_frame)
+        reset_title = ttk.Label(reset_frame, text='Edit > Reset Form', font=HELVETICA)
+        reset_title.grid(row=0, column=2, sticky='EW')
+        reset_description = ttk.Label(reset_frame,
+            text='Clear inputs and revert form back to its original state.')
+        reset_description.grid(row=1, column=2, sticky='EW')
+        reset_frame.grid(row=1, column=0, pady=MARGIN_SIZE/2, sticky='NSEW')
+
+        paste_one_frame = tk.Frame(descriptions_frame)
+        paste_one_title = ttk.Label(paste_one_frame, text='Edit > Paste (Selected File)', font=HELVETICA)
+        paste_one_title.grid(row=0, column=2, sticky='EW')
+        paste_one_description = ttk.Label(paste_one_frame,
+            text='Pastes contents of the clipboard into all fields of the\nselected file.')
+        paste_one_description.grid(row=1, column=2, sticky='EW')
+        paste_one_frame.grid(row=2, column=0, pady=MARGIN_SIZE/2, sticky='NSEW')
+
+        paste_all_frame = tk.Frame(descriptions_frame)
+        paste_all_title = ttk.Label(paste_all_frame, text='Edit > Paste (All Files)', font=HELVETICA)
+        paste_all_title.grid(row=0, column=2, sticky='EW')
+        paste_all_description = ttk.Label(paste_all_frame,
+            text='Pastes contents of the clipboard into all fields of all\nfiles.')
+        paste_all_description.grid(row=1, column=2, sticky='EW')
+        paste_all_frame.grid(row=3, column=0, pady=(MARGIN_SIZE/2, 0), sticky='NSEW')
+
+        descriptions_frame.grid(row=0, column=2, sticky='NSEW')
+
+        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+
+        # Shortcuts tab
+        shortcuts = gui.ScrollableTab(help_book, 'Shortcuts', cheight=400, cwidth=375)
+        shortcuts_row = 0
+
+        COLUMN_SIZE = 100
+        ROW_SIZE = 30
+
+        enter_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        enter_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        enter_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        enter_frame.rowconfigure(0, minsize=ROW_SIZE)
+        enter_frame.rowconfigure(1, minsize=ROW_SIZE)
+        enter_label = ttk.Label(enter_frame, text='<Enter>', anchor='center',
+            font=VERDANA)
+        enter_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        enter_separator = gui.Separator(enter_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        enter_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        enter_title = ttk.Label(enter_frame, text='Keypress: Enter',
+            font=HELVETICA)
+        enter_title.grid(row=0, column=2, sticky='EW')
+        enter_description = ttk.Label(enter_frame,
+            text='Bound to the [Plot] button.\nTakes the user\'s inputs and plots the data.')
+        enter_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        create_row_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        create_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        create_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        create_row_frame.rowconfigure(0, minsize=ROW_SIZE)
+        create_row_frame.rowconfigure(1, minsize=ROW_SIZE)
+        create_row_label = ttk.Label(create_row_frame, text='<Ctrl>\n+ <+>', anchor='center',
+            font=VERDANA)
+        create_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        create_row_separator = gui.Separator(create_row_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        create_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        create_row_title = ttk.Label(create_row_frame, text='Combination: Control + Plus',
+            font=HELVETICA)
+        create_row_title.grid(row=0, column=2, sticky='EW')
+        create_row_description = ttk.Label(create_row_frame,
+            text='Bound to the [+] button.\nCreates a new row in the selected tab.')
+        create_row_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        delete_row_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        delete_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        delete_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        delete_row_frame.rowconfigure(0, minsize=ROW_SIZE)
+        delete_row_frame.rowconfigure(1, minsize=ROW_SIZE)
+        delete_row_label = ttk.Label(delete_row_frame, text='<Ctrl>\n+ <->', anchor='center',
+            font=VERDANA)
+        delete_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        delete_row_separator = gui.Separator(delete_row_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        delete_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        delete_row_title = ttk.Label(delete_row_frame, text='Combination: Control + Minus',
+            font=HELVETICA)
+        delete_row_title.grid(row=0, column=2, sticky='EW')
+        delete_row_description = ttk.Label(delete_row_frame,
+            text='Bound to the [-] button.\nDeletes the bottom row of the selected tab.')
+        delete_row_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        insert_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        insert_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        insert_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        insert_frame.rowconfigure(0, minsize=ROW_SIZE)
+        insert_frame.rowconfigure(1, minsize=ROW_SIZE)
+        insert_label = ttk.Label(insert_frame, text='<Insert>', anchor='center',
+            font=VERDANA)
+        insert_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        insert_separator = gui.Separator(insert_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        insert_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        insert_title = ttk.Label(insert_frame, text='Keypress: Insert',
+            font=HELVETICA)
+        insert_title.grid(row=0, column=2, sticky='EW')
+        insert_description = ttk.Label(insert_frame,
+            text='Selects the previous tab.')
+        insert_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        page_up_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        page_up_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        page_up_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        page_up_frame.rowconfigure(0, minsize=ROW_SIZE)
+        page_up_frame.rowconfigure(1, minsize=ROW_SIZE)
+        page_up_label = ttk.Label(page_up_frame, text='<PgUp>', anchor='center',
+            font=VERDANA)
+        page_up_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        page_up_separator = gui.Separator(page_up_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        page_up_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        page_up_title = ttk.Label(page_up_frame, text='Keypress: Page Up',
+            font=HELVETICA)
+        page_up_title.grid(row=0, column=2, sticky='EW')
+        page_up_description = ttk.Label(page_up_frame,
+            text='Selects the next tab.')
+        page_up_description.grid(row=1, column=2, sticky='EW')
+
+        gui.CenterWindow(self)
+
+
 PADDING = 12
 
 app = gui.Application(padding=PADDING)
@@ -1497,7 +1745,7 @@ minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
 
 plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
 plot_button = ttk.Button(footer, takefocus=0, image=plot_image, state='disabled')
-plot_button['command'] = plot_function
+plot_button['command'] = open_flipbook
 plot_button.grid(row=0, column=2, padx=2, sticky='NSEW')
 
 menu_bar = tk.Menu(app.root)
@@ -1519,13 +1767,13 @@ edit_menu.add_command(label='Paste (Selected File)', state='disabled', command=p
 edit_menu.add_command(label='Paste (All Files)', state='disabled', command=paste_all)
 menu_bar.add_cascade(label='Edit', menu=edit_menu)
 help_menu = tk.Menu(menu_bar, tearoff=0)
-help_menu.add_command(label='View Help')
+help_menu.add_command(label='View Help', command=open_help)
 help_menu.add_separator()
 help_menu.add_command(label='About', state='disabled')
 menu_bar.add_cascade(label='Help', menu=help_menu)
 app.root.config(menu=menu_bar)
 
-app.root.bind('<Return>', plot_function)
+app.root.bind('<Return>', open_flipbook)
 
 app.root.bind('<Control-minus>', minus_row)
 app.root.bind('<Control-=>', plus_row)
@@ -1578,7 +1826,7 @@ def test_function():
             files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
-    plot_function()
+    open_flipbook()
 app.after(100, test_function)
 
 
