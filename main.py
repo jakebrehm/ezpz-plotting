@@ -497,7 +497,7 @@ class Flipbook(tk.Toplevel):
 
                 line = self.secondary.plot(current.x, y2, color)
                 handles.append(line[0])
-                column = self.info[file].y2_columns[y]
+                column = current.y2_columns[y]
                 labels.append(current.labels[column-1])
 
         min_x = min(current.x)
@@ -1827,7 +1827,7 @@ def test_function():
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     open_flipbook()
-app.after(100, test_function)
+# app.after(100, test_function)
 
 
 
