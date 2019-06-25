@@ -28,7 +28,7 @@ import math
 # Miscellaneous packages
 import re
 import configobj
-
+import random
 
 def save_preset():
     valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
@@ -299,6 +299,36 @@ clipboard = {
     }
 
 
+# colors = {
+#         'blue': 'b',
+#         'green': 'g',
+#         'red':  'r',
+#         'cyan': 'c',
+#         'magenta': 'm',
+#         'yellow': 'y',
+#         'white': 'w',
+#         'black': 'k',
+# }
+
+
+plot_colors = {
+          'blue':     'b',
+          'green':    'g',
+          'red':      'r',
+          'cyan':     'c',
+          'magenta':  'm',
+          'yellow':   'y',
+          'white':    'w',
+          'black':    'k',
+          'gray':     '#808080',
+          'pink':     '#ff4d4d',
+          'purple':   '#660066',
+          'gold':     '#b38600',
+          'orange':   '#ff6600',
+          'brown':    '#663300',
+          'lime':     '#00ff00',
+}
+
 class Flipbook(tk.Toplevel):
 
     def __init__(self, *args, info, **kwargs):
@@ -418,20 +448,12 @@ class Flipbook(tk.Toplevel):
             self.primary.set_zorder(1000)
             self.primary.format_coord = self._coordinates(self.primary, None, self.secondary_axis)
 
-        colors = {
-                  'gray':     '#808080',
-                  'pink':     '#ff4d4d',
-                  'purple':   '#660066',
-                  'gold':     '#b38600',
-                  'orange':   '#ff6600',
-                  'brown':    '#663300',
-                  'lime':     '#00ff00',
-        }
-
-        y1_colors = ['k', 'b', 'r', 'g', colors['purple'], colors['orange'], colors['brown']]
+        y1_colors = ['k', 'b', 'r', 'g', plot_colors['purple'], plot_colors['orange'],
+                     plot_colors['brown']]
         y1_plot_colors = y1_colors[:]
 
-        y2_colors = [colors['gray'], 'c', colors['pink'], colors['lime'], 'm', colors['gold'], 'y']
+        y2_colors = [plot_colors['gray'], 'c', plot_colors['pink'], plot_colors['lime'],
+                     'm', plot_colors['gold'], 'y']
         y2_plot_colors = y2_colors[:]
 
         handles = []
@@ -521,18 +543,26 @@ class Flipbook(tk.Toplevel):
 
         # Tolerance Bands
         if self.band_controls:
-            for plus in self.band_controls.plus_bands:
+            for p, plus in enumerate(self.band_controls.plus_bands):
                 if not plus: continue
                 elif plus[0] == 'primary':
-                    self.primary.plot(current.x, plus[1], 'c--')
+                    self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                      linestyle='dashed')
+                    # self.primary.plot(current.x, plus[1], 'c--')
                 elif plus[0] == 'secondary':
-                    self.secondary.plot(current.x, plus[1], 'c--')
-            for minus in self.band_controls.minus_bands:
+                    self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                      linestyle='dashed')
+                    # self.secondary.plot(current.x, plus[1], 'c--')
+            for m, minus in enumerate(self.band_controls.minus_bands):
                 if not minus: continue
                 elif minus[0] == 'primary':
-                    self.primary.plot(current.x, minus[1], 'c--')
+                    self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                      linestyle='dashed')
+                    # self.primary.plot(current.x, minus[1], 'c--')
                 elif minus[0] == 'secondary':
-                    self.secondary.plot(current.x, minus[1], 'c--')
+                    self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                      linestyle='dashed')
+                    # self.secondary.plot(current.x, minus[1], 'c--')
 
         self.canvas.draw()
 
@@ -615,10 +645,14 @@ class Flipbook(tk.Toplevel):
         # appearance = gui.ScrollableTab(notebook, 'Appearance')
         # analysis = gui.ScrollableTab(notebook, 'Analysis')
         # annotations = gui.ScrollableTab(notebook, 'Annotations')
-        figure = gui.ScrollableTab(notebook, 'Figure', cwidth=350)
-        appearance = gui.ScrollableTab(notebook, 'Appearance', cwidth=350)
-        analysis = gui.ScrollableTab(notebook, 'Analysis', cwidth=350)
-        annotations = gui.ScrollableTab(notebook, 'Annotations', cwidth=350)
+        # figure = gui.ScrollableTab(notebook, 'Figure', cwidth=350)
+        # appearance = gui.ScrollableTab(notebook, 'Appearance', cwidth=350)
+        # analysis = gui.ScrollableTab(notebook, 'Analysis', cwidth=350)
+        # annotations = gui.ScrollableTab(notebook, 'Annotations', cwidth=350)
+        figure = gui.ScrollableTab(notebook, 'Figure', cheight=400, cwidth=400)
+        appearance = gui.ScrollableTab(notebook, 'Appearance', cheight=400, cwidth=400)
+        analysis = gui.ScrollableTab(notebook, 'Analysis', cheight=400, cwidth=400)
+        annotations = gui.ScrollableTab(notebook, 'Annotations', cheight=400, cwidth=400)
 
         gui.Separator(self.controls).grid(row=1, column=0, sticky='NSEW')
 
@@ -742,6 +776,7 @@ class Flipbook(tk.Toplevel):
         self.band_controls.minus_tolerance = current.minus_tolerance
         self.band_controls.plus_tolerance = current.plus_tolerance
         self.band_controls.lag = current.lag
+        self.band_controls.color = current.color
 
         values = []
         for column in current.y1_columns:
@@ -784,6 +819,7 @@ class Flipbook(tk.Toplevel):
         current.minus_tolerance = self.band_controls.minus_tolerance
         current.plus_tolerance = self.band_controls.plus_tolerance
         current.lag = self.band_controls.lag
+        current.color = self.band_controls.color
         self.band_controls.calculate(current)
 
         self.update_plot()
@@ -870,10 +906,14 @@ class ToleranceBands(tk.Frame):
         self.count = 0
         self.bands = []
 
-        self.lag_entries = []
+        self.series_choices = []
+        self.color_choices = []
+
         self.series_combos = []
-        self.plus_tolerance_entries = []
         self.minus_tolerance_entries = []
+        self.plus_tolerance_entries = []
+        self.lag_entries = []
+        self.color_combos = []
 
         self.values = None
 
@@ -891,6 +931,8 @@ class ToleranceBands(tk.Frame):
         self.reset()
         for row in range(rows):
             self.add_band(recreate=row)
+            # self.plus_bands.append(None)
+            # self.minus_bands.append(None)
         self.minus_bands = self.minus_backup
         self.plus_bands = self.plus_backup
 
@@ -906,18 +948,24 @@ class ToleranceBands(tk.Frame):
         series_label = ttk.Label(frame, text='series:')
         series_label.grid(row=0, column=0, padx=PADDING)
 
-        plus_tolerance_label = ttk.Label(frame, text='+tolerance:')
+        plus_tolerance_label = ttk.Label(frame, text='+tol.:')
         plus_tolerance_label.grid(row=0, column=1, padx=PADDING)
 
-        minus_tolerance_label = ttk.Label(frame, text='-tolerance:')
+        minus_tolerance_label = ttk.Label(frame, text='-tol.:')
         minus_tolerance_label.grid(row=0, column=2, padx=PADDING)
 
         lag_label = ttk.Label(frame, text='lag:')
         lag_label.grid(row=0, column=3, padx=PADDING)
 
-        # series_combo = ttk.Combobox(frame, width=15, state='readonly')
-        series_combo = ttk.Combobox(frame, width=15, postcommand=self.update_entries)
+        color_label = ttk.Label(frame, text='color:')
+        color_label.grid(row=0, column=4, padx=PADDING)
+
+        series_choice = tk.StringVar()
+        series_combo = ttk.Combobox(frame, width=14, state='readonly',
+                                    textvariable=series_choice,
+                                    postcommand=self.update_entries)
         series_combo.grid(row=1, column=0, padx=PADDING)
+        self.series_choices.append(series_choice)
         self.series_combos.append(series_combo)
 
         plus_tolerance_entry = ttk.Entry(frame, width=8)
@@ -932,13 +980,26 @@ class ToleranceBands(tk.Frame):
         lag_entry.grid(row=1, column=3, padx=PADDING)
         self.lag_entries.append(lag_entry)
 
+        color_choice = tk.StringVar()
+        color_choice.set(random.choice(list(plot_colors.keys())))
+        color_combo = ttk.Combobox(frame, textvariable=color_choice,
+                                   width=8, state='readonly')
+        color_combo['values'] = list(plot_colors.keys())
+        color_combo.grid(row=1, column=4, padx=PADDING)
+        self.color_choices.append(color_choice)
+        self.color_combos.append(color_combo)
+
         # self.plus_bands.append(None)
         # self.minus_bands.append(None)
 
-        if recreate:
-            self.plus_bands = self.plus_backup
-            self.minus_bands = self.minus_backup
-        else:
+        # if recreate:
+        #     self.plus_bands = self.plus_backup
+        #     self.minus_bands = self.minus_backup
+        # else:
+        #     self.plus_bands.append(None)
+        #     self.minus_bands.append(None)
+
+        if not recreate:
             self.plus_bands.append(None)
             self.minus_bands.append(None)
 
@@ -954,6 +1015,7 @@ class ToleranceBands(tk.Frame):
         del(self.minus_tolerance_entries[-1])
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
+        del(self.color_combos[-1])
 
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
@@ -971,15 +1033,19 @@ class ToleranceBands(tk.Frame):
             entry['values'] = self.values
 
     def calculate(self, plot):
-    # def calculate(self):
 
         def BandData(iterator, which):
             series = self.series_combos[iterator].get()
 
-            MINUS_TOLERANCE = float(self.minus_tolerance_entries[iterator].get())
-            PLUS_TOLERANCE = float(self.plus_tolerance_entries[iterator].get())
-            LAG = float(self.lag_entries[iterator].get())
+            def get_value(entry):
+                return float(entry.get()) if entry.get() else 0
 
+            # MINUS_TOLERANCE = float(self.minus_tolerance_entries[iterator].get())
+            # PLUS_TOLERANCE = float(self.plus_tolerance_entries[iterator].get())
+            # LAG = float(self.lag_entries[iterator].get())
+            MINUS_TOLERANCE = get_value(self.minus_tolerance_entries[iterator])
+            PLUS_TOLERANCE = get_value(self.plus_tolerance_entries[iterator])
+            LAG = get_value(self.lag_entries[iterator])
 
             for l, label in enumerate(plot.labels):
                 if label == series:
@@ -997,8 +1063,6 @@ class ToleranceBands(tk.Frame):
                 y = plot.y1[position]
             elif axis == 'secondary':
                 y = plot.y2[position]
-            # else:
-            #     return (None, None)
 
             # Maybe take average distance between each point in x instead?
             resolution = x[1] - x[0]
@@ -1030,14 +1094,13 @@ class ToleranceBands(tk.Frame):
 
     @property
     def series(self):
-        return [entry.get() for entry in self.series_combos]
+        return [combo.get() for combo in self.series_combos]
 
     @series.setter
     def series(self, series):
         if series:
             for i in range(len(series)):
-                self.series_combos[i].delete(0, 'end')
-                self.series_combos[i].insert(0, series[i] if series[i] else '')
+                self.series_choices[i].set(series[i] if series[i] else '')
 
     @property
     def minus_tolerance(self):
@@ -1072,6 +1135,15 @@ class ToleranceBands(tk.Frame):
                 self.lag_entries[i].delete(0, 'end')
                 self.lag_entries[i].insert(0, lags[i] if lags[i] else '')
 
+    @property
+    def color(self):
+        return [combo.get() for combo in self.color_combos]
+
+    @color.setter
+    def color(self, colors):
+        if colors:
+            for i in range(len(colors)):
+                self.color_choices[i].set(colors[i] if colors[i] else '')
 
 
 
@@ -1327,6 +1399,7 @@ class File(gui.ScrollableTab):
                 self.minus_tolerance = None
                 self.plus_tolerance = None
                 self.lag = None
+                self.color = None
 
             def _x_data(self, x_column):
                 x = self.data[self.labels[x_column-1]]
