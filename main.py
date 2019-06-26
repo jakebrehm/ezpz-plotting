@@ -64,7 +64,7 @@ plot_colors = {
     } # A list of all preset color options for plotting purposes
 
 def save_preset():
-    '''Copies all user inputs to a config file and saves in the specified location.'''
+    """Copies all user inputs to a config file and saves in the specified location."""
 
     # Show a dialog box where the user can choose where to save the preset file
     valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
@@ -104,9 +104,9 @@ def save_preset():
 
 
 def load_preset():
-    '''Gets user input information from the specified preset file and pastes them
+    """Gets user input information from the specified preset file and pastes them
     into the GUI.
-    '''
+    """
     global inputs, files
 
     # Have the user navigate to the preset file and initialize a ConfigObj object
@@ -163,7 +163,7 @@ def load_preset():
 
 
 def browse():
-    '''Allow the user to browse for inputs, then initialize the GUI.'''
+    """Allow the user to browse for inputs, then initialize the GUI."""
     global inputs
 
     # Only run this code if there are inputs stored in the listbox
@@ -174,7 +174,7 @@ def browse():
 
 
 def enable():
-    '''Change the GUI to its enabled state, which only occurs when inputs are loaded.'''
+    """Change the GUI to its enabled state, which only occurs when inputs are loaded."""
 
     # Enable the buttons in the footer
     plot_button['state'] = 'normal'
@@ -194,7 +194,7 @@ def enable():
 
 
 def reset():
-    '''Revert the GUI back to its disabled state, before any inputs were loaded.'''
+    """Revert the GUI back to its disabled state, before any inputs were loaded."""
 
     # Clear the listbox
     listbox.clear()
@@ -225,7 +225,7 @@ def reset():
 
 
 def input_controls():
-    '''Creates a tab for each input file, and one row for each tab.'''
+    """Creates a tab for each input file, and one row for each tab."""
     global primary, notebook, files
 
     # Destroy everything in the primary frame
@@ -243,7 +243,7 @@ def input_controls():
 
 
 def plus_row(event=None, tab=None):
-    '''Add a row to the specified file/tab of the notebook.'''
+    """Add a row to the specified file/tab of the notebook."""
     try:
         # If a tab is not specified, set tab equal to the index of the current tab.
         # This is the case when clicking the 'create row' button on the GUI.
@@ -255,7 +255,7 @@ def plus_row(event=None, tab=None):
 
 
 def minus_row(event=None, tab=None):
-    '''Remove a row from the specified file/tab of the notebook.'''
+    """Remove a row from the specified file/tab of the notebook."""
     try:
         # If a tab is not specified, set tab equal to the index of the current tab.
         # This is the case when clicking the 'delete row' button on the GUI.
@@ -267,7 +267,7 @@ def minus_row(event=None, tab=None):
 
 
 def add_file():
-    '''Retroactively add a file to the current inputs.'''
+    """Retroactively add a file to the current inputs."""
     global inputs
 
     # Ask the user to locate the file he/she wishes to add
@@ -291,7 +291,7 @@ def add_file():
 
 
 def remove_file():
-    '''Retroactively remove a file from the current inputs.'''
+    """Retroactively remove a file from the current inputs."""
     global files
 
     # Don't continue if the currently selected file is the last remaining input
@@ -317,37 +317,54 @@ def remove_file():
 
 
 def switch_tab(event, direction):
+    """Switch to either the next or previous tab in the notebook."""
+
     try:
+        # Get the index of the tab that the user wants to go to
         current = notebook.index(notebook.select())
         destination = (current + 1) if direction == 'next' else (current - 1)
+        # Attempt to select the notebook tab
         notebook.select(destination)
     except (NameError, tk.TclError):
-        pass
+        pass # If the currently selected tab is either the first or the last, do nothing
     else:
+        # If there was no error, set cursor focus on the data start row entry
         files[destination].data_row_entry.focus_set()
 
 
 def switch_row(event, direction):
+    """Switch to the same field that is currently selected in either the next
+    or previous row.
+    """
 
+    # Get a reference to the File object that is currently selected
     current = notebook.index(notebook.select())
     file = files[current]
 
+    # Create a list that contains all possible fields contained in each row
     fields = [file._titles, file._x_columns, file._y1_columns, file._y2_columns,
               file._x_labels, file._y1_labels, file._y2_labels]
 
+    # Iterate through the list and find the widget that currently has focus,
+    # then store which entry it is as well as the row that it's in
     for f, field in enumerate(fields):
         for i, item in enumerate(field):
             if item == app.root.focus_get():
                 entry = f
                 row = i
-                break
+                break # Once the field is found, break from the loop
         else:
-            continue
-        break
-    else: return
+            continue # Continue if the inner loop was not broken
+        break # If the inner loop was broken, break from the outer loop
+    else:
+        # If the widget was not found, don't execute any of the following code.
+        # This is intended to happen with the data start, label, and unit row entries.
+        return
 
+    # Get the index of the row that the user wants to go to
     destination = (row + 1) if direction == 'next' else (row - 1)
 
+    # If the row exists, find the relevant widget and set focus on it
     if destination in range(len(fields[entry])):
         next_widget = fields[entry][destination]
         next_widget.focus_set()
@@ -355,27 +372,44 @@ def switch_row(event, direction):
     return ('break')
 
 
-
 def open_flipbook(event=None):
+    """Open the flipbook."""
     global FLIPBOOK
+
+    # If the flipbook is already open, exit the function
     if FLIPBOOK: return
 
+    # Store all of the inputs in each tab
     for file in files: file.generate()
+
+    # Hide the main window and open the flipbook object
     app.root.withdraw()
     flipbook = Flipbook(app.root, info=files)
     FLIPBOOK = True
 
 
 def open_help(event=None):
+    """Open the help window."""
     global HELP
+
+    # If the help window is already open, exit the function
     if HELP: return
 
+    # Open the help window
     help_window = Help(app.root)
     HELP = True
 
 
 def paste_file():
+    """Paste the contents of the clipboard into every row of the currently
+    selected file.
+    """
+
+    # Get the index of the currently selected notebook tab
     current = notebook.index(notebook.select())
+
+    # Iterate through the rows of the currently selected file and delete the
+    # contents of every field, then insert the contents of the clipboard.
     for row in range(len(files[current]._rows)):
         if clipboard['title']:
             files[current]._titles[row].delete(0, 'end')
@@ -401,6 +435,10 @@ def paste_file():
 
 
 def paste_all():
+    """Paste the contents of the clipboard into every row of every file."""
+
+    # Iterate through the rows of each file and delete the contents of
+    # every field, then insert the contents of the clipboard.
     for file in files:
         for row in range(len(file._rows)):
             if clipboard['title']:
@@ -427,6 +465,9 @@ def paste_all():
 
 
 def clear_all():
+    """Clears the contents of every field."""
+
+    # Iterate through each file, deleting the contents of each field.
     for file in files:
         file.data_row_entry.delete(0, 'end')
         file.label_row_entry.delete(0, 'end')
@@ -442,36 +483,57 @@ def clear_all():
 
 
 class Flipbook(tk.Toplevel):
+    """The flipbook is where the plots and relevant information are shown. The main feature
+    of the flipbook is that you are able to quickly and easily move through a series of
+    plots by pressing the left button (or arrow key) or right button (or arrow key)."""
 
     def __init__(self, *args, info, **kwargs):
+        """Create the flipbook GUI and perform any initialization that needs to be done."""
 
         def on_close():
+            """When the flipbook is closed, redisplay the main window as well."""
             global FLIPBOOK
             self.destroy()
             app.root.deiconify()
             FLIPBOOK = False
 
-        self.info = info
-        self.page = 0
-        self.pages = sum(file._count for file in info) - 1
+        def show_controls():
+            """Update the controls window and make it visible."""
+            self.controls.update()
+            self.controls.deiconify()
+
+        # Initialize variables
+        self.info = info # Make the information that was passed in accessible elsewhere
+        self.page = 0 # Current page number
+        self.pages = sum(file._count for file in info) - 1 # Total amount of pages
+        self.secondary = None # Secondary axis
+        self.controls = None # Controls window
+        self.band_controls = None # Tolerance band controls object
+
+        # Get a list of plots, files, and plot numbers.
+        # self.plots --> a list of all plots in each file, meant to make it easier to move
+        #                between plots by simply incrementing the page number
+        # self.files --> list of numbers that links each plot in self.plots to its corresponding
+        #                file index
+        # self.numbers --> list of numbers that enumerates each plot in self.plots with respect
+        #                  to its corresponding file
         self.plots = [plot for file in self.info for plot in file.plots]
         self.files = [f for f, file in enumerate(self.info) for _ in range(len(file.plots))]
         self.numbers = [p for f, file in enumerate(self.info) for p in range(len(file.plots))]
-        self.secondary = None
-        self.controls = None
-        self.band_controls = None
 
+        # Initialize the flipbook as a top-level window and immediately hide it
         tk.Toplevel.__init__(self, *args, **kwargs)
         self.withdraw()
-
         self.title('Flipbook')
         self.resizable(width=False, height=False)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", on_close)
 
+        # Create a padded frame to keep all of the widgets in
         flipbook = gui.PaddedFrame(self)
         flipbook.grid(row=0, column=0, sticky='NSEW')
 
+        # Create the frame that will hold the 'flip left' button
         left = tk.Frame(flipbook)
         left.grid(row=0, column=0, padx=(0, 12), sticky='NSEW')
         left.rowconfigure(0, weight=1)
@@ -480,6 +542,7 @@ class Flipbook(tk.Toplevel):
         self.previous_button['command'] = lambda event=None, direction='left': \
                                           self.flip_page(event, direction)
 
+        # Create the frame that will hold the 'flip right' button
         right = tk.Frame(flipbook)
         right.grid(row=0, column=2, padx=(12, 0), sticky='NSEW')
         right.rowconfigure(0, weight=1)
@@ -488,61 +551,67 @@ class Flipbook(tk.Toplevel):
         self.next_button['command'] = lambda event=None, direction='right': \
                                       self.flip_page(event, direction)
 
+        # Define the color to be used for the plot
         middle_color = '#e6e6e6'
+
+        # Create the frame that the plot and its controls will be held in
         middle = tk.Frame(flipbook, bg=middle_color)
         middle.grid(row=0, column=1, sticky='NSEW')
         middle.columnconfigure(0, minsize=800)
 
+        # Create a figure and the primary axis
         self.figure = Figure(figsize=(12, 7), dpi=100)
-        self.figure.patch.set_facecolor(middle_color)
         self.primary = self.figure.add_subplot(111)
+
+        # Change the face color of the figure and adjust the padding
+        self.figure.patch.set_facecolor(middle_color)
         self.figure.subplots_adjust(top=0.90, bottom=0.15)
 
+        # Place a canvas on the figure and update it
         self.canvas = FigureCanvasTkAgg(self.figure, middle)
         self.canvas.draw()
 
+        # Create a frame that will hold the toolbar and the controls button
         toolbar_frame = tk.Frame(middle)
         toolbar_frame.grid(row=0, column=0, sticky='NSEW')
         toolbar_frame.columnconfigure(0, weight=1)
 
+        # Create a toolbar that can be used for manipulating the plot
         toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
         toolbar.config(bg=middle_color)
         toolbar._message_label.config(bg=middle_color)
         toolbar.update()
         toolbar.grid(row=0, column=0, sticky='NSEW')
 
-        test_frame = tk.Frame(toolbar_frame)
-        test_frame.grid(row=0, column=1, sticky='NSEW')
-
-        def show_controls():
-            self.controls.update()
-            self.controls.deiconify()
-
+        # Create the controls button that allows the user to open the controls window
         controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
         controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
-                                     # command=self.controls_window)
                                      image=controls_image, command=show_controls)
         controls_button.grid(row=0, column=1, sticky='E')
         controls_button.image = controls_image
 
+        # Create a label that will display the filename of the current plot's corresponding file
         self.filename = tk.StringVar()
         filename_label = tk.Label(middle, textvar=self.filename,
                                   font=('Helvetica', 18, 'bold'),
                                   anchor='w', bg=middle_color)
         filename_label.grid(row=1, column=0, sticky='EW')
 
+        # Create the graph widget where the plot will be displayed
         graph_widget = self.canvas.get_tk_widget()
         graph_widget.grid(row=2, column=0, sticky='NSEW')
 
-
+        # Create keyboard shortcuts that allow for flipping between pages with the arrow keys
         left_bind = self.bind('<Left>',
                               lambda event, direction='left': self.flip_page(event, direction))
         right_bind = self.bind('<Right>',
                               lambda event, direction='right': self.flip_page(event, direction))
 
+        # Update the arrows and the plot of the flipbook
         self.update_arrows()
         self.update_plot()
 
+        # Make the flipbook visible again and center it on the screen
         self.deiconify()
         gui.CenterWindow(self)
 
@@ -1092,7 +1161,7 @@ class ToleranceBands(tk.Frame):
             elif axis == 'secondary':
                 y = plot.y2[position]
 
-            # Maybe take average distance between each point in x instead?
+            # Define the lookback range
             resolution = x[1] - x[0]
             lookback = round(LAG / resolution)
 
@@ -1115,8 +1184,6 @@ class ToleranceBands(tk.Frame):
             return (axis, band)
 
         for i in range(len(self.series_combos)):
-            # self.plus_bands.append(BandData(i, which='+'))
-            # self.minus_bands.append(BandData(i, which='-'))
             self.plus_bands[i] = BandData(i, which='+')
             self.minus_bands[i] = BandData(i, which='-')
 
