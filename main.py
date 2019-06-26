@@ -105,8 +105,8 @@ def save_preset():
 
 def load_preset():
     """Gets user input information from the specified preset file and pastes them
-    into the GUI.
-    """
+    into the GUI."""
+
     global inputs, files
 
     # Have the user navigate to the preset file and initialize a ConfigObj object
@@ -164,6 +164,7 @@ def load_preset():
 
 def browse():
     """Allow the user to browse for inputs, then initialize the GUI."""
+
     global inputs
 
     # Only run this code if there are inputs stored in the listbox
@@ -226,6 +227,7 @@ def reset():
 
 def input_controls():
     """Creates a tab for each input file, and one row for each tab."""
+
     global primary, notebook, files
 
     # Destroy everything in the primary frame
@@ -244,6 +246,7 @@ def input_controls():
 
 def plus_row(event=None, tab=None):
     """Add a row to the specified file/tab of the notebook."""
+
     try:
         # If a tab is not specified, set tab equal to the index of the current tab.
         # This is the case when clicking the 'create row' button on the GUI.
@@ -256,6 +259,7 @@ def plus_row(event=None, tab=None):
 
 def minus_row(event=None, tab=None):
     """Remove a row from the specified file/tab of the notebook."""
+
     try:
         # If a tab is not specified, set tab equal to the index of the current tab.
         # This is the case when clicking the 'delete row' button on the GUI.
@@ -268,6 +272,7 @@ def minus_row(event=None, tab=None):
 
 def add_file():
     """Retroactively add a file to the current inputs."""
+
     global inputs
 
     # Ask the user to locate the file he/she wishes to add
@@ -292,6 +297,7 @@ def add_file():
 
 def remove_file():
     """Retroactively remove a file from the current inputs."""
+
     global files
 
     # Don't continue if the currently selected file is the last remaining input
@@ -334,8 +340,7 @@ def switch_tab(event, direction):
 
 def switch_row(event, direction):
     """Switch to the same field that is currently selected in either the next
-    or previous row.
-    """
+    or previous row."""
 
     # Get a reference to the File object that is currently selected
     current = notebook.index(notebook.select())
@@ -369,11 +374,13 @@ def switch_row(event, direction):
         next_widget = fields[entry][destination]
         next_widget.focus_set()
 
+    # Return 'break' to bypass event propagation
     return ('break')
 
 
 def open_flipbook(event=None):
     """Open the flipbook."""
+
     global FLIPBOOK
 
     # If the flipbook is already open, exit the function
@@ -390,6 +397,7 @@ def open_flipbook(event=None):
 
 def open_help(event=None):
     """Open the help window."""
+
     global HELP
 
     # If the help window is already open, exit the function
@@ -402,8 +410,7 @@ def open_help(event=None):
 
 def paste_file():
     """Paste the contents of the clipboard into every row of the currently
-    selected file.
-    """
+    selected file."""
 
     # Get the index of the currently selected notebook tab
     current = notebook.index(notebook.select())
@@ -492,6 +499,7 @@ class Flipbook(tk.Toplevel):
 
         def on_close():
             """When the flipbook is closed, redisplay the main window as well."""
+
             global FLIPBOOK
             self.destroy()
             app.root.deiconify()
@@ -499,13 +507,14 @@ class Flipbook(tk.Toplevel):
 
         def show_controls():
             """Update the controls window and make it visible."""
+
             self.controls.update()
             self.controls.deiconify()
 
         # Initialize variables
         self.info = info # Make the information that was passed in accessible elsewhere
         self.page = 0 # Current page number
-        self.pages = sum(file._count for file in info) - 1 # Total amount of pages
+        self.pages = sum(file._count for file in info) - 1 # Index of the last page
         self.secondary = None # Secondary axis
         self.controls = None # Controls window
         self.band_controls = None # Tolerance band controls object
@@ -616,21 +625,31 @@ class Flipbook(tk.Toplevel):
         gui.CenterWindow(self)
 
     def update_plot(self):
-        current = self.plots[self.page]
-        file = self.files[self.page]
-        plot = self.numbers[self.page]
-        self.filename.set(f'{self.info[file].filename} - Plot {plot + 1}')
+        """Update the plot with new data or information."""
 
+        current = self.plots[self.page] # Current plot object
+        file = self.files[self.page] # File index
+        number = self.numbers[self.page] # Plot number in file
+
+        # Display the filename of the current plot
+        self.filename.set(f'{self.info[file].filename} - Plot {number + 1}')
+
+        # Essentially reset the secondary axis by clearing and turning it off if it exists,
+        # then setting the self.secondary variable to None
         if self.secondary:
             self.secondary.clear()
             self.secondary.axis('off')
         self.secondary = None
 
+        # Create a variable that keeps track of if a secondary axis is necessary
         self.secondary_axis = True if current.y2 else False
+        # If it is, create the secondary axis
         if self.secondary_axis: self.secondary = self.primary.twinx()
 
+        # Clear the primary axis as well
         self.primary.clear()
 
+        # Set the appropriate coordinates format to display on the flipbook
         if self.secondary_axis:
             self.primary.set_zorder(1)
             self.secondary.set_zorder(100)
@@ -640,68 +659,86 @@ class Flipbook(tk.Toplevel):
             self.primary.set_zorder(1000)
             self.primary.format_coord = self._coordinates(self.primary, None, self.secondary_axis)
 
+        # Choose colors for the primary axis - will be iterated-through sequentially
         y1_colors = ['k', 'b', 'r', 'g', plot_colors['purple'], plot_colors['orange'],
                      plot_colors['brown']]
+        # Create a copy of the primary axis plot colors
         y1_plot_colors = y1_colors[:]
-
+        # Choose colors for the secondary axis - will be iterated-through sequentially
         y2_colors = [plot_colors['gray'], 'c', plot_colors['pink'], plot_colors['lime'],
                      'm', plot_colors['gold'], 'y']
+        # Create a copy of the secondary axis plot colors
         y2_plot_colors = y2_colors[:]
 
+        # Keep track of each handle, label, and how many times the colors are repeated
         handles = []
         labels = []
         repeated = 0
+        # Iterate through the primary axis data for the current plot
         for y, y1 in enumerate(current.y1):
-
-            if y % len(y1_plot_colors) == 0:
-                repeated += 1
+            # Determine how many times the colors list will be repeated
+            if y % len(y1_plot_colors) == 0: repeated += 1
+            # Determine the color of the line
             color = y1_plot_colors[y - repeated * len(y1_plot_colors)]
-
-            line = self.primary.plot(current.x, y1, color)
-            handles.append(line[0])
+            # Get the column label and plot the line
             column = current.y1_columns[y]
-            labels.append(current.labels[column-1])
-
+            label = current.labels[column-1]
+            line = self.primary.plot(current.x, y1, color, label=label)
+            handles.append(line[0])
+            labels.append(label)
+        # If there is data to be plotted on the secondary axis, run the following code
         if self.secondary_axis:
             repeated = 0
+            # Iterate through the secondary axis data for the current plot
             for y, y2 in enumerate(current.y2):
-
-                if y % len(y2_plot_colors) == 0:
-                    repeated += 1
+                # Determine how many times the colors list will be repeated
+                if y % len(y2_plot_colors) == 0: repeated += 1
+                # Determine the colors of the line
                 color = y2_plot_colors[y - repeated * len(y2_plot_colors)]
-
-                line = self.secondary.plot(current.x, y2, color)
-                handles.append(line[0])
+                # Get the column label and plot the line
                 column = current.y2_columns[y]
-                labels.append(current.labels[column-1])
+                label = current.labels[column-1]
+                line = self.secondary.plot(current.x, y2, color, label=label)
+                handles.append(line[0])
+                labels.append(label)
 
+        # Determine adequate padding for the x-axis and set the x-axis limits accordingly.
+        # Store the original x-axis limits to allow the user to revert to them if desired.
         min_x = min(current.x)
         max_x = max(current.x)
         padding = (max_x - min_x) * (100/90) * (0.05)
         self.x_lower_original = min_x - padding
         self.x_upper_original = max_x + padding
         self.primary.set_xlim(self.x_lower_original, self.x_upper_original)
-
+        # Store the original y-axis limits to allow the user to revert to them if desired.
         self.y1_lower_original = self.primary.get_ylim()[0]
         self.y1_upper_original = self.primary.get_ylim()[1]
         if self.secondary_axis:
             self.y2_lower_original = self.secondary.get_ylim()[0]
             self.y2_upper_original = self.secondary.get_ylim()[1]
 
+        # Turn the grid on, with both major and minor gridlines
         self.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
         self.primary.minorticks_on()
         self.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
 
+        # Set the title, x axis label, and y axes labels according to user input
         self.figure.suptitle(current.title, fontweight='bold', fontsize=14)
         self.primary.set_xlabel(current.x_label)
         self.primary.set_ylabel(current.y1_label)
         if self.secondary_axis: self.secondary.set_ylabel(current.y2_label)
 
+        # Determine the number of lines being plotted
         lines = len(self.primary.lines)
         if self.secondary_axis: lines += len(self.secondary.lines)
+        # Specify the maximum number of columns per row in the legend, and calculate
+        # the number of rows accordingly
         max_columns = 5
         rows = lines / max_columns
+        # If there will be more than two rows, calculate the number of columns required
+        # to keep the legend at two rows
         if rows > 2: max_columns = math.ceil(lines / 2)
+        # Create the legend
         self.primary.legend(
                 handles = handles,
                 labels = labels,
@@ -713,11 +750,16 @@ class Flipbook(tk.Toplevel):
                 bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
 
+        # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
             self.controls_window()
             self.controls.withdraw()
 
-        # Axes limits
+        # ====================
+        # AXES LIMITS CONTROLS
+        # ====================
+
+        # Set each axis limit to the user-specified value
         if current.x_lower: self.primary.set_xlim(left=current.x_lower)
         if current.x_upper: self.primary.set_xlim(right=current.x_upper)
         if current.y1_lower: self.primary.set_ylim(bottom=current.y1_lower)
@@ -725,7 +767,12 @@ class Flipbook(tk.Toplevel):
         if current.y2_lower: self.secondary.set_ylim(bottom=current.y2_lower)
         if current.y2_upper: self.secondary.set_ylim(top=current.y2_upper)
 
-        # Background selection
+        # =============================
+        # BACKGROUND SELECTION CONTROLS
+        # =============================
+
+        # If 'None' is selected, no background is drawn.
+        # Otherwise, load the background from a preset file or allow the user to select one
         if current.background.get() == 'Tactair':
             image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
             x_low, x_high = self.primary.get_xlim()
@@ -737,17 +784,26 @@ class Flipbook(tk.Toplevel):
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
-        # Tolerance Bands
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
+
+        # Iterate through the plus bands of the current plot
         for p, plus in enumerate(self.band_controls.plus_bands):
+            # If there are no plus bands, skip to next iteration
             if not plus: continue
+            # Plot the plus band on the appropriate axis
             elif plus[0] == 'primary':
                 self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
                                   linestyle='dashed')
             elif plus[0] == 'secondary':
                 self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
                                   linestyle='dashed')
+        # Iterate through the minus bands of the current plot
         for m, minus in enumerate(self.band_controls.minus_bands):
+            # If there are no minus bands, skip to next iteration
             if not minus: continue
+            # Plot the minus band on the appropriate axis
             elif minus[0] == 'primary':
                 self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
                                   linestyle='dashed')
@@ -755,147 +811,208 @@ class Flipbook(tk.Toplevel):
                 self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
                                   linestyle='dashed')
 
+        # Update the canvas
         self.canvas.draw()
 
     def update_arrows(self):
+        """Update the arrows of the flipbook when the page is changed."""
+
+        # If the current page is the first page, disable the 'flip left' button
         if self.page == 0:
             self.previous_button.config(state='disabled')
+        # If the current page is the last page, disabled the 'flip right' button
         if self.page == self.pages:
             self.next_button.config(state='disabled')
+        # If the current page is somewhere in between, enable both flip buttons
         if 0 < self.page < self.pages:
             self.previous_button.config(state='normal')
             self.next_button.config(state='normal')
 
     def flip_page(self, event, direction):
+        """Flip between pages of the flipbook."""
+
+        # Determine the destination page
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
+        # If the destination page is within the range of the total number of pages...
         if destination in range(self.pages + 1):
+            # Set the new page number; refresh the controls; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
             self.refresh_controls()
             self.update_arrows()
             self.update_plot()
             # Update controls again or else the controls for the wrong page will display
             self.refresh_controls()
+
+        # Return 'break' to bypass event propagation
         return ('break')
 
-    def _coordinates(self, current, other, secondary):
-        # 'current' and 'other' are axes
-        if secondary:
+    def _coordinates(self, current, other, secondary_exists):
+        """Determine the appropriate coordinate format to use for the number of axes.
+        Current is the axis that is being formatted; other is the axis that is not being
+        formatted; secondary_exists is a boolean value, where True means that a secondary
+        axis exists, while False means it does not."""
+
+        if secondary_exists:
             def format_coord(x, y):
-                # x, y are data coordinates
-                # Convert to display coordinates
-                display_coord = current.transData.transform((x,y))
-                inv = other.transData.inverted()
-                # convert back to data coords with respect to ax
-                ax_coord = inv.transform(display_coord)
-                coords = [ax_coord, (x, y)]
+                """Create the appropriate coordinate formatting if both axes exist,
+                where x and y are data coordinates passed to this function by the mouse
+                event of matplotlib."""
+
+                # Secondary axis coordinates have been passed into this function already
+                secondary = (x, y)
+                # Convert data coordinates of the secondary axis to display coordinates
+                display = current.transData.transform(secondary)
+                # Invert the primary axis coordinates
+                inverted = other.transData.inverted()
+                # Convert to data coords with respect to the display coordinates
+                primary = inverted.transform(display)
+                # Combine the coordinates into a list and return the formatted string
+                coords = [primary, secondary]
                 return ('Primary: {:<}  |  Secondary: {:<}'
-                            .format(*['({:.3f}, {:.3f})'.format(x, y) for x,y in coords]))
-        elif not secondary:
+                            .format(*['({:.3f}, {:.3f})'.format(x, y) for x, y in coords]))
+
+        elif not secondary_exists:
             def format_coord(x, y):
-                coords = [(x, y)]
-                return ('Primary: {:<}'
-                            .format(*['({:.3f}, {:.3f})'.format(x, y) for x,y in coords]))
+                """Create the appropriate coordinate formatting if only the primary
+                axis exists, where x and y are data coordinates passed to this function
+                by matplotlib."""
+
+                # Return the formatted string
+                return ('Primary: ({:<.3f}, {:<.3f})'.format(x, y))
+
+        # Return the approprate coordinates format function
         return format_coord
 
     def controls_window(self):
+        """Create a controls window where the user can adjust the plot."""
 
+        # If the controls window is already open, exit the function
         if self.controls: return
 
         def custom_background(event=None):
-            before = self.background_choice.get()
+            """Allow the user to navigate to and select a custom background.
+
+            This function is called whenever an option in the appropriate combobox is
+            selected. However, its purposes is to only execute when the 'Custom'
+            option is selected."""
+
+            # Get a reference to the current plot
             current = self.plots[self.page]
+            # If the user chooses to use a custom background...
             if self.background_choice.get() == 'Custom':
+                # Get the filepath of the selected file
                 path = fd.askopenfilename(title='Select the background image')
                 if path:
+                    # If the user follows through, save the filepath
                     current.background_path = path
                 else:
+                    # If the user cancels, set the plot's background_path attribute to None
+                    # as well as the combobox value.
                     current.background_path = None
                     self.background_choice.set('None')
-            else: current.background_path = None
+            else:
+                # Otherwise, set the current plot's background_path attribute to None
+                current.background_path = None
 
+        # Get a reference to the current plot object
         current = self.plots[self.page]
 
+        # Create the top-level controls window
         self.controls = tk.Toplevel(self)
         self.controls.title('Controls')
         self.controls.resizable(width=False, height=False)
         self.controls.columnconfigure(0, weight=1)
         self.controls.rowconfigure(0, weight=1)
+        # When the user closes the controls window, just hide it instead
         self.controls.protocol("WM_DELETE_WINDOW", lambda: self.controls.withdraw())
 
+        # Create the primary frame, which will hold the notebook and provide padding
         primary = gui.PaddedFrame(self.controls)
         primary.grid(row=0, column=0, sticky='NSEW')
         primary.columnconfigure(0, weight=1)
         primary.rowconfigure(0, weight=1)
 
+        # Create the notebook which will contain tabs for all controls
         notebook = ttk.Notebook(primary, takefocus=0)
         notebook.grid(row=0, column=0, sticky='NSEW')
-
+        # Add scrollable tabs to the notebook
         figure = gui.ScrollableTab(notebook, 'Figure', cheight=400, cwidth=400)
         appearance = gui.ScrollableTab(notebook, 'Appearance', cheight=400, cwidth=400)
         analysis = gui.ScrollableTab(notebook, 'Analysis', cheight=400, cwidth=400)
         annotations = gui.ScrollableTab(notebook, 'Annotations', cheight=400, cwidth=400)
 
+        # Separate the primary and secondary frames
         gui.Separator(self.controls).grid(row=1, column=0, sticky='NSEW')
 
+        # Create the secondary frame which will contain the update button
         secondary = gui.PaddedFrame(self.controls)
         secondary.grid(row=2, column=0, sticky='NSEW')
         secondary.columnconfigure(0, weight=1)
 
+        # Create the update button
         update_button = ttk.Button(secondary, text='Update', takefocus=0,
                                    command=self.update_controls)
         update_button.grid(row=0, column=0, sticky='E')
 
-        # Start of Figure tab
+        # ==========
+        # FIGURE TAB
+        # ==========
+
+        # Create the limits frame which will hold fields for each axis limit
         limits = gui.PaddedFrame(figure)
         limits.grid(row=0, column=0, sticky='NSEW')
         limits.columnconfigure(0, weight=1)
         limits.columnconfigure(1, weight=1)
-
+        # Define amount of padding to use around widgets
         LIMITS_PADDING = 10
-
+        # Create a lower x-axis label and entry
         x_lower_label = tk.Label(limits, text='x-lower:')
         x_lower_label.grid(row=0, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.x_lower_entry = ttk.Entry(limits, width=20)
         self.x_lower_entry.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-
+        # Create an upper x-axis label and entry
         x_upper_label = tk.Label(limits, text='x-upper:')
         x_upper_label.grid(row=0, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.x_upper_entry = ttk.Entry(limits, width=20)
         self.x_upper_entry.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-
+        # Add some vertical spacing between widgets
         gui.Space(limits, row=2, column=0, columnspan=2)
-
+        # Create a lower y1-axis label and entry
         y1_lower_label = tk.Label(limits, text='y1-lower:')
         y1_lower_label.grid(row=3, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.y1_lower_entry = ttk.Entry(limits, width=20)
         self.y1_lower_entry.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-
+        # Create an upper y1-axis label and entry
         y1_upper_label = tk.Label(limits, text='y1-upper:')
         y1_upper_label.grid(row=3, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.y1_upper_entry = ttk.Entry(limits, width=20)
         self.y1_upper_entry.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-
+        # Add some vertical spacing between widgets
         gui.Space(limits, row=5, column=0, columnspan=2)
-
+        # Create a lower y2-axis label and entry
         y2_lower_label = tk.Label(limits, text='y2_lower:')
         y2_lower_label.grid(row=6, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.y2_lower_entry = ttk.Entry(limits, width=20)
         self.y2_lower_entry.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-
+        # Create an upper y2-axis label and entry
         y2_upper_label = tk.Label(limits, text='y2_upper:')
         y2_upper_label.grid(row=6, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.y2_upper_entry = ttk.Entry(limits, width=20)
         self.y2_upper_entry.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
-        # Start of Appearance tab
+        # ==============
+        # APPEARANCE TAB
+        # ==============
+
+        # Create a padded frame for the background controls
         background = gui.PaddedFrame(appearance)
         background.grid(row=0, column=0, sticky='NSEW')
         background.columnconfigure(0, weight=1)
         background.columnconfigure(1, weight=1)
-
+        # Add a label for the background combobox
         background_label = tk.Label(background, text='Background:')
         background_label.grid(row=0, column=0, padx=(0, 10), sticky='E')
-
+        # Add a combobox to control the background of the plot
         self.background_choice = tk.StringVar()
         background_combo = ttk.Combobox(background, width=20, state='readonly',
                                         textvariable=self.background_choice)
@@ -903,31 +1020,52 @@ class Flipbook(tk.Toplevel):
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
         background_combo.bind('<<ComboboxSelected>>', custom_background)
 
-        # Start of Analysis tab
+        # ============
+        # ANALYSIS TAB
+        # ============
+
+        # Create a frame that will hold the dynamic tolerance bands controls
         self.tolerance_bands = gui.PaddedFrame(analysis)
         self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
         self.tolerance_bands.columnconfigure(0, weight=1)
 
-        # End of controls
+        # ===============
+        # END OF CONTROLS
+        # ===============
 
+        # Refresh the controls with values for the current plot
         self.refresh_controls()
 
+        # Bind the enter key to the same function the update button calls
         self.controls.bind('<Return>', self.update_controls)
 
     def refresh_controls(self):
+        """Refresh the controls window fields with the currently stored values."""
 
+        # If the controls window is already open, exit the function
         if not self.controls: return
 
+        # Get a reference to the current plot object
         current = self.plots[self.page]
 
-        # Axes limits
+        # ====================
+        # AXES LIMITS CONTROLS
+        # ====================
+
         def axis_entry(entry, value, original):
+            """Clear the entry and insert the changed value if it exists, otherwise
+            insert the original value."""
+
             entry.delete(0, 'end')
             entry.insert(0, value if value else original)
+
+        # Fill in each field with their respective values
         axis_entry(self.x_lower_entry, current.x_lower, self.x_lower_original)
         axis_entry(self.x_upper_entry, current.x_upper, self.x_upper_original)
         axis_entry(self.y1_lower_entry, current.y1_lower, self.y1_lower_original)
         axis_entry(self.y1_upper_entry, current.y1_upper, self.y1_upper_original)
+        # Disable the secondary axis entry fields is there is no secondary axis,
+        # otherwise enable and fill the entry fields corresponding to the secondary axis.
         if self.secondary_axis:
             self.y2_lower_entry['state'] = 'normal'
             axis_entry(self.y2_lower_entry, current.y2_lower, self.y2_lower_original)
@@ -939,25 +1077,41 @@ class Flipbook(tk.Toplevel):
             self.y2_upper_entry.delete(0, 'end')
             self.y2_upper_entry['state'] = 'disabled'
 
-        # Background selection
+        # =============================
+        # BACKGROUND SELECTION CONTROLS
+        # =============================
+
+        # Set the current background combobox selection to the stored background value
         self.background_choice.set(current.background.get())
 
-        # Tolerance bands
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
+
+        # If the band_controls widget already exists, remove it from view.
+        # Destroying it will cause the program to not be able to reference those fields.
         if self.band_controls: self.band_controls.grid_forget()
+        # Re-grid the tolerance bands object of the current plot
         self.band_controls = current.bands
         self.band_controls.setup(self.tolerance_bands)
         self.band_controls.grid(row=0, column=0, sticky='NSEW')
 
+        # If the attributes of the current plot object have been changed...
         if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
+            # Determine which of those lists is the longest and recreate that many rows
             longest = len(max(current.series, current.minus_tolerance,
                               current.plus_tolerance, current.lag))
             self.band_controls.recreate(rows=longest)
+
+        # Fill the newly create entries with the relevant values
         self.band_controls.series = current.series
         self.band_controls.minus_tolerance = current.minus_tolerance
         self.band_controls.plus_tolerance = current.plus_tolerance
         self.band_controls.lag = current.lag
         self.band_controls.color = current.color
 
+        # Every time the combobox is selected, update its options with the currently
+        # plotted columns.
         values = []
         for column in current.y1_columns:
             values.append(current.labels[column-1])
@@ -966,12 +1120,23 @@ class Flipbook(tk.Toplevel):
         self.band_controls.update_series(values)
 
     def update_controls(self, event=None):
+        """Update the current plot object with the user-entered values and refresh
+        both the plot and the controls window."""
+
+        # Get a reference to the current plot object
         current = self.plots[self.page]
 
-        # Axes limits
+        # ====================
+        # AXES LIMITS CONTROLS
+        # ====================
+
         def update_axis(entry, original):
+            """If a value was changed, convert it from a string to a float. Otherwise,
+            use the original value."""
+
             return float(entry.get()) if entry.get() else float(original)
 
+        # Store the axes limits values in the corresponding plot object attributes
         current.x_lower = update_axis(self.x_lower_entry, self.x_lower_original)
         current.x_upper = update_axis(self.x_upper_entry, self.x_upper_original)
         current.y1_lower = update_axis(self.y1_lower_entry, self.y1_lower_original)
@@ -980,17 +1145,27 @@ class Flipbook(tk.Toplevel):
             current.y2_lower = update_axis(self.y2_lower_entry, self.y2_lower_original)
             current.y2_upper = update_axis(self.y2_upper_entry, self.y2_upper_original)
 
-        # Background selection
+        # =============================
+        # BACKGROUND SELECTION CONTROLS
+        # =============================
+
+        # Store the currently selected value from the background combobox
         current.background.set(self.background_choice.get())
 
-        # Tolerance bands
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
+
+        # Store the current band controls values in the corresponding plot attributes
         current.series = self.band_controls.series
         current.minus_tolerance = self.band_controls.minus_tolerance
         current.plus_tolerance = self.band_controls.plus_tolerance
         current.lag = self.band_controls.lag
         current.color = self.band_controls.color
+        # Pass the current plot object to the calculate method to create the bands
         self.band_controls.calculate(current)
 
+        # Update the plot and refresh the controls window
         self.update_plot()
         self.refresh_controls()
 
