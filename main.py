@@ -14,16 +14,16 @@ import platform
 # Plotting packages
 import matplotlib
 if platform.system() == 'Darwin':
-    matplotlib.use("TkAgg")
+    matplotlib.use("TkAgg") # On Mac, this must come before the pyplot import
 import matplotlib.pyplot as plt
 if platform.system() == 'Windows':
-    matplotlib.use("TkAgg")
+    matplotlib.use("TkAgg") # On Windows, this must come after the pyplot import
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
 # Data science packages
-import pandas as pd
 import math
+import pandas as pd
 
 # Miscellaneous packages
 import re
@@ -31,8 +31,9 @@ import configobj
 import random
 
 # Initialize program constants
-flipbook_open = False
-help_open = False
+PADDING = 12 # General padding between widgets on the GUI
+FLIPBOOK = False # keeps track of whether or not the flipbook is open
+HELP = False # keeps track of whether or not the help window is open
 
 clipboard = {
         'title': None,
@@ -42,35 +43,42 @@ clipboard = {
         'x label': None,
         'y1 label': None,
         'y2 label': None,
-    }
+    } # When copy and pasting on the GUI, the values are stored here
 
 plot_colors = {
-          'blue':     'b',
-          'green':    'g',
-          'red':      'r',
-          'cyan':     'c',
-          'magenta':  'm',
-          'yellow':   'y',
-          'white':    'w',
-          'black':    'k',
-          'gray':     '#808080',
-          'pink':     '#ff4d4d',
-          'purple':   '#660066',
-          'gold':     '#b38600',
-          'orange':   '#ff6600',
-          'brown':    '#663300',
-          'lime':     '#00ff00',
-}
-
+        'blue':     'b',
+        'green':    'g',
+        'red':      'r',
+        'cyan':     'c',
+        'magenta':  'm',
+        'yellow':   'y',
+        'white':    'w',
+        'black':    'k',
+        'gray':     '#808080',
+        'pink':     '#ff4d4d',
+        'purple':   '#660066',
+        'gold':     '#b38600',
+        'orange':   '#ff6600',
+        'brown':    '#663300',
+        'lime':     '#00ff00',
+    } # A list of all preset color options for plotting purposes
 
 def save_preset():
+    '''Copies all user inputs to a config file and saves in the specified location.'''
+
+    # Show a dialog box where the user can choose where to save the preset file
     valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
     location = fd.asksaveasfilename(title='Choose where to save the preset file',
                                     defaultextension='.ini',
                                     filetypes=valid)
+
+    # Create a ConfigObj object, targeted at the specified filepath
     preset = configobj.ConfigObj(location)
 
+    # Iterator through the file objects
     for f, file in enumerate(files):
+        # For each plot in each file, filepath, data start row, label row, and unit row
+        # will be the same. Record these under the main section for this file.
         preset[f'File {f+1}'] = {
             'filepath': inputs[f],
             'data start': file.data_row_entry.get(),
@@ -78,6 +86,8 @@ def save_preset():
             'unit row': file.unit_row_entry.get() if file.unit_row_entry.get() else '',
         }
 
+        # The rest of the inputs are specific to each plot. Iterate through each plot,
+        # recording each one's inputs under a different subsection of the preset.
         for n, section in enumerate(file.plots):
             preset[f'File {f+1}'][f'Plot {n+1}'] = {
                 'title': files[f]._titles[n].get(),
@@ -89,44 +99,59 @@ def save_preset():
                 'y2 label': files[f]._y2_labels[n].get(),
             }
 
+    # Save the completed preset file to the specified filepath
     preset.write()
 
 
 def load_preset():
+    '''Gets user input information from the specified preset file and pastes them
+    into the GUI.
+    '''
     global inputs, files
 
+    # Have the user navigate to the preset file and initialize a ConfigObj object
     location = fd.askopenfilename(title='Choose the preset file')
     preset = configobj.ConfigObj(location)
 
+    # If the user presses cancel or if the preset file is empty (possibly corrupt),
+    # display a message and exit the function.
     if len(preset) == 0:
         message = 'It looks like the preset file you chose is either empty or not ' \
                   'formatted correctly. Please double check the file and try again.'
         mb.showinfo('Oops!', message)
         return
 
+    # Grab the filepath for each file in the preset
     inputs = [info['filepath'] for file, info in preset.items()]
 
+    # Insert the filepaths into the listbox
     listbox.clear()
     listbox.field['state'] = 'normal'
     for filepath in inputs: listbox.field.insert('end', ' ' + filepath)
     listbox.field['state'] = 'disable'
     listbox.field['justify'] = 'left'
 
+    # With the inputs variable initialized, it is safe to enable all fields and
+    # create tabs/rows for each input
     enable()
     input_controls()
 
+    # Iterate through the preset and create the necessary number of rows for each file
     for f, (file, info) in enumerate(preset.items()):
+        # If info has a length of greater than five, that means that rows need to be added.
+        # The first five entries are filepath, data start row, label row, unit row, and
+        # the first row that is already created by default for each file.
         if len(info) > 5:
             rows_needed = len(info) - 5
             for _ in range(rows_needed): plus_row(tab=f)
 
+    # Iterate through the preset again and fill the GUI fields with the relevant data
     for f, (file, info) in enumerate(preset.items()):
         files[f].data_row_entry.insert(0, info['data start'])
         files[f].label_row_entry.insert(0, info['label row'])
         files[f].unit_row_entry.insert(0, info['unit row'])
         plots = [key for key in info.keys()
                  if key not in ['filepath', 'data start', 'label row', 'unit row']]
-
         for p, plot in enumerate(plots):
             files[f]._titles[p].insert(0, info[plot]['title'])
             files[f]._x_columns[p].insert(0, info[plot]['x column'])
@@ -138,7 +163,10 @@ def load_preset():
 
 
 def browse():
+    '''Allow the user to browse for inputs, then initialize the GUI.'''
     global inputs
+
+    # Only run this code if there are inputs stored in the listbox
     if listbox.get():
         inputs = listbox.get()
         enable()
@@ -146,79 +174,116 @@ def browse():
 
 
 def enable():
+    '''Change the GUI to its enabled state, which only occurs when inputs are loaded.'''
+
+    # Enable the buttons in the footer
     plot_button['state'] = 'normal'
     plus_button['state'] = 'normal'
     minus_button['state'] = 'normal'
 
+    # Enable the entries in the file menu
     file_menu.entryconfig(1, state='normal')
     file_menu.entryconfig(2, state='normal')
     file_menu.entryconfig(4, state='normal')
+
+    # Enable the entries in the edit menu
     edit_menu.entryconfig(0, state='normal')
     edit_menu.entryconfig(1, state='normal')
-
     edit_menu.entryconfig(3, state='normal')
     edit_menu.entryconfig(4, state='normal')
 
 
 def reset():
+    '''Revert the GUI back to its disabled state, before any inputs were loaded.'''
+
+    # Clear the listbox
     listbox.clear()
 
+    # Disable the buttons in the footer
     plot_button['state'] = 'disabled'
     plus_button['state'] = 'disabled'
     minus_button['state'] = 'disabled'
 
+    # Disable the entries in the file menu
     file_menu.entryconfig(1, state='disabled')
     file_menu.entryconfig(2, state='disabled')
     file_menu.entryconfig(4, state='disabled')
+
+    # Disable the entries in the edit menu
     edit_menu.entryconfig(0, state='disabled')
     edit_menu.entryconfig(1, state='disabled')
-
     edit_menu.entryconfig(3, state='disabled')
     edit_menu.entryconfig(4, state='disabled')
 
+    # Destroy everything in the primary frame - namely, the notebook
     for child in primary.winfo_children(): child.destroy()
 
+    # Recreate the message that lets the user know there are no inputs loaded
     message = 'Please provide at least one input file.\n\nControls will appear here.'
     no_input_label = tk.Label(primary, text=message)
     no_input_label.grid(row=0, column=0, sticky='NSEW')
 
 
 def input_controls():
+    '''Creates a tab for each input file, and one row for each tab.'''
     global primary, notebook, files
 
+    # Destroy everything in the primary frame
     for child in primary.winfo_children(): child.destroy()
 
+    # Place a notebook in the primary frame
     notebook = ttk.Notebook(primary, takefocus=0)
     notebook.grid(row=0, column=0, sticky='NSEW')
 
-    files = []
-    for filepath in inputs:
-        file = File(notebook, filepath)
-        files.append(file)
+    # Create an object file for each inputs and add them to a list to keep track
+    files = [File(notebook, filepath) for filepath in inputs]
+
+    # Set cursor focus on the data start row entry of the first tab for ease of use
     files[0].data_row_entry.focus_set()
 
 
 def plus_row(event=None, tab=None):
+    '''Add a row to the specified file/tab of the notebook.'''
     try:
+        # If a tab is not specified, set tab equal to the index of the current tab.
+        # This is the case when clicking the 'create row' button on the GUI.
+        # Otherwise, the tab parameter is used when loading presets, etc.
         if not tab: tab = notebook.index(notebook.select())
+        # Add a row to the tab
         files[tab].add_row()
     except NameError: pass
 
 
 def minus_row(event=None, tab=None):
+    '''Remove a row from the specified file/tab of the notebook.'''
     try:
+        # If a tab is not specified, set tab equal to the index of the current tab.
+        # This is the case when clicking the 'delete row' button on the GUI.
+        # Otherwise, the tab parameter is used when loading presets, etc.
         if not tab: tab = notebook.index(notebook.select())
+        # Remove a row from the tab
         files[tab].delete_row()
     except NameError: pass
 
 
 def add_file():
+    '''Retroactively add a file to the current inputs.'''
     global inputs
+
+    # Ask the user to locate the file he/she wishes to add
     filepath = fd.askopenfilename(title='Choose the preset file')
+
+    # Don't continue if no filepath was selected by the user
     if len(filepath) == 0: return
+
+    # Append the filepath to the list of inputs
     inputs.append(filepath)
+
+    # Create a File object and append it to the list of file objects
     file = File(notebook, filepath)
     files.append(file)
+
+    # Add the filepath to the listbox
     listbox.field['state'] = 'normal'
     listbox.field.insert('end', filepath)
     listbox.field['state'] = 'disable'
@@ -226,12 +291,25 @@ def add_file():
 
 
 def remove_file():
+    '''Retroactively remove a file from the current inputs.'''
     global files
+
+    # Don't continue if the currently selected file is the last remaining input
     if not len(files) > 1: return
+
+    # Get the index of the currently selected tab
     current = notebook.index(notebook.select())
+
+    # Delete the information about this tab that is stored in the inputs and files lists
     del(inputs[current])
     del(files[current])
+
+    # Destroy the currently selected tab
+    # The select method of a notebook gives a name; however, the nametowidget method
+    # finds the respective object
     app.root.nametowidget(notebook.select()).destroy()
+
+    # Remove the filepath from the listbox
     listbox.field['state'] = 'normal'
     listbox.field.delete(current)
     listbox.field['state'] = 'disable'
@@ -249,22 +327,51 @@ def switch_tab(event, direction):
         files[destination].data_row_entry.focus_set()
 
 
+def switch_row(event, direction):
+
+    current = notebook.index(notebook.select())
+    file = files[current]
+
+    fields = [file._titles, file._x_columns, file._y1_columns, file._y2_columns,
+              file._x_labels, file._y1_labels, file._y2_labels]
+
+    for f, field in enumerate(fields):
+        for i, item in enumerate(field):
+            if item == app.root.focus_get():
+                entry = f
+                row = i
+                break
+        else:
+            continue
+        break
+    else: return
+
+    destination = (row + 1) if direction == 'next' else (row - 1)
+
+    if destination in range(len(fields[entry])):
+        next_widget = fields[entry][destination]
+        next_widget.focus_set()
+
+    return ('break')
+
+
+
 def open_flipbook(event=None):
-    global flipbook_open
-    if flipbook_open: return
+    global FLIPBOOK
+    if FLIPBOOK: return
 
     for file in files: file.generate()
     app.root.withdraw()
     flipbook = Flipbook(app.root, info=files)
-    flipbook_open = True
+    FLIPBOOK = True
 
 
 def open_help(event=None):
-    global help_open
-    if help_open: return
+    global HELP
+    if HELP: return
 
     help_window = Help(app.root)
-    help_open = True
+    HELP = True
 
 
 def paste_file():
@@ -339,10 +446,10 @@ class Flipbook(tk.Toplevel):
     def __init__(self, *args, info, **kwargs):
 
         def on_close():
-            global flipbook_open
+            global FLIPBOOK
             self.destroy()
             app.root.deiconify()
-            flipbook_open = False
+            FLIPBOOK = False
 
         self.info = info
         self.page = 0
@@ -411,13 +518,12 @@ class Flipbook(tk.Toplevel):
             self.controls.update()
             self.controls.deiconify()
 
-        global controls_image
+        controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
         controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
                                      # command=self.controls_window)
-                                     command=show_controls)
+                                     image=controls_image, command=show_controls)
         controls_button.grid(row=0, column=1, sticky='E')
-        controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
-        controls_button['image'] = controls_image
+        controls_button.image = controls_image
 
         self.filename = tk.StringVar()
         filename_label = tk.Label(middle, textvar=self.filename,
@@ -666,7 +772,8 @@ class Flipbook(tk.Toplevel):
         secondary.grid(row=2, column=0, sticky='NSEW')
         secondary.columnconfigure(0, weight=1)
 
-        update_button = ttk.Button(secondary, text='Update', command=self.update_controls)
+        update_button = ttk.Button(secondary, text='Update', takefocus=0,
+                                   command=self.update_controls)
         update_button.grid(row=0, column=0, sticky='E')
 
         # Start of Figure tab
@@ -840,10 +947,12 @@ class ToleranceBands(tk.Frame):
         title = tk.Label(controls, text='Tolerance Bands')
         title.grid(row=0, column=0, sticky='W')
 
-        add_button = ttk.Button(controls, text='+', width=3, command=self.add_band)
+        add_button = ttk.Button(controls, text='+', width=3, takefocus=0,
+                                command=self.add_band)
         add_button.grid(row=0, column=1)
 
-        delete_button = ttk.Button(controls, text='-', width=3, command=self.delete_band)
+        delete_button = ttk.Button(controls, text='-', width=3, takefocus=0,
+                                   command=self.delete_band)
         delete_button.grid(row=0, column=2)
 
     def reset(self):
@@ -1139,15 +1248,22 @@ class File(gui.ScrollableTab):
         title_entry.grid(row=0, column=1, padx=PADDING, sticky='NSEW')
         self._titles.append(title_entry)
 
-        copy_button = ttk.Button(tools, takefocus=0, width=3, text='C')
+        copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
+        copy_button = ttk.Button(tools, takefocus=0, width=3, image=copy_image, text='C')
         copy_button['command'] = lambda ID=self._count: self.copy(ID)
+        copy_button.image = copy_image
         copy_button.grid(row=0, column=2, padx=TOOLS, sticky='NSEW')
 
-        paste_button = ttk.Button(tools, takefocus=0, width=3, text='P')
+        paste_image = gui.RenderImage('Assets\\paste.png', downscale=12)
+        paste_button = ttk.Button(tools, takefocus=0, width=3, image=paste_image, text='P')
         paste_button['command'] = lambda ID=self._count: self.paste(ID)
+        paste_button.image = paste_image
         paste_button.grid(row=0, column=3, padx=TOOLS, sticky='NSEW')
 
-        clear_button = ttk.Button(tools, takefocus=0, width=3, text='X')
+        clear_image = gui.RenderImage('Assets\\clear.png', downscale=12)
+        clear_button = ttk.Button(tools, takefocus=0, width=3, image=clear_image, text='X')
+        clear_button['command'] = lambda ID=self._count: self.clear(ID)
+        clear_button.image = clear_image
         clear_button.grid(row=0, column=4, padx=TOOLS, sticky='NSEW')
 
         gui.Space(inner, row=1, column=0, columnspan=4, padding=PADDING)
@@ -1242,6 +1358,7 @@ class File(gui.ScrollableTab):
         clipboard['y2 label'] = self._y2_labels[ID].get()
 
     def paste(self, ID):
+        self.clear(ID)
         self._titles[ID].insert(0, clipboard['title'])
         self._x_columns[ID].insert(0, clipboard['x column'])
         self._y1_columns[ID].insert(0, clipboard['y1 columns'])
@@ -1249,6 +1366,15 @@ class File(gui.ScrollableTab):
         self._x_labels[ID].insert(0, clipboard['x label'])
         self._y1_labels[ID].insert(0, clipboard['y1 label'])
         self._y2_labels[ID].insert(0, clipboard['y2 label'])
+
+    def clear(self, ID):
+        self._titles[ID].delete(0, 'end')
+        self._x_columns[ID].delete(0, 'end')
+        self._y1_columns[ID].delete(0, 'end')
+        self._y2_columns[ID].delete(0, 'end')
+        self._x_labels[ID].delete(0, 'end')
+        self._y1_labels[ID].delete(0, 'end')
+        self._y2_labels[ID].delete(0, 'end')
 
     def add_plot(self):
 
@@ -1381,11 +1507,11 @@ class Help(tk.Toplevel):
     def __init__(self, *args, **kwargs):
 
         def on_close():
-            global help_open
+            global HELP
             self.destroy()
-            help_open = False
+            HELP = False
 
-        MARGIN_SIZE = 12
+        MARGIN = 12
         CANVAS_WIDTH = 375
         CANVAS_HEIGHT = 400
         VERDANA = ('Verdana', 10, 'bold')
@@ -1399,7 +1525,7 @@ class Help(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", on_close)
 
         help_book = ttk.Notebook(self)
-        help_book.grid(row=0, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        help_book.grid(row=0, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
 
         # Inputs tab
         inputs = gui.ScrollableTab(help_book, 'Inputs', cheight=400, cwidth=375)
@@ -1429,28 +1555,32 @@ class Help(tk.Toplevel):
                        'Overwrites the pregenerated x-axis label.',
                        'Overwrites the pregenerated primary y-axis label.',
                        'Overwrites the pregenerated secondary y-axis label.',
-                       'In a field where multiple inputs are allowed (i.e. \'y1 columns\' and \'y2 columns\'), separate the inputs with any non-numeric character(s).\n' \
-                       '\nFor example, \'1;3;5;7\' and \'1abc3.5 7\' will successfully plot columns 1, 3, 5, and 7, but \'1357\' or \'1133577\' will not.'
+                       'In a field where multiple inputs are allowed ' \
+                            '(i.e. \'y1 columns\' and \'y2 columns\'), ' \
+                            'separate the inputs with any non-numeric character(s).\n' \
+                       '\nFor example, \'1;3;5;7\' and \'1abc3.5 7\' will successfully ' \
+                            'plot columns 1, 3, 5, and 7, but \'1357\' or \'1133577\' will not.'
                      ]
 
         help_row = 0
 
         for i, INPUT in enumerate(input_text):
-            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE)
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN)
             help_row += 1
 
-            title = tk.Label(inputs, text=input_labels[i], wraplength=345, font=('Helvetica', 8, 'bold'))
+            title = tk.Label(inputs, text=input_labels[i], wraplength=345,
+                font=('Helvetica', 8, 'bold'))
             title.grid(row=help_row, column=0, padx=10, sticky="W")
             help_row += 1
 
-            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE/2)
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN/2)
             help_row += 1
 
             label = tk.Label(inputs, text=INPUT, wraplength=345)
             label.grid(row=help_row, column=0, padx=10, sticky="W")
             help_row += 1
 
-            inputs.grid_rowconfigure(help_row, minsize=MARGIN_SIZE)
+            inputs.grid_rowconfigure(help_row, minsize=MARGIN)
             help_row += 1
 
             if INPUT != input_text[-1]:
@@ -1464,79 +1594,84 @@ class Help(tk.Toplevel):
         controls = gui.ScrollableTab(help_book, 'Controls', cheight=400, cwidth=375)
         controls_row = 0
 
-        global plus_image
         plus_frame = tk.Frame(controls)
-        plus_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\plus.png', downscale=5)
+        plus_image = gui.RenderImage('Assets\\plus.png', downscale=5)
         plus_label = ttk.Button(plus_frame, takefocus=0, image=plus_image)
+        plus_label.image = plus_image
         plus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         plus_separator = gui.Separator(plus_frame, orientation='vertical',
             padding=((0, 10), 0))
-        plus_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        plus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         plus_title = ttk.Label(plus_frame, text='Create Row', font=HELVETICA)
         plus_title.grid(row=0, column=2, sticky='EW')
-        plus_description = ttk.Label(plus_frame, text='Creates a row at the bottom of the selected file.')
+        plus_description = ttk.Label(plus_frame,
+            text='Creates a row at the bottom of the selected file.')
         plus_description.grid(row=1, column=2, sticky='EW')
-        plus_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        plus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
         controls_row += 1
 
-        global minus_image
         minus_frame = tk.Frame(controls)
-        minus_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\minus.png', downscale=5)
+        minus_image = gui.RenderImage('Assets\\minus.png', downscale=5)
         minus_label = ttk.Button(minus_frame, takefocus=0, image=minus_image)
+        minus_label.image = minus_image
         minus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         minus_separator = gui.Separator(minus_frame, orientation='vertical',
             padding=((0, 10), 0))
-        minus_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        minus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         minus_title = ttk.Label(minus_frame, text='Delete Row', font=HELVETICA)
         minus_title.grid(row=0, column=2, sticky='EW')
-        minus_description = ttk.Label(minus_frame, text='Deletes the bottom row of the selected file.')
+        minus_description = ttk.Label(minus_frame,
+            text='Deletes the bottom row of the selected file.')
         minus_description.grid(row=1, column=2, sticky='EW')
-        minus_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        minus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
         controls_row += 1
 
-        global copy_image
         copy_frame = tk.Frame(controls)
-        copy_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\copy.png', downscale=5)
+        copy_image = gui.RenderImage('Assets\\copy.png', downscale=5)
         copy_label = ttk.Button(copy_frame, takefocus=0, image=copy_image)
+        copy_label.image = copy_image
         copy_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         copy_separator = gui.Separator(copy_frame, orientation='vertical',
             padding=((0, 10), 0))
-        copy_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        copy_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         copy_title = ttk.Label(copy_frame, text='Copy', font=HELVETICA)
         copy_title.grid(row=0, column=2, sticky='EW')
-        copy_description = ttk.Label(copy_frame, text='Copy data from the respective fields.')
+        copy_description = ttk.Label(copy_frame,
+            text='Copy data from the respective fields.')
         copy_description.grid(row=1, column=2, sticky='EW')
-        copy_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        copy_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
         controls_row += 1
 
-        global paste_image
         paste_frame = tk.Frame(controls)
-        paste_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\paste.png', downscale=5)
+        paste_image = gui.RenderImage('Assets\\paste.png', downscale=5)
         paste_label = ttk.Button(paste_frame, takefocus=0, image=paste_image)
+        paste_label.image = paste_image
         paste_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         paste_separator = gui.Separator(paste_frame, orientation='vertical',
             padding=((0, 10), 0))
-        paste_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        paste_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         paste_title = ttk.Label(paste_frame, text='Paste', font=HELVETICA)
         paste_title.grid(row=0, column=2, sticky='EW')
-        paste_description = ttk.Label(paste_frame, text='Pastes data into the respective fields.')
+        paste_description = ttk.Label(paste_frame,
+            text='Pastes data into the respective fields.')
         paste_description.grid(row=1, column=2, sticky='EW')
-        paste_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        paste_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
         controls_row += 1
 
-        global clear_image
         clear_frame = tk.Frame(controls)
-        clear_image = gui.RenderImage('C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting\\Assets\\clear.png', downscale=5)
+        clear_image = gui.RenderImage('Assets\\clear.png', downscale=5)
         clear_label = ttk.Button(clear_frame, takefocus=0, image=clear_image)
+        clear_label.image = clear_image
         clear_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         clear_separator = gui.Separator(clear_frame, orientation='vertical',
             padding=((0, 10), 0))
-        clear_separator.grid(row=0, column=1, rowspan=2, padx=(0, 10), sticky='NS')
+        clear_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         clear_title = ttk.Label(clear_frame, text='Clear', font=HELVETICA)
         clear_title.grid(row=0, column=2, sticky='EW')
-        clear_description = ttk.Label(clear_frame, text='Clear data from the respective fields.')
+        clear_description = ttk.Label(clear_frame,
+            text='Clear data from the respective fields.')
         clear_description.grid(row=1, column=2, sticky='EW')
-        clear_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        clear_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
         controls_row += 1
 
         edit_menu_frame = tk.Frame(controls)
@@ -1550,54 +1685,60 @@ class Help(tk.Toplevel):
         label_frame.grid_rowconfigure(3, weight=1)
         label_frame.grid(row=0, column=0, padx=(6, 15), sticky='NSEW')
 
-        ttk.Separator(edit_menu_frame, orient='vertical').grid(row=0, column=1, padx=(0, 10), sticky="NS")
+        edit_menu_separator = gui.Separator(edit_menu_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        edit_menu_separator.grid(row=0, column=1, sticky='NS')
 
         descriptions_frame = tk.Frame(edit_menu_frame)
 
         clear_form_frame = tk.Frame(descriptions_frame)
-        clear_form_title = ttk.Label(clear_form_frame, text='Edit > Clear Form', font=HELVETICA)
+        clear_form_title = ttk.Label(clear_form_frame, text='Edit > Clear Form',
+            font=HELVETICA)
         clear_form_title.grid(row=0, column=2, sticky='EW')
         clear_form_description = ttk.Label(clear_form_frame,
             text='Clear data from all fields.')
         clear_form_description.grid(row=1, column=2, sticky='EW')
-        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN_SIZE/2), sticky='NSEW')
+        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2), sticky='NSEW')
 
         reset_frame = tk.Frame(descriptions_frame)
-        reset_title = ttk.Label(reset_frame, text='Edit > Reset Form', font=HELVETICA)
+        reset_title = ttk.Label(reset_frame, text='Edit > Reset Form',
+            font=HELVETICA)
         reset_title.grid(row=0, column=2, sticky='EW')
         reset_description = ttk.Label(reset_frame,
             text='Clear inputs and revert form back to its original state.')
         reset_description.grid(row=1, column=2, sticky='EW')
-        reset_frame.grid(row=1, column=0, pady=MARGIN_SIZE/2, sticky='NSEW')
+        reset_frame.grid(row=1, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_one_frame = tk.Frame(descriptions_frame)
-        paste_one_title = ttk.Label(paste_one_frame, text='Edit > Paste (Selected File)', font=HELVETICA)
+        paste_one_title = ttk.Label(paste_one_frame, text='Edit > Paste (Selected File)',
+            font=HELVETICA)
         paste_one_title.grid(row=0, column=2, sticky='EW')
         paste_one_description = ttk.Label(paste_one_frame,
             text='Pastes contents of the clipboard into all fields of the\nselected file.')
         paste_one_description.grid(row=1, column=2, sticky='EW')
-        paste_one_frame.grid(row=2, column=0, pady=MARGIN_SIZE/2, sticky='NSEW')
+        paste_one_frame.grid(row=2, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_all_frame = tk.Frame(descriptions_frame)
-        paste_all_title = ttk.Label(paste_all_frame, text='Edit > Paste (All Files)', font=HELVETICA)
+        paste_all_title = ttk.Label(paste_all_frame, text='Edit > Paste (All Files)',
+            font=HELVETICA)
         paste_all_title.grid(row=0, column=2, sticky='EW')
         paste_all_description = ttk.Label(paste_all_frame,
             text='Pastes contents of the clipboard into all fields of all\nfiles.')
         paste_all_description.grid(row=1, column=2, sticky='EW')
-        paste_all_frame.grid(row=3, column=0, pady=(MARGIN_SIZE/2, 0), sticky='NSEW')
+        paste_all_frame.grid(row=3, column=0, pady=(MARGIN/2, 0), sticky='NSEW')
 
         descriptions_frame.grid(row=0, column=2, sticky='NSEW')
 
-        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN_SIZE, pady=MARGIN_SIZE, sticky='NSEW')
+        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
 
         # Shortcuts tab
         shortcuts = gui.ScrollableTab(help_book, 'Shortcuts', cheight=400, cwidth=375)
         shortcuts_row = 0
 
-        COLUMN_SIZE = 100
+        COLUMN_SIZE = 110
         ROW_SIZE = 30
 
-        enter_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        enter_frame = tk.Frame(shortcuts, pady=MARGIN)
         enter_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
         enter_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         enter_frame.rowconfigure(0, minsize=ROW_SIZE)
@@ -1616,7 +1757,7 @@ class Help(tk.Toplevel):
         enter_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
-        create_row_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        create_row_frame = tk.Frame(shortcuts, pady=MARGIN)
         create_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
         create_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         create_row_frame.rowconfigure(0, minsize=ROW_SIZE)
@@ -1635,7 +1776,7 @@ class Help(tk.Toplevel):
         create_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
-        delete_row_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        delete_row_frame = tk.Frame(shortcuts, pady=MARGIN)
         delete_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
         delete_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         delete_row_frame.rowconfigure(0, minsize=ROW_SIZE)
@@ -1654,7 +1795,7 @@ class Help(tk.Toplevel):
         delete_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
-        insert_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        insert_frame = tk.Frame(shortcuts, pady=MARGIN)
         insert_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
         insert_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         insert_frame.rowconfigure(0, minsize=ROW_SIZE)
@@ -1673,7 +1814,7 @@ class Help(tk.Toplevel):
         insert_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
-        page_up_frame = tk.Frame(shortcuts, pady=MARGIN_SIZE)
+        page_up_frame = tk.Frame(shortcuts, pady=MARGIN)
         page_up_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
         page_up_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         page_up_frame.rowconfigure(0, minsize=ROW_SIZE)
@@ -1690,12 +1831,49 @@ class Help(tk.Toplevel):
         page_up_description = ttk.Label(page_up_frame,
             text='Selects the next tab.')
         page_up_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        previous_row_frame = tk.Frame(shortcuts, pady=MARGIN)
+        previous_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        previous_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        previous_row_frame.rowconfigure(0, minsize=ROW_SIZE)
+        previous_row_frame.rowconfigure(1, minsize=ROW_SIZE)
+        previous_row_label = ttk.Label(previous_row_frame, text='  <Ctrl>\n+ <Shift>\n + <Tab>',
+            anchor='center', font=VERDANA)
+        previous_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        previous_row_separator = gui.Separator(previous_row_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        previous_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        previous_row_title = ttk.Label(previous_row_frame,
+            text='Combination: Control + Shift + Tab ', font=HELVETICA)
+        previous_row_title.grid(row=0, column=2, sticky='EW')
+        previous_row_description = ttk.Label(previous_row_frame,
+            text='Selects the currently selected field of the\nprevious row.')
+        previous_row_description.grid(row=1, column=2, sticky='EW')
+        shortcuts_row += 1
+
+        next_row_frame = tk.Frame(shortcuts, pady=MARGIN)
+        next_row_frame.grid(row=shortcuts_row, column=0, sticky='NSEW')
+        next_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
+        next_row_frame.rowconfigure(0, minsize=ROW_SIZE)
+        next_row_frame.rowconfigure(1, minsize=ROW_SIZE)
+        next_row_label = ttk.Label(next_row_frame, text='  <Ctrl>\n+ <Tab>',
+            anchor='center', font=VERDANA)
+        next_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+        next_row_separator = gui.Separator(next_row_frame, orientation='vertical',
+            padding=((0, 10), 0))
+        next_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
+        next_row_title = ttk.Label(next_row_frame,
+            text='Combination: Control + Tab ', font=HELVETICA)
+        next_row_title.grid(row=0, column=2, sticky='EW')
+        next_row_description = ttk.Label(next_row_frame,
+            text='Selects the currently selected field of the\nnext row.')
+        next_row_description.grid(row=1, column=2, sticky='EW')
 
         gui.CenterWindow(self)
 
 
-PADDING = 12
-
+# Initialize the application using the lemons GUI module
 app = gui.Application(padding=PADDING)
 app.configure(
         title='EZPZ Plotting',
@@ -1703,51 +1881,64 @@ app.configure(
         resizable=False
     )
 
+# Add a header/logo to the top of the application
 header = gui.Header(app, logo=gui.ResourcePath('Assets\\logo.png'), downscale=10)
 header.grid(row=0, column=0, sticky='NSEW')
 
+# Add a separator between the header and the listbox
 gui.Separator(app, padding=(0, PADDING)).grid(row=1, column=0, sticky='NSEW')
 
+# Add a listbox that will show the users the inputs that have been loaded
 browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
 listbox = gui.InputField(app, quantity='multiple', appearance='list', width=80,
                          image=browse_image, command=browse)
 listbox.grid(row=2, column=0, sticky='NSEW')
 
+# Create a separator between the listbox and the primary frame
 gui.Separator(app, padding=(0, PADDING)).grid(row=3, column=0, sticky='NSEW')
 
+# Create the primary frame, where the notebook will be held
 primary = tk.Frame(app)
 primary.grid(row=4, column=0, sticky='NSEW')
 primary.columnconfigure(0, weight=1)
 primary.rowconfigure(0, minsize=278)
 
+# On first load or reset, show a message saying that no inputs have been loaded
 message = 'Please provide at least one input file.\n\nControls will appear here.'
 no_input_label = tk.Label(primary, text=message)
 no_input_label.grid(row=0, column=0, sticky='NSEW')
 
+# Create a separator between the primary frame and the footer
 gui.Separator(app, padding=(0, PADDING)).grid(row=5, column=0, sticky='NSEW')
 
+# Create the footer
 footer = tk.Frame(app)
 footer.grid(row=6, column=0, sticky='NSEW')
 footer.columnconfigure(1, weight=1)
 
+# Create a frame inside of the footer that will hold all of the controls
 row_controls = tk.Frame(footer)
 row_controls.grid(row=0, column=0, sticky='NSEW')
 
+# Add a create row button
 plus_image = gui.RenderImage('Assets\\plus.png', downscale=9)
 plus_button = ttk.Button(row_controls, takefocus=0, image=plus_image, state='disabled')
 plus_button['command'] = plus_row
 plus_button.grid(row=0, column=0, padx=2, sticky='NSEW')
 
+# Add a delete row button
 minus_image = gui.RenderImage('Assets\\minus.png', downscale=9)
 minus_button = ttk.Button(row_controls, takefocus=0, image=minus_image, state='disabled')
 minus_button['command'] = minus_row
 minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
 
+# Add a plot button
 plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
 plot_button = ttk.Button(footer, takefocus=0, image=plot_image, state='disabled')
 plot_button['command'] = open_flipbook
 plot_button.grid(row=0, column=2, padx=2, sticky='NSEW')
 
+# Create a menu bar
 menu_bar = tk.Menu(app.root)
 file_menu = tk.Menu(menu_bar, tearoff=0)
 file_menu.add_command(label='Load Files', command=listbox.Browse)
@@ -1773,15 +1964,26 @@ help_menu.add_command(label='About', state='disabled')
 menu_bar.add_cascade(label='Help', menu=help_menu)
 app.root.config(menu=menu_bar)
 
+# Create keyboard shortcut that will function the same as clicking the 'Plot' button
 app.root.bind('<Return>', open_flipbook)
 
+# Create keyboard shortcuts for creating and deleting rows
 app.root.bind('<Control-minus>', minus_row)
 app.root.bind('<Control-=>', plus_row)
-app.root.bind('<Insert>', lambda event, direction='previous': switch_tab(event, direction)) # Insert
-app.root.bind('<Prior>', lambda event, direction='next': switch_tab(event, direction)) # Page Up
 
+# Create keyboard shortcuts for moving between notebook tabs
+app.root.bind('<Insert>',
+    lambda event, direction='previous': switch_tab(event, direction)) # Insert
+app.root.bind('<Prior>',
+    lambda event, direction='next': switch_tab(event, direction)) # Page Up
 
+# Create keyboard shortcuts for moving between rows of a notebook tab
+app.root.bind('<Control-Tab>',
+    lambda event, direction='next': switch_row(event, direction))
+app.root.bind('<Control-Shift-Tab>',
+    lambda event, direction='previous': switch_row(event, direction))
 
+# Define a function that runs every time the application loads for testing purposes
 def test_function():
     global inputs, files
 
@@ -1827,8 +2029,7 @@ def test_function():
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     open_flipbook()
-# app.after(100, test_function)
+app.after(100, test_function)
 
-
-
+# Run the program in a continuous loop
 app.mainloop()
