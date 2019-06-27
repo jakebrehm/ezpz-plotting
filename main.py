@@ -778,6 +778,11 @@ class Flipbook(tk.Toplevel):
             x_low, x_high = self.primary.get_xlim()
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+        elif current.background.get() == 'Young & Franklin':
+            image = plt.imread(gui.ResourcePath('Assets\\yf.bmp'))
+            x_low, x_high = self.primary.get_xlim()
+            y_low, y_high = self.primary.get_ylim()
+            self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
         elif current.background.get() == 'Custom':
             image = plt.imread(gui.ResourcePath(current.background_path))
             x_low, x_high = self.primary.get_xlim()
@@ -1171,68 +1176,96 @@ class Flipbook(tk.Toplevel):
 
 
 class ToleranceBands(tk.Frame):
+    """Creates a GUI frame that can hold a dynamic amount of rows for
+    tolerance band fields. Keeps track of inputs and band data as well."""
 
     def __init__(self):
+        """Initialize the object's attributes."""
 
-        self.plus_bands = []
-        self.minus_bands = []
-
+        # Initialize/reset the object's attributes
         self.reset()
 
     def setup(self, master):
+        """Create the toolbar of the Tolerance Bands object. This function is called
+        every time the page is flipped."""
 
+        # Initialize the Tolerance Bands object as a frame
         tk.Frame.__init__(self, master=master)
         self.columnconfigure(0, weight=1)
 
+        # Create a controls frame, which will function as a toolbar
         controls = tk.Frame(self)
         controls.grid(row=0, column=0, sticky='NSEW')
         controls.columnconfigure(0, weight=1)
 
-        title = tk.Label(controls, text='Tolerance Bands')
+        # Add the title of the section
+        title = tk.Label(controls, text='Tolerance Bands',
+                         font=('TkDefaultFont', 10, 'bold'))
         title.grid(row=0, column=0, sticky='W')
 
+        # Add a button that adds another row to the objet
         add_button = ttk.Button(controls, text='+', width=3, takefocus=0,
                                 command=self.add_band)
         add_button.grid(row=0, column=1)
 
+        # Add a button that deletes a row from the object
         delete_button = ttk.Button(controls, text='-', width=3, takefocus=0,
                                    command=self.delete_band)
         delete_button.grid(row=0, column=2)
 
     def reset(self):
-        self.count = 0
-        self.bands = []
+        """Reset the attributes of the object to their default states. Called
+        whenever a Tolerance Bands object is created or recreated."""
 
+        # Reset the row count to 0
+        self.count = 0
+        # Reset the bands list, which holds a reference to each row
+        self.bands = []
+        # Reset the choices list for the series combobox and the color combobox
         self.series_choices = []
         self.color_choices = []
-
+        # Reset the lists that hold references to each field of each row
         self.series_combos = []
         self.minus_tolerance_entries = []
         self.plus_tolerance_entries = []
         self.lag_entries = []
         self.color_combos = []
-
+        # Reset the values that appear in the series combobox
         self.values = None
-
+        # Clear the data for the plus tolerance and minus tolerance bands
         self.plus_bands = []
         self.minus_bands = []
 
     def recreate(self, rows):
+        """Recreates the rows that were previously in the Tolerance Bands object
+        before the page was flipped. The rows parameter is calculated outside of
+        the purview of this object and then passed in."""
+
+        # Minus and plus bands should not be reset when flipping a page, so store
+        # them in a backup variable for now
         self.minus_backup = self.minus_bands
         self.plus_backup = self.plus_bands
+        # Reset the object's attributes
         self.reset()
+        # Add as many rows as there were before the page was flipped
         for row in range(rows):
             self.add_band(recreate=row)
+        # Set the minus and plus band data back to what they were before the reset
         self.minus_bands = self.minus_backup
         self.plus_bands = self.plus_backup
 
     def add_band(self, recreate=None):
+        """Add a row to the Tolerance Bands object."""
 
+        # Define the general amount of padding to use between widgets
         PADDING = 2
 
+        # Create a frame that will hold all of the fields
         frame = tk.Frame(self)
-        frame.grid(row=self.count+1 if not recreate else recreate+1, column=0, pady=(10, 0))
+        frame.grid(row=self.count+1 if not recreate else recreate+1,
+                   column=0, pady=(10, 0))
 
+        # Add labels for series, plus and minus tolerance, lag, and color
         series_label = ttk.Label(frame, text='series:')
         series_label.grid(row=0, column=0, padx=PADDING)
 
@@ -1248,6 +1281,7 @@ class ToleranceBands(tk.Frame):
         color_label = ttk.Label(frame, text='color:')
         color_label.grid(row=0, column=4, padx=PADDING)
 
+        # Add a combobox to select which series to plot the bands around
         series_choice = tk.StringVar()
         series_combo = ttk.Combobox(frame, width=14, state='readonly',
                                     textvariable=series_choice,
@@ -1256,18 +1290,22 @@ class ToleranceBands(tk.Frame):
         self.series_choices.append(series_choice)
         self.series_combos.append(series_combo)
 
+        # Add an entry where the user can specify plus tolerance
         plus_tolerance_entry = ttk.Entry(frame, width=8)
         plus_tolerance_entry.grid(row=1, column=1, padx=PADDING)
         self.plus_tolerance_entries.append(plus_tolerance_entry)
 
+        # Add an entry where the user can specify minus tolerance
         minus_tolerance_entry = ttk.Entry(frame, width=8)
         minus_tolerance_entry.grid(row=1, column=2, padx=PADDING)
         self.minus_tolerance_entries.append(minus_tolerance_entry)
 
+        # Add an entry where the user can specify lag
         lag_entry = ttk.Entry(frame, width=8)
         lag_entry.grid(row=1, column=3, padx=PADDING)
         self.lag_entries.append(lag_entry)
 
+        # Add a combobox to select which color the bands should be
         color_choice = tk.StringVar()
         color_choice.set(random.choice(list(plot_colors.keys())))
         color_combo = ttk.Combobox(frame, textvariable=color_choice,
@@ -1277,52 +1315,75 @@ class ToleranceBands(tk.Frame):
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
 
+        # If this method was not called by the recreate function, add filler
+        # data to the plus bands and minus bands data lists
         if not recreate:
             self.plus_bands.append(None)
             self.minus_bands.append(None)
 
+        # Add one to the row count and keep a reference to this row
         self.count += 1
         self.bands.append(frame)
 
     def delete_band(self):
+        """Remove a row from the Tolerance Bands object."""
+
+        # If there are already no row, exit the method
         if len(self.bands) == 0: return
+
+        # Destroy the last row and remove all references to the objects
         self.bands[-1].destroy()
         del(self.bands[-1])
-
         del(self.series_combos[-1])
         del(self.minus_tolerance_entries[-1])
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
         del(self.color_combos[-1])
-
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
-
+        # Decrease the row count by one
         self.count -= 1
 
     def update_series(self, values):
+        """Update the variables that stores which series are currently plotted.
+        Meant to be called from outside the purview of the object."""
+
+        # Set the self.values variable to the list that was passed in
         self.values = values
 
     def update_entries(self):
+        """Updates the combobox to list the series that are currently plotted."""
+
+        # Iterate through each series combobox in each row and update its options
         for combo in self.series_combos:
             combo['values'] = self.values
 
     def calculate(self, plot):
+        """Takes the inputs from each row and calculates tolerance band data from it."""
 
         def BandData(iterator, which):
-            series = self.series_combos[iterator].get()
+            """Calculate tolerance band data. Which is either '+' for the plus tolerance
+            band or '-' for the minus tolerance band."""
 
             def get_value(entry):
+                """Return the contents of the entry as a float if something has been
+                entered, otherwise return 0."""
+
                 return float(entry.get()) if entry.get() else 0
 
+            # Grab the minus tolerance, plus tolerance, and lag values
             MINUS_TOLERANCE = get_value(self.minus_tolerance_entries[iterator])
             PLUS_TOLERANCE = get_value(self.plus_tolerance_entries[iterator])
             LAG = get_value(self.lag_entries[iterator])
 
-            for l, label in enumerate(plot.labels):
-                if label == series:
-                    index = l
+            # Grab the selected series from the appropriate series combobox
+            series = self.series_combos[iterator].get()
 
+            # Find the index of the selection within the list of the current plot's labels
+            index = plot.labels.index(series)
+
+            # Determine which axis the series is plotted on and then determine the index
+            # of the series within that axis's column list
             if index + 1 in plot.y1_columns:
                 axis = 'primary'
                 position = plot.y1_columns.index(index + 1)
@@ -1330,6 +1391,7 @@ class ToleranceBands(tk.Frame):
                 axis = 'secondary'
                 position = plot.y2_columns.index(index + 1)
 
+            # Get a reference to the x-data and y-data
             x = plot.x
             if axis == 'primary':
                 y = plot.y1[position]
@@ -1340,24 +1402,31 @@ class ToleranceBands(tk.Frame):
             resolution = x[1] - x[0]
             lookback = round(LAG / resolution)
 
+            # Iterate through the y-data and begin tolerance bands calculations once the
+            # index is greater than the lookback range. Essentially, The lookback range
+            # accounts for the lag/time shift, and then the appropriate tolerance is added
+            # or subtracted on top of that. The tolerance band data will be of the same
+            # length as the y-data, but the first few values may be None.
             band = []
             for i, c in enumerate(y):
                 if i >= lookback:
                     if which == '+':
                         # Get the maximum value in the lookback range and add tolerance
-                        maximum = max(y.loc[i-lookback:i+1])
+                        maximum = max(y.loc[i-lookback:i])
                         toleranced = maximum + PLUS_TOLERANCE
                     elif which == '-':
                         # Get the minimum value in the lookback range and subtract tolerance
-                        minimum = min(y.loc[i-lookback:i+1])
+                        minimum = min(y.loc[i-lookback:i])
                         toleranced = minimum - MINUS_TOLERANCE
                     band.append(toleranced)
                 else:
                     # Don't want to plot any values before a lookback can be done
                     band.append(None)
 
+            # Return the axis that the series on plotted on as well as the band data
             return (axis, band)
 
+        # For each row, create data for a plus band and a minus band
         for i in range(len(self.series_combos)):
             self.plus_bands[i] = BandData(i, which='+')
             self.minus_bands[i] = BandData(i, which='-')
@@ -2271,7 +2340,7 @@ def test_function():
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     open_flipbook()
-app.after(100, test_function)
+# app.after(100, test_function)
 
 # Run the program in a continuous loop
 app.mainloop()
