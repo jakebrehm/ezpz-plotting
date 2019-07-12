@@ -635,8 +635,24 @@ class Flipbook(tk.Toplevel):
         file = self.files[self.page] # File index
         number = self.numbers[self.page] # Plot number in file
 
-        # Use the Seaborn plot style to make the plot a little cleaner
-        plt.style.use('seaborn')
+        # ========================
+        # STYLE SELECTION CONTROLS
+        # ========================
+
+        # Set the style according to whatever the user has selected
+        # Must come before the main section or else things like the legend won't update
+        if current.style.get() == 'Default':
+            plt.style.use('default')
+        elif current.style.get() == 'Classic':
+            plt.style.use('classic')
+        elif current.style.get() == 'Seaborn':
+            plt.style.use('seaborn')
+        elif current.style.get() == 'Fivethirtyeight':
+            plt.style.use('fivethirtyeight')
+
+        # ===================
+        # MAIN UPDATE SECTION
+        # ===================
 
         # Display the filename of the current plot
         self.filename.set(f'{self.info[file].filename} - Plot {number + 1}')
@@ -777,13 +793,19 @@ class Flipbook(tk.Toplevel):
         if current.y2_lower: self.secondary.set_ylim(bottom=current.y2_lower)
         if current.y2_upper: self.secondary.set_ylim(top=current.y2_upper)
 
+        # ===================
+        # AXES TICKS CONTROLS
+        # ===================
+
         # Set a standard number of axis ticks to make it easier to line up the gridlines
-        if self.secondary_axis:
-            TICKS = 10
+        if current.primary_ticks:
             PRIMARY = self.primary.get_ylim()
-            self.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1], TICKS))
+            self.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1],
+                                    int(current.primary_ticks)))
+        if current.secondary_ticks:
             SECONDARY = self.secondary.get_ylim()
-            self.secondary.set_yticks(np.linspace(SECONDARY[0], SECONDARY[1], TICKS))
+            self.secondary.set_yticks(np.linspace(SECONDARY[0], SECONDARY[1],
+                                      int(current.secondary_ticks)))
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
@@ -988,44 +1010,83 @@ class Flipbook(tk.Toplevel):
         limits.columnconfigure(1, weight=1)
         # Define amount of padding to use around widgets
         LIMITS_PADDING = 10
+        # Add the title of the section
+        limits_title = tk.Label(limits, text='Axis Limits',
+                         font=('TkDefaultFont', 10, 'bold'))
+        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
         # Create a lower x-axis label and entry
         x_lower_label = tk.Label(limits, text='x-lower:')
-        x_lower_label.grid(row=0, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        x_lower_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.x_lower_entry = ttk.Entry(limits, width=20)
-        self.x_lower_entry.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_lower_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         # Create an upper x-axis label and entry
         x_upper_label = tk.Label(limits, text='x-upper:')
-        x_upper_label.grid(row=0, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        x_upper_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.x_upper_entry = ttk.Entry(limits, width=20)
-        self.x_upper_entry.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_upper_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         # Add some vertical spacing between widgets
-        gui.Space(limits, row=2, column=0, columnspan=2)
+        gui.Space(limits, row=3, column=0, columnspan=2)
         # Create a lower y1-axis label and entry
         y1_lower_label = tk.Label(limits, text='y1-lower:')
-        y1_lower_label.grid(row=3, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        y1_lower_label.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.y1_lower_entry = ttk.Entry(limits, width=20)
-        self.y1_lower_entry.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_lower_entry.grid(row=5, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         # Create an upper y1-axis label and entry
         y1_upper_label = tk.Label(limits, text='y1-upper:')
-        y1_upper_label.grid(row=3, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        y1_upper_label.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.y1_upper_entry = ttk.Entry(limits, width=20)
-        self.y1_upper_entry.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_upper_entry.grid(row=5, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         # Add some vertical spacing between widgets
-        gui.Space(limits, row=5, column=0, columnspan=2)
+        gui.Space(limits, row=6, column=0, columnspan=2)
         # Create a lower y2-axis label and entry
         y2_lower_label = tk.Label(limits, text='y2_lower:')
-        y2_lower_label.grid(row=6, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        y2_lower_label.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         self.y2_lower_entry = ttk.Entry(limits, width=20)
-        self.y2_lower_entry.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_lower_entry.grid(row=8, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         # Create an upper y2-axis label and entry
         y2_upper_label = tk.Label(limits, text='y2_upper:')
-        y2_upper_label.grid(row=6, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        y2_upper_label.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
         self.y2_upper_entry = ttk.Entry(limits, width=20)
-        self.y2_upper_entry.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_upper_entry.grid(row=8, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+
+        # Create the ticks frame which will hold fields for each axis tick field
+        ticks = gui.PaddedFrame(figure)
+        ticks.grid(row=1, column=0, sticky='NSEW')
+        ticks.columnconfigure(0, weight=1)
+        ticks.columnconfigure(1, weight=1)
+        # Add the title of the section
+        ticks_title = tk.Label(ticks, text='Axis Ticks',
+                         font=('TkDefaultFont', 10, 'bold'))
+        ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a label and an entry for the primary ticks
+        primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
+        primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.primary_ticks_entry = ttk.Entry(ticks, width=20)
+        self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create a label and an entry for the secondary ticks
+        secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
+        secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.secondary_ticks_entry = ttk.Entry(ticks, width=20)
+        self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         # ==============
         # APPEARANCE TAB
         # ==============
+
+        # Create a padded frame for the background controls
+        style = gui.PaddedFrame(appearance)
+        style.grid(row=1, column=0, sticky='NSEW')
+        style.columnconfigure(0, weight=1)
+        style.columnconfigure(1, weight=1)
+        # Add a label for the style combobox
+        style_label = tk.Label(style, text='Style:')
+        style_label.grid(row=0, column=0, padx=(0, 10), sticky='E')
+        # Add a combobox to control the style of the plot
+        self.style_choice = tk.StringVar()
+        style_combo = ttk.Combobox(style, width=20, state='readonly',
+                                        textvariable=self.style_choice)
+        style_combo.grid(row=0, column=1, padx=(10, 0), sticky='W')
+        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
 
         # Create a padded frame for the background controls
         background = gui.PaddedFrame(appearance)
@@ -1075,7 +1136,7 @@ class Flipbook(tk.Toplevel):
         # AXES LIMITS CONTROLS
         # ====================
 
-        def axis_entry(entry, value, original):
+        def fill_entry(entry, value, original):
             """Clear the entry and insert the changed value if it exists, otherwise
             insert the original value."""
 
@@ -1083,22 +1144,45 @@ class Flipbook(tk.Toplevel):
             entry.insert(0, value if value else original)
 
         # Fill in each field with their respective values
-        axis_entry(self.x_lower_entry, current.x_lower, self.x_lower_original)
-        axis_entry(self.x_upper_entry, current.x_upper, self.x_upper_original)
-        axis_entry(self.y1_lower_entry, current.y1_lower, self.y1_lower_original)
-        axis_entry(self.y1_upper_entry, current.y1_upper, self.y1_upper_original)
-        # Disable the secondary axis entry fields is there is no secondary axis,
+        fill_entry(self.x_lower_entry, current.x_lower, self.x_lower_original)
+        fill_entry(self.x_upper_entry, current.x_upper, self.x_upper_original)
+        fill_entry(self.y1_lower_entry, current.y1_lower, self.y1_lower_original)
+        fill_entry(self.y1_upper_entry, current.y1_upper, self.y1_upper_original)
+        # Disable the secondary axis entry fields if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
         if self.secondary_axis:
             self.y2_lower_entry['state'] = 'normal'
-            axis_entry(self.y2_lower_entry, current.y2_lower, self.y2_lower_original)
+            fill_entry(self.y2_lower_entry, current.y2_lower, self.y2_lower_original)
             self.y2_upper_entry['state'] = 'normal'
-            axis_entry(self.y2_upper_entry, current.y2_upper, self.y2_upper_original)
+            fill_entry(self.y2_upper_entry, current.y2_upper, self.y2_upper_original)
         else:
             self.y2_lower_entry.delete(0, 'end')
             self.y2_lower_entry['state'] = 'disabled'
             self.y2_upper_entry.delete(0, 'end')
             self.y2_upper_entry['state'] = 'disabled'
+
+        # ===================
+        # AXIS TICKS CONTROLS
+        # ===================
+
+        # Fill the primary and secondary tick fields with the appropriate stored value
+        fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
+        fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+        # Disable the secondary axis entry field if there is no secondary axis,
+        # otherwise enable and fill the entry fields corresponding to the secondary axis.
+        if self.secondary_axis:
+            self.secondary_ticks_entry['state'] = 'normal'
+            fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+        else:
+            self.secondary_ticks_entry.delete(0, 'end')
+            self.secondary_ticks_entry['state'] = 'disabled'
+
+        # ========================
+        # STYLE SELECTION CONTROLS
+        # ========================
+
+        # Set the current style combobox selection to the stored style value
+        self.style_choice.set(current.style.get())
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
@@ -1167,6 +1251,21 @@ class Flipbook(tk.Toplevel):
         if self.secondary_axis:
             current.y2_lower = update_axis(self.y2_lower_entry, self.y2_lower_original)
             current.y2_upper = update_axis(self.y2_upper_entry, self.y2_upper_original)
+
+        # ===================
+        # AXIS TICKS CONTROLS
+        # ===================
+
+        # Store the values in the primary and secondary tick fields
+        current.primary_ticks = self.primary_ticks_entry.get()
+        current.secondary_ticks = self.secondary_ticks_entry.get()
+
+        # ========================
+        # STYLE SELECTION CONTROLS
+        # ========================
+
+        # Store the currently selected value from the style combobox
+        current.style.set(self.style_choice.get())
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
@@ -1803,6 +1902,14 @@ class File(gui.ScrollableTab):
                 self.y1_upper = None
                 self.y2_lower = None
                 self.y2_upper = None
+
+                # Keep track of number of primary and secondary ticks
+                self.primary_ticks = None
+                self.secondary_ticks = None
+
+                # Keep track of the style selection
+                self.style = tk.StringVar()
+                self.style.set('Default')
 
                 # Keep track of the background selection, and path if necessary
                 self.background = tk.StringVar()
