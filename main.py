@@ -64,7 +64,7 @@ plot_colors = {
         'lime':     '#00ff00',
     } # A list of all preset color options for plotting purposes
 
-# A list of values that may appear in a csv that are equal to None
+# A list of values that may appear in a csv that are equivalent to None
 none_values = [None, '1.#QNAN' 'nan', np.nan]
 
 def save_preset():
@@ -1072,60 +1072,74 @@ class Flipbook(tk.Toplevel):
         self.y2_upper_entry = ttk.Entry(limits, width=20)
         self.y2_upper_entry.grid(row=8, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
+        # Add a separator
+        separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
+        separator.grid(row=1, column=0, sticky='NSEW')
+
         # Create the ticks frame which will hold fields for each axis tick field
         ticks = gui.PaddedFrame(figure)
-        ticks.grid(row=1, column=0, sticky='NSEW')
+        ticks.grid(row=2, column=0, sticky='NSEW')
         ticks.columnconfigure(0, weight=1)
         ticks.columnconfigure(1, weight=1)
         # Add the title of the section
         ticks_title = tk.Label(ticks, text='Axis Ticks',
                          font=('TkDefaultFont', 10, 'bold'))
         ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Define the possible values for the tick spinboxes
+        tick_values = [''] + list(range(0, 20+1))
         # Create a label and an entry for the primary ticks
         primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
         primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.primary_ticks_entry = ttk.Entry(ticks, width=20)
+        self.primary_ticks_entry = ttk.Spinbox(ticks, values=tick_values)
         self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         # Create a label and an entry for the secondary ticks
         secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
         secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.secondary_ticks_entry = ttk.Entry(ticks, width=20)
+        self.secondary_ticks_entry = ttk.Spinbox(ticks, values=tick_values)
         self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         # ==============
         # APPEARANCE TAB
         # ==============
 
-        # Create a padded frame for the background controls
-        style = gui.PaddedFrame(appearance)
-        style.grid(row=1, column=0, sticky='NSEW')
-        style.columnconfigure(0, weight=1)
-        style.columnconfigure(1, weight=1)
-        # Add a label for the style combobox
-        style_label = tk.Label(style, text='Style:')
-        style_label.grid(row=0, column=0, padx=(0, 10), sticky='E')
-        # Add a combobox to control the style of the plot
-        self.style_choice = tk.StringVar()
-        style_combo = ttk.Combobox(style, width=20, state='readonly',
-                                        textvariable=self.style_choice)
-        style_combo.grid(row=0, column=1, padx=(10, 0), sticky='W')
-        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
+        general = gui.PaddedFrame(appearance)
+        general.grid(row=0, column=0, sticky='NSEW')
+        general.columnconfigure(0, weight=1)
+        general.columnconfigure(1, weight=1)
+
+        # Add the title of the section
+        general_title = tk.Label(general, text='General Appearance',
+                         font=('TkDefaultFont', 10, 'bold'))
+        general_title.grid(row=0, column=0, pady=(0, 10), columnspan=2, sticky='W')
 
         # Create a padded frame for the background controls
-        background = gui.PaddedFrame(appearance)
-        background.grid(row=0, column=0, sticky='NSEW')
+        background = tk.Frame(general)
+        background.grid(row=1, column=0, sticky='NSEW')
         background.columnconfigure(0, weight=1)
-        background.columnconfigure(1, weight=1)
         # Add a label for the background combobox
         background_label = tk.Label(background, text='Background:')
-        background_label.grid(row=0, column=0, padx=(0, 10), sticky='E')
+        background_label.grid(row=0, column=0, padx=10, sticky='NSEW')
         # Add a combobox to control the background of the plot
         self.background_choice = tk.StringVar()
         background_combo = ttk.Combobox(background, width=20, state='readonly',
                                         textvariable=self.background_choice)
-        background_combo.grid(row=0, column=1, padx=(10, 0), sticky='W')
+        background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
         background_combo.bind('<<ComboboxSelected>>', custom_background)
+
+        # Create a padded frame for the style controls
+        style = tk.Frame(general)
+        style.grid(row=1, column=1, sticky='NSEW')
+        style.columnconfigure(0, weight=1)
+        # Add a label for the style combobox
+        style_label = tk.Label(style, text='Style:')
+        style_label.grid(row=0, column=0, padx=10, sticky='NSEW')
+        # Add a combobox to control the style of the plot
+        self.style_choice = tk.StringVar()
+        style_combo = ttk.Combobox(style, width=20, state='readonly',
+                                        textvariable=self.style_choice)
+        style_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
+        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
 
         # ============
         # ANALYSIS TAB
@@ -2608,7 +2622,7 @@ def test_function():
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     open_flipbook()
-# app.after(100, test_function)
+app.after(100, test_function)
 
 # Run the program in a continuous loop
 app.mainloop()
