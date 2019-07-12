@@ -620,6 +620,9 @@ class Flipbook(tk.Toplevel):
         right_bind = self.bind('<Right>',
                               lambda event, direction='right': self.flip_page(event, direction))
 
+        # Add call the on_click method whenever the user clicks on a clickable object
+        self.canvas.mpl_connect('pick_event', self.on_click)
+
         # Update the arrows and the plot of the flipbook
         self.update_arrows()
         self.update_plot()
@@ -765,16 +768,22 @@ class Flipbook(tk.Toplevel):
         # to keep the legend at two rows
         if rows > 2: max_columns = math.ceil(lines / 2)
         # Create the legend
-        self.primary.legend(
-                handles = handles,
-                labels = labels,
-                loc = 'lower left',
-                fancybox = True,
-                shadow = True,
-                ncol = max_columns,
-                mode = 'expand',
-                bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
+        legend = self.primary.legend(
+                        handles = handles,
+                        labels = labels,
+                        loc = 'lower left',
+                        fancybox = True,
+                        shadow = True,
+                        ncol = max_columns,
+                        mode = 'expand',
+                        bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
+
+        # Map the items in the legend to its corresponding line
+        self.line_map = {}
+        for legend_line, original_line in zip(legend.get_lines(), handles):
+            legend_line.set_picker(5)
+            self.line_map[legend_line] = original_line
 
         # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
@@ -890,6 +899,20 @@ class Flipbook(tk.Toplevel):
 
         # Return 'break' to bypass event propagation
         return ('break')
+
+    def on_click(self, event):
+        """Hide or show a line when the corresponding object in the legend is clicked."""
+
+        # Get a reference to the legend line and the original line
+        legend_line = event.artist
+        original_line = self.line_map[legend_line]
+        # Determine whether to show or hide the original line
+        visibility = not original_line.get_visible()
+        # Set the visibility accordingly
+        original_line.set_visible(visibility)
+        legend_line.set_alpha(1.0) if visibility else legend_line.set_alpha(0.2)
+        # Update the plot
+        self.canvas.draw()
 
     def _coordinates(self, current, other, secondary_exists):
         """Determine the appropriate coordinate format to use for the number of axes.
