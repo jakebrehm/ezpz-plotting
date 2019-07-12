@@ -1901,7 +1901,7 @@ class File(gui.ScrollableTab):
 
         # Read the file using the appropriate method for the filetype
         if self._type == 'CSV':
-            return = pd.read_csv(self.filepath, skiprows=data_start_row-1,
+            return pd.read_csv(self.filepath, skiprows=data_start_row-1,
                                  names=self.labels, index_col=False,
                                  header=None)
         elif self._type == 'Excel':
