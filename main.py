@@ -874,30 +874,23 @@ class Flipbook(tk.Toplevel):
         # LIMIT LINE CONTROLS
         # ===================
 
-        # Iterate through the limit lines of the current plot
-        # for o, orientation in enumerate(self.line_controls.lines):
-        for o, orientation in enumerate(self.line_controls.orientation):
-            # # If there are no plus bands, skip to next iteration
-            # if not orientation: continue
-            # Plot the plus band on the appropriate axis
-            if current.line_axis[o] == 'primary':
-                if current.line_orientation[o] == 'vertical':
-                    self.primary.axvline(x=float(current.line_value[o]), linestyle='-',
-                                         color=plot_colors[current.line_color[o]],
-                                         alpha=float(current.line_alpha[o]))
-                elif current.line_orientation[o] == 'horizontal':
-                    self.primary.axhline(y=float(current.line_value[o]), linestyle='-',
-                                         color=plot_colors[current.line_color[o]],
-                                         alpha=float(current.line_alpha[o]))
-            elif self.secondary_axis and current.line_axis[o] == 'secondary':
-                if current.line_orientation[o] == 'vertical':
-                    self.secondary.axvline(x=float(current.line_value[o]), linestyle='-',
-                                         color=plot_colors[current.line_color[o]],
-                                         alpha=float(current.line_alpha[o]))
-                elif current.line_orientation[o] == 'horizontal':
-                    self.secondary.axhline(y=float(current.line_value[o]), linestyle='-',
-                                         color=plot_colors[current.line_color[o]],
-                                         alpha=float(current.line_alpha[o]))
+        # Iterate through the values list of the limit lines
+        for v, value in enumerate(self.line_controls.value):
+            # If there are no values, skip to next iteration (e.g. blank rows)
+            if not value: continue
+            # Determine the axis to plot the limit line on
+            axis = self.primary if current.line_axis[v] == 'primary' else \
+                   ( self.secondary if current.line_axis[v] == 'secondary' and \
+                     self.secondary_axis else None )
+            # Plot the limit line after determining its orientation
+            if current.line_orientation[v] == 'vertical':
+                axis.axvline(x=float(current.line_value[v]), linestyle='-',
+                                     color=plot_colors[current.line_color[v]],
+                                     alpha=float(current.line_alpha[v]))
+            elif current.line_orientation[v] == 'horizontal':
+                axis.axhline(y=float(current.line_value[v]), linestyle='-',
+                                     color=plot_colors[current.line_color[v]],
+                                     alpha=float(current.line_alpha[v]))
 
         # Update the canvas
         self.canvas.draw()
@@ -1186,7 +1179,7 @@ class Flipbook(tk.Toplevel):
         # ANNOTATIONS TAB
         # ===============
 
-        # Create a frame that will hold the dynamic horizontal lines controls
+        # Create a frame that will hold the dynamic limit lines controls
         self.horizontal_lines = gui.PaddedFrame(annotations)
         self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
         self.horizontal_lines.columnconfigure(0, weight=1)
@@ -1561,16 +1554,18 @@ class ToleranceBands(tk.Frame):
     def delete_band(self):
         """Remove a row from the Tolerance Bands object."""
 
-        # If there are already no row, exit the method
+        # If there are already no rows, exit the method
         if len(self.bands) == 0: return
 
         # Destroy the last row and remove all references to the objects
         self.bands[-1].destroy()
         del(self.bands[-1])
+        # del(self.series_choices[-1])
         del(self.series_combos[-1])
         del(self.minus_tolerance_entries[-1])
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
+        # del(self.color_choices[-1])
         del(self.color_combos[-1])
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
@@ -1896,18 +1891,20 @@ class LimitLines(tk.Frame):
     def delete_line(self):
         """Remove a row from the Tolerance Bands object."""
 
-        # If there are already no row, exit the method
+        # If there are already no rows, exit the method
         if len(self.lines) == 0: return
 
         # Destroy the last row and remove all references to the objects
         self.lines[-1].destroy()
         del(self.lines[-1])
+        del(self.orientation_choices[-1])
         del(self.orientation_combos[-1])
+        del(self.axis_choices[-1])
+        del(self.axis_combos[-1])
         del(self.value_entries[-1])
+        del(self.color_choices[-1])
         del(self.color_combos[-1])
         del(self.alpha_entries[-1])
-        # del(self.minus_bands[-1])
-        # del(self.plus_bands[-1])
         # Decrease the row count by one
         self.count -= 1
 
