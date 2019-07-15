@@ -522,6 +522,7 @@ class Flipbook(tk.Toplevel):
         self.secondary = None # Secondary axis
         self.controls = None # Controls window
         self.band_controls = None # Tolerance band controls object
+        self.line_controls = None # Limit lines controls object
 
         # Get a list of plots, files, and plot numbers.
         # self.plots --> a list of all plots in each file, meant to make it easier to move
@@ -752,10 +753,14 @@ class Flipbook(tk.Toplevel):
 
         # Set the title, x axis label, and y axes labels according to user input
         self.figure.suptitle(current.title, fontweight='bold', fontsize=14)
-        # Use the official representation of the object in case tex expressions are used
-        self.primary.set_xlabel(repr(current.x_label)[1:-1])
-        self.primary.set_ylabel(repr(current.y1_label)[1:-1])
-        if self.secondary_axis: self.secondary.set_ylabel(repr(current.y2_label)[1:-1])
+        # Set the axis labels
+        self.primary.set_xlabel(current.x_label)
+        self.primary.set_ylabel(current.y1_label)
+        if self.secondary_axis: self.secondary.set_ylabel(current.y2_label)
+        # # Use the official representation of the object in case tex expressions are used
+        # self.primary.set_xlabel(repr(current.x_label)[1:-1])
+        # self.primary.set_ylabel(repr(current.y1_label)[1:-1])
+        # if self.secondary_axis: self.secondary.set_ylabel(repr(current.y2_label)[1:-1])
 
         # Determine the number of lines being plotted
         lines = len(self.primary.lines)
@@ -865,6 +870,35 @@ class Flipbook(tk.Toplevel):
                 self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
                                   linestyle='dashed')
 
+        # ===================
+        # LIMIT LINE CONTROLS
+        # ===================
+
+        # Iterate through the limit lines of the current plot
+        # for o, orientation in enumerate(self.line_controls.lines):
+        for o, orientation in enumerate(self.line_controls.orientation):
+            # # If there are no plus bands, skip to next iteration
+            # if not orientation: continue
+            # Plot the plus band on the appropriate axis
+            if current.line_axis[o] == 'primary':
+                if current.line_orientation[o] == 'vertical':
+                    self.primary.axvline(x=float(current.line_value[o]), linestyle='-',
+                                         color=plot_colors[current.line_color[o]],
+                                         alpha=float(current.line_alpha[o]))
+                elif current.line_orientation[o] == 'horizontal':
+                    self.primary.axhline(y=float(current.line_value[o]), linestyle='-',
+                                         color=plot_colors[current.line_color[o]],
+                                         alpha=float(current.line_alpha[o]))
+            elif self.secondary_axis and current.line_axis[o] == 'secondary':
+                if current.line_orientation[o] == 'vertical':
+                    self.secondary.axvline(x=float(current.line_value[o]), linestyle='-',
+                                         color=plot_colors[current.line_color[o]],
+                                         alpha=float(current.line_alpha[o]))
+                elif current.line_orientation[o] == 'horizontal':
+                    self.secondary.axhline(y=float(current.line_value[o]), linestyle='-',
+                                         color=plot_colors[current.line_color[o]],
+                                         alpha=float(current.line_alpha[o]))
+
         # Update the canvas
         self.canvas.draw()
 
@@ -874,7 +908,7 @@ class Flipbook(tk.Toplevel):
         # If the current page is the first page, disable the 'flip left' button
         if self.page == 0:
             self.previous_button.config(state='disabled')
-        # If the current page is the last page, disabled the 'flip right' button
+        # If the current page is the last page, disable the 'flip right' button
         if self.page == self.pages:
             self.next_button.config(state='disabled')
         # If the current page is somewhere in between, enable both flip buttons
@@ -1085,17 +1119,15 @@ class Flipbook(tk.Toplevel):
         ticks_title = tk.Label(ticks, text='Axis Ticks',
                          font=('TkDefaultFont', 10, 'bold'))
         ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
-        # Define the possible values for the tick spinboxes
-        tick_values = [''] + list(range(0, 20+1))
         # Create a label and an entry for the primary ticks
         primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
         primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.primary_ticks_entry = ttk.Spinbox(ticks, values=tick_values)
+        self.primary_ticks_entry = ttk.Entry(ticks)
         self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
         # Create a label and an entry for the secondary ticks
         secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
         secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.secondary_ticks_entry = ttk.Spinbox(ticks, values=tick_values)
+        self.secondary_ticks_entry = ttk.Entry(ticks)
         self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
 
         # ==============
@@ -1149,6 +1181,15 @@ class Flipbook(tk.Toplevel):
         self.tolerance_bands = gui.PaddedFrame(analysis)
         self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
         self.tolerance_bands.columnconfigure(0, weight=1)
+
+        # ===============
+        # ANNOTATIONS TAB
+        # ===============
+
+        # Create a frame that will hold the dynamic horizontal lines controls
+        self.horizontal_lines = gui.PaddedFrame(annotations)
+        self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
+        self.horizontal_lines.columnconfigure(0, weight=1)
 
         # ===============
         # END OF CONTROLS
@@ -1263,6 +1304,33 @@ class Flipbook(tk.Toplevel):
             values.append(current.labels[column-1])
         self.band_controls.update_series(values)
 
+        # ===================
+        # LIMIT LINE CONTROLS
+        # ===================
+
+        # If the band_controls widget already exists, remove it from view.
+        # Destroying it will cause the program to not be able to reference those fields.
+        if self.line_controls: self.line_controls.grid_forget()
+        # Re-grid the tolerance bands object of the current plot
+        self.line_controls = current.lines
+        self.line_controls.setup(self.horizontal_lines)
+        self.line_controls.grid(row=0, column=0, sticky='NSEW')
+
+        # If the attributes of the current plot object have been changed...
+        if current.line_orientation and current.line_axis and current.line_value and \
+                current.line_color and current.line_alpha:
+            # Determine which of those lists is the longest and recreate that many rows
+            longest = len(max(current.line_orientation, current.line_axis,
+                              current.line_value, current.line_color, current.line_alpha))
+            self.line_controls.recreate(rows=longest)
+
+        # Fill the newly create entries with the relevant values
+        self.line_controls.orientation = current.line_orientation
+        self.line_controls.axis = current.line_axis
+        self.line_controls.value = current.line_value
+        self.line_controls.color = current.line_color
+        self.line_controls.alpha = current.line_alpha
+
     def update_controls(self, event=None):
         """Update the current plot object with the user-entered values and refresh
         both the plot and the controls window."""
@@ -1324,6 +1392,17 @@ class Flipbook(tk.Toplevel):
         # Pass the current plot object to the calculate method to create the bands
         self.band_controls.calculate(current)
 
+        # ===================
+        # LIMIT LINE CONTROLS
+        # ===================
+
+        # Store the current limit line values in the corresponding plot attributes
+        current.line_orientation = self.line_controls.orientation
+        current.line_axis = self.line_controls.axis
+        current.line_value = self.line_controls.value
+        current.line_color = self.line_controls.color
+        current.line_alpha = self.line_controls.alpha
+
         # Update the plot and refresh the controls window
         self.update_plot()
         self.refresh_controls()
@@ -1357,7 +1436,7 @@ class ToleranceBands(tk.Frame):
                          font=('TkDefaultFont', 10, 'bold'))
         title.grid(row=0, column=0, sticky='W')
 
-        # Add a button that adds another row to the objet
+        # Add a button that adds another row to the object
         add_button = ttk.Button(controls, text='+', width=3, takefocus=0,
                                 command=self.add_band)
         add_button.grid(row=0, column=1)
@@ -1657,6 +1736,252 @@ class ToleranceBands(tk.Frame):
         if colors:
             for i in range(len(colors)):
                 self.color_choices[i].set(colors[i] if colors[i] else '')
+
+
+class LimitLines(tk.Frame):
+    """Creates a GUI frame that can hold a dynamic amount of rows for
+    horizontal line fields. Keeps track of inputs."""
+
+    def __init__(self):
+        """Initialize the object's attributes."""
+
+        # Initialize/reset the object's attributes
+        self.reset()
+
+    def setup(self, master):
+        """Create the toolbar of the Tolerance Bands object. This function is called
+        every time the page is flipped."""
+
+        # Initialize the Limit Lines object as a frame
+        tk.Frame.__init__(self, master=master)
+        self.columnconfigure(0, weight=1)
+
+        # Create a controls frame, which will function as a toolbar
+        controls = tk.Frame(self)
+        controls.grid(row=0, column=0, sticky='NSEW')
+        controls.columnconfigure(0, weight=1)
+
+        # Add the title of the section
+        title = tk.Label(controls, text='Limit Lines',
+                         font=('TkDefaultFont', 10, 'bold'))
+        title.grid(row=0, column=0, sticky='W')
+
+        # Add a button that adds another row to the object
+        add_button = ttk.Button(controls, text='+', width=3, takefocus=0,
+                                command=self.add_line)
+        add_button.grid(row=0, column=1)
+
+        # Add a button that deletes a row from the object
+        delete_button = ttk.Button(controls, text='-', width=3, takefocus=0,
+                                   command=self.delete_line)
+        delete_button.grid(row=0, column=2)
+
+    def reset(self):
+        """Reset the attributes of the object to their default states. Called
+        whenever a Tolerance Bands object is created or recreated."""
+
+        # Reset the row count to 0
+        self.count = 0
+        # Reset the bands list, which holds a reference to each row
+        self.lines = []
+        # Reset the choices list for the series combobox and the color combobox
+        self.orientation_choices = []
+        self.axis_choices = []
+        self.color_choices = []
+        # Reset the lists that hold references to each field of each row
+        self.orientation_combos = []
+        self.axis_combos = []
+        self.value_entries = []
+        self.color_combos = []
+        self.alpha_entries = []
+        # # Clear the data for the plus tolerance and minus tolerance bands
+        # self.plus_bands = []
+        # self.minus_bands = []
+
+    def recreate(self, rows):
+        """Recreates the rows that were previously in the Tolerance Bands object
+        before the page was flipped. The rows parameter is calculated outside of
+        the purview of this object and then passed in."""
+
+        # # Minus and plus bands should not be reset when flipping a page, so store
+        # # them in a backup variable for now
+        # self.minus_backup = self.minus_bands
+        # self.plus_backup = self.plus_bands
+        # Reset the object's attributes
+        self.reset()
+        # Add as many rows as there were before the page was flipped
+        for row in range(rows):
+            self.add_line(recreate=row)
+        # # Set the minus and plus band data back to what they were before the reset
+        # self.minus_bands = self.minus_backup
+        # self.plus_bands = self.plus_backup
+
+    def add_line(self, recreate=None):
+        """Add a row to the Tolerance Bands object."""
+
+        # Define the general amount of padding to use between widgets
+        PADDING = 2
+
+        # Create a frame that will hold all of the fields
+        frame = tk.Frame(self)
+        frame.grid(row=self.count+1 if not recreate else recreate+1,
+                   column=0, pady=(10, 0))
+
+        # Add labels for series, plus and minus tolerance, lag, and color
+        orientation_label = ttk.Label(frame, text='orientation:')
+        orientation_label.grid(row=0, column=0, padx=PADDING)
+
+        axis_label = ttk.Label(frame, text='axis:')
+        axis_label.grid(row=0, column=1, padx=PADDING)
+
+        value_label = ttk.Label(frame, text='value:')
+        value_label.grid(row=0, column=2, padx=PADDING)
+
+        color_label = ttk.Label(frame, text='color:')
+        color_label.grid(row=0, column=3, padx=PADDING)
+
+        alpha_label = ttk.Label(frame, text='alpha:')
+        alpha_label.grid(row=0, column=4, padx=PADDING)
+
+        # Add a combobox to select which series to plot the bands around
+        orientation_choice = tk.StringVar()
+        orientation_choice.set('horizontal')
+        orientation_combo = ttk.Combobox(frame, width=9, state='readonly',
+                                    textvariable=orientation_choice,
+                                    values=['vertical', 'horizontal'])
+        orientation_combo.grid(row=1, column=0, padx=PADDING)
+        self.orientation_choices.append(orientation_choice)
+        self.orientation_combos.append(orientation_combo)
+
+        # Add a combobox to select which series to plot the bands around
+        axis_choice = tk.StringVar()
+        axis_choice.set('primary')
+        axis_combo = ttk.Combobox(frame, width=9, state='readonly',
+                                    textvariable=axis_choice,
+                                    values=['primary', 'secondary'])
+        axis_combo.grid(row=1, column=1, padx=PADDING)
+        self.axis_choices.append(axis_choice)
+        self.axis_combos.append(axis_combo)
+
+        # Add an entry where the user can specify plus tolerance
+        value_entry = ttk.Entry(frame, width=8)
+        value_entry.grid(row=1, column=2, padx=PADDING)
+        self.value_entries.append(value_entry)
+
+        # Add a combobox to select which color the bands should be
+        color_choice = tk.StringVar()
+        color_choice.set(random.choice(list(plot_colors.keys())))
+        color_combo = ttk.Combobox(frame, textvariable=color_choice,
+                                   width=8, state='readonly')
+        color_combo['values'] = list(plot_colors.keys())
+        color_combo.grid(row=1, column=3, padx=PADDING)
+        self.color_choices.append(color_choice)
+        self.color_combos.append(color_combo)
+
+        # Add an entry where the user can specify lag
+        alpha_entry = ttk.Entry(frame, width=8)
+        alpha_entry.grid(row=1, column=4, padx=PADDING)
+        self.alpha_entries.append(alpha_entry)
+
+        # # If this method was not called by the recreate function, add filler
+        # # data to the plus bands and minus bands data lists
+        # if not recreate:
+        #     self.plus_bands.append(None)
+        #     self.minus_bands.append(None)
+
+        # Add one to the row count and keep a reference to this row
+        self.count += 1
+        self.lines.append(frame)
+
+    def delete_line(self):
+        """Remove a row from the Tolerance Bands object."""
+
+        # If there are already no row, exit the method
+        if len(self.lines) == 0: return
+
+        # Destroy the last row and remove all references to the objects
+        self.lines[-1].destroy()
+        del(self.lines[-1])
+        del(self.orientation_combos[-1])
+        del(self.value_entries[-1])
+        del(self.color_combos[-1])
+        del(self.alpha_entries[-1])
+        # del(self.minus_bands[-1])
+        # del(self.plus_bands[-1])
+        # Decrease the row count by one
+        self.count -= 1
+
+    @property
+    def orientation(self):
+        """Iterates through each row and returns a list of orientation combobox selections."""
+
+        return [combo.get() for combo in self.orientation_combos]
+
+    @orientation.setter
+    def orientation(self, orientation):
+        """Sets the value of each orientation combobox with the appropriate value."""
+
+        if orientation:
+            for i in range(len(orientation)):
+                self.orientation_choices[i].set(orientation[i] if orientation[i] else '')
+
+    @property
+    def axis(self):
+        """Iterates through each row and returns a list of axis combobox selections."""
+
+        return [combo.get() for combo in self.axis_combos]
+
+    @axis.setter
+    def axis(self, axis):
+        """Sets the value of each axis combobox with the appropriate value."""
+
+        if axis:
+            for i in range(len(axis)):
+                self.axis_choices[i].set(axis[i] if axis[i] else '')
+
+    @property
+    def value(self):
+        """Iterates through each row and returns a list of minus tolerance inputs."""
+
+        return [entry.get() for entry in self.value_entries]
+
+    @value.setter
+    def value(self, value):
+        """Sets the value of each minus tolerance entry with the appropriate value."""
+
+        if value:
+            for i in range(len(value)):
+                self.value_entries[i].delete(0, 'end')
+                self.value_entries[i].insert(0, value[i] if value[i] else '')
+
+    @property
+    def color(self):
+        """Iterates through each row and returns a list of color combobox selections."""
+
+        return [combo.get() for combo in self.color_combos]
+
+    @color.setter
+    def color(self, colors):
+        """Sets the value of each color combobox with the appropriate value."""
+
+        if colors:
+            for i in range(len(colors)):
+                self.color_choices[i].set(colors[i] if colors[i] else '')
+
+    @property
+    def alpha(self):
+        """Iterates through each row and returns a list of alpha inputs."""
+
+        return [entry.get() for entry in self.alpha_entries]
+
+    @alpha.setter
+    def alpha(self, alphas):
+        """Sets the value of each alpha entry with the appropriate value."""
+
+        if alphas:
+            for i in range(len(alphas)):
+                self.alpha_entries[i].delete(0, 'end')
+                self.alpha_entries[i].insert(0, alphas[i] if alphas[i] else '')
 
 
 class File(gui.ScrollableTab):
@@ -1960,6 +2285,14 @@ class File(gui.ScrollableTab):
                 self.plus_tolerance = None
                 self.lag = None
                 self.color = None
+
+                # Keep track of limit line information
+                self.lines = LimitLines()
+                self.line_orientation = None
+                self.line_axis = None
+                self.line_value = None
+                self.line_color = None
+                self.line_alpha = None
 
             def _x_data(self, x_column):
                 """Pull the appropriate x-information from the data."""
