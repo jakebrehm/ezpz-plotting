@@ -1864,10 +1864,10 @@ class LimitLines(tk.Frame):
 
         # Add a combobox to select which linestyle to use for the plot
         linestyle_choice = tk.StringVar()
-        linestyle_choice.set('-')
+        linestyle_choice.set('solid')
         linestyle_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
                                     textvariable=linestyle_choice,
-                                    values=['-', '--'])
+                                    values=['solid', 'dotted', 'dashed', 'dashdot'])
         linestyle_combo.grid(row=3, column=1, padx=PADDING)
         self.linestyle_choices.append(linestyle_choice)
         self.linestyle_combos.append(linestyle_combo)
