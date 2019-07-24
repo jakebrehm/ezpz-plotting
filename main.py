@@ -329,10 +329,10 @@ def remove_file():
 def switch_tab(event, direction):
     """Switch to either the next or previous tab in the notebook."""
 
+    # Get the index of the tab that the user wants to go to
+    current = notebook.index(notebook.select())
+    destination = (current + 1) if direction == 'next' else (current - 1)
     try:
-        # Get the index of the tab that the user wants to go to
-        current = notebook.index(notebook.select())
-        destination = (current + 1) if direction == 'next' else (current - 1)
         # Attempt to select the notebook tab
         notebook.select(destination)
     except (NameError, tk.TclError):
@@ -884,13 +884,15 @@ class Flipbook(tk.Toplevel):
                      self.secondary_axis else None )
             # Plot the limit line after determining its orientation
             if current.line_orientation[v] == 'vertical':
-                axis.axvline(x=float(current.line_value[v]), linestyle='-',
-                                     color=plot_colors[current.line_color[v]],
-                                     alpha=float(current.line_alpha[v]))
+                axis.axvline(x=float(current.line_value[v]),
+                             linestyle=current.line_style[v],
+                             color=plot_colors[current.line_color[v]],
+                             alpha=float(current.line_alpha[v]))
             elif current.line_orientation[v] == 'horizontal':
-                axis.axhline(y=float(current.line_value[v]), linestyle='-',
-                                     color=plot_colors[current.line_color[v]],
-                                     alpha=float(current.line_alpha[v]))
+                axis.axhline(y=float(current.line_value[v]),
+                             linestyle=current.line_style[v],
+                             color=plot_colors[current.line_color[v]],
+                             alpha=float(current.line_alpha[v]))
 
         # Update the canvas
         self.canvas.draw()
@@ -1313,15 +1315,16 @@ class Flipbook(tk.Toplevel):
         if current.line_orientation and current.line_axis and current.line_value and \
                 current.line_color and current.line_alpha:
             # Determine which of those lists is the longest and recreate that many rows
-            longest = len(max(current.line_orientation, current.line_axis,
+            longest = len(max(current.line_orientation, current.line_axis, current.line_style,
                               current.line_value, current.line_color, current.line_alpha))
             self.line_controls.recreate(rows=longest)
 
         # Fill the newly create entries with the relevant values
-        self.line_controls.orientation = current.line_orientation
         self.line_controls.axis = current.line_axis
+        self.line_controls.orientation = current.line_orientation
         self.line_controls.value = current.line_value
         self.line_controls.color = current.line_color
+        self.line_controls.linestyle = current.line_style
         self.line_controls.alpha = current.line_alpha
 
     def update_controls(self, event=None):
@@ -1390,10 +1393,11 @@ class Flipbook(tk.Toplevel):
         # ===================
 
         # Store the current limit line values in the corresponding plot attributes
-        current.line_orientation = self.line_controls.orientation
         current.line_axis = self.line_controls.axis
+        current.line_orientation = self.line_controls.orientation
         current.line_value = self.line_controls.value
         current.line_color = self.line_controls.color
+        current.line_style = self.line_controls.linestyle
         current.line_alpha = self.line_controls.alpha
 
         # Update the plot and refresh the controls window
@@ -1779,110 +1783,114 @@ class LimitLines(tk.Frame):
         self.count = 0
         # Reset the bands list, which holds a reference to each row
         self.lines = []
-        # Reset the choices list for the series combobox and the color combobox
-        self.orientation_choices = []
+        # Reset the choices list for the comboboxes
         self.axis_choices = []
+        self.orientation_choices = []
         self.color_choices = []
+        self.linestyle_choices = []
         # Reset the lists that hold references to each field of each row
-        self.orientation_combos = []
         self.axis_combos = []
+        self.orientation_combos = []
         self.value_entries = []
         self.color_combos = []
+        self.linestyle_combos = []
         self.alpha_entries = []
-        # # Clear the data for the plus tolerance and minus tolerance bands
-        # self.plus_bands = []
-        # self.minus_bands = []
 
     def recreate(self, rows):
-        """Recreates the rows that were previously in the Tolerance Bands object
+        """Recreates the rows that were previously in the Limit Lines object
         before the page was flipped. The rows parameter is calculated outside of
         the purview of this object and then passed in."""
 
-        # # Minus and plus bands should not be reset when flipping a page, so store
-        # # them in a backup variable for now
-        # self.minus_backup = self.minus_bands
-        # self.plus_backup = self.plus_bands
-        # Reset the object's attributes
+        # Reset the object's attribute
         self.reset()
         # Add as many rows as there were before the page was flipped
         for row in range(rows):
             self.add_line(recreate=row)
-        # # Set the minus and plus band data back to what they were before the reset
-        # self.minus_bands = self.minus_backup
-        # self.plus_bands = self.plus_backup
 
     def add_line(self, recreate=None):
-        """Add a row to the Tolerance Bands object."""
+        """Add a row to the Limit Lines object."""
 
         # Define the general amount of padding to use between widgets
         PADDING = 2
+        COMBO_WIDTH = 14
+        ENTRY_WIDTH = 16
 
-        # Create a frame that will hold all of the fields
-        frame = tk.Frame(self)
+        # Create a labelframe that will hold all of the fields
+        frame = tk.LabelFrame(self)
         frame.grid(row=self.count+1 if not recreate else recreate+1,
                    column=0, pady=(10, 0))
 
-        # Add labels for series, plus and minus tolerance, lag, and color
-        orientation_label = ttk.Label(frame, text='orientation:')
-        orientation_label.grid(row=0, column=0, padx=PADDING)
+        # Create a frame insnide of the labelframe with padding
+        container = tk.Frame(frame)
+        container.grid(row=0, column=0, padx=10, pady=10, sticky='NSEW')
 
-        axis_label = ttk.Label(frame, text='axis:')
-        axis_label.grid(row=0, column=1, padx=PADDING)
+        # Add labels for axis, orientation, value, color, linestyle, and alpha
+        axis_label = ttk.Label(container, text='axis:')
+        axis_label.grid(row=0, column=0, padx=PADDING)
+        orientation_label = ttk.Label(container, text='orientation:')
+        orientation_label.grid(row=0, column=1, padx=PADDING)
 
-        value_label = ttk.Label(frame, text='value:')
+        value_label = ttk.Label(container, text='value:')
         value_label.grid(row=0, column=2, padx=PADDING)
 
-        color_label = ttk.Label(frame, text='color:')
-        color_label.grid(row=0, column=3, padx=PADDING)
+        color_label = ttk.Label(container, text='color:')
+        color_label.grid(row=2, column=0, padx=PADDING)
 
-        alpha_label = ttk.Label(frame, text='alpha:')
-        alpha_label.grid(row=0, column=4, padx=PADDING)
+        linestyle_label = ttk.Label(container, text='linestyle:')
+        linestyle_label.grid(row=2, column=1, padx=PADDING)
 
-        # Add a combobox to select which series to plot the bands around
+        alpha_label = ttk.Label(container, text='alpha:')
+        alpha_label.grid(row=2, column=2, padx=PADDING)
+
+        # Add a combobox to select which way to orient the line
         orientation_choice = tk.StringVar()
         orientation_choice.set('horizontal')
-        orientation_combo = ttk.Combobox(frame, width=9, state='readonly',
+        orientation_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
                                     textvariable=orientation_choice,
                                     values=['vertical', 'horizontal'])
-        orientation_combo.grid(row=1, column=0, padx=PADDING)
+        orientation_combo.grid(row=1, column=1, padx=PADDING)
         self.orientation_choices.append(orientation_choice)
         self.orientation_combos.append(orientation_combo)
 
-        # Add a combobox to select which series to plot the bands around
+        # Add a combobox to select which axis to plot the line on
         axis_choice = tk.StringVar()
         axis_choice.set('primary')
-        axis_combo = ttk.Combobox(frame, width=9, state='readonly',
+        axis_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
                                     textvariable=axis_choice,
                                     values=['primary', 'secondary'])
-        axis_combo.grid(row=1, column=1, padx=PADDING)
+        axis_combo.grid(row=1, column=0, padx=PADDING)
         self.axis_choices.append(axis_choice)
         self.axis_combos.append(axis_combo)
 
-        # Add an entry where the user can specify plus tolerance
-        value_entry = ttk.Entry(frame, width=8)
+        # Add a combobox to select which linestyle to use for the plot
+        linestyle_choice = tk.StringVar()
+        linestyle_choice.set('-')
+        linestyle_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
+                                    textvariable=linestyle_choice,
+                                    values=['-', '--'])
+        linestyle_combo.grid(row=3, column=1, padx=PADDING)
+        self.linestyle_choices.append(linestyle_choice)
+        self.linestyle_combos.append(linestyle_combo)
+
+        # Add an entry where the user can specify the appropriate coordinate/value
+        value_entry = ttk.Entry(container, width=ENTRY_WIDTH, justify='center')
         value_entry.grid(row=1, column=2, padx=PADDING)
         self.value_entries.append(value_entry)
 
-        # Add a combobox to select which color the bands should be
+        # Add a combobox to select which color the line should be
         color_choice = tk.StringVar()
         color_choice.set(random.choice(list(plot_colors.keys())))
-        color_combo = ttk.Combobox(frame, textvariable=color_choice,
-                                   width=8, state='readonly')
+        color_combo = ttk.Combobox(container, textvariable=color_choice,
+                                   width=COMBO_WIDTH, state='readonly')
         color_combo['values'] = list(plot_colors.keys())
-        color_combo.grid(row=1, column=3, padx=PADDING)
+        color_combo.grid(row=3, column=0, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
 
-        # Add an entry where the user can specify lag
-        alpha_entry = ttk.Entry(frame, width=8)
-        alpha_entry.grid(row=1, column=4, padx=PADDING)
+        # Add an entry where the user can specify alpha
+        alpha_entry = ttk.Entry(container, width=ENTRY_WIDTH, justify='center')
+        alpha_entry.grid(row=3, column=2, padx=PADDING)
         self.alpha_entries.append(alpha_entry)
-
-        # # If this method was not called by the recreate function, add filler
-        # # data to the plus bands and minus bands data lists
-        # if not recreate:
-        #     self.plus_bands.append(None)
-        #     self.minus_bands.append(None)
 
         # Add one to the row count and keep a reference to this row
         self.count += 1
@@ -1909,20 +1917,6 @@ class LimitLines(tk.Frame):
         self.count -= 1
 
     @property
-    def orientation(self):
-        """Iterates through each row and returns a list of orientation combobox selections."""
-
-        return [combo.get() for combo in self.orientation_combos]
-
-    @orientation.setter
-    def orientation(self, orientation):
-        """Sets the value of each orientation combobox with the appropriate value."""
-
-        if orientation:
-            for i in range(len(orientation)):
-                self.orientation_choices[i].set(orientation[i] if orientation[i] else '')
-
-    @property
     def axis(self):
         """Iterates through each row and returns a list of axis combobox selections."""
 
@@ -1935,6 +1929,20 @@ class LimitLines(tk.Frame):
         if axis:
             for i in range(len(axis)):
                 self.axis_choices[i].set(axis[i] if axis[i] else '')
+
+    @property
+    def orientation(self):
+        """Iterates through each row and returns a list of orientation combobox selections."""
+
+        return [combo.get() for combo in self.orientation_combos]
+
+    @orientation.setter
+    def orientation(self, orientation):
+        """Sets the value of each orientation combobox with the appropriate value."""
+
+        if orientation:
+            for i in range(len(orientation)):
+                self.orientation_choices[i].set(orientation[i] if orientation[i] else '')
 
     @property
     def value(self):
@@ -1964,6 +1972,20 @@ class LimitLines(tk.Frame):
         if colors:
             for i in range(len(colors)):
                 self.color_choices[i].set(colors[i] if colors[i] else '')
+
+    @property
+    def linestyle(self):
+        """Iterates through each row and returns a list of linestyle selections."""
+
+        return [combo.get() for combo in self.linestyle_combos]
+
+    @linestyle.setter
+    def linestyle(self, linestyles):
+        """Sets the value of each linestyle combo with the appropriate value."""
+
+        if linestyles:
+            for i in range(len(linestyles)):
+                self.linestyle_combos[i].set(linestyles[i] if linestyles[i] else '')
 
     @property
     def alpha(self):
@@ -2285,10 +2307,11 @@ class File(gui.ScrollableTab):
 
                 # Keep track of limit line information
                 self.lines = LimitLines()
-                self.line_orientation = None
                 self.line_axis = None
+                self.line_orientation = None
                 self.line_value = None
                 self.line_color = None
+                self.line_style = None
                 self.line_alpha = None
 
             def _x_data(self, x_column):
