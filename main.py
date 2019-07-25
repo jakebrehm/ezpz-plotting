@@ -875,8 +875,14 @@ class Flipbook(tk.Toplevel):
         # ===================
 
         # Iterate through the values list of the limit lines
-        for v, value in enumerate(self.controls.line_controls.value):
+        print(current.line_axis)
+        print(current.line_value)
+        print(self.controls.line_controls.value)
+        # for v, value in enumerate(self.controls.line_controls.value):
+        # if current.line_value:
+        for v, value in enumerate(current.line_value):
             # If there are no values, skip to next iteration (e.g. blank rows)
+            # if not value: continue
             if not value: continue
             # Determine the axis to plot the limit line on
             axis = self.primary if current.line_axis[v] == 'primary' else \
@@ -1917,6 +1923,8 @@ class LimitLines(tk.Frame):
         del(self.lines[-1])
         del(self.orientation_choices[-1])
         del(self.orientation_combos[-1])
+        del(self.linestyle_choices[-1])
+        del(self.linestyle_combos[-1])
         del(self.axis_choices[-1])
         del(self.axis_combos[-1])
         del(self.value_entries[-1])
@@ -2328,12 +2336,12 @@ class File(gui.ScrollableTab):
 
                 # Keep track of limit line information
                 self.lines = LimitLines()
-                self.line_axis = None
-                self.line_orientation = None
-                self.line_value = None
-                self.line_color = None
-                self.line_style = None
-                self.line_alpha = None
+                self.line_axis = []
+                self.line_orientation = []
+                self.line_value = []
+                self.line_color = []
+                self.line_style = []
+                self.line_alpha = []
 
             def _x_data(self, x_column):
                 """Pull the appropriate x-information from the data."""
