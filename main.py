@@ -356,7 +356,7 @@ class Application(gui.Application):
         self.notebook.grid(row=0, column=0, sticky='NSEW')
 
         # Create an object file for each inputs and add them to a list to keep track
-        self.files = [File(self.notebook, filepath) for filepath in self.inputs]
+        self.files = [BasicFile(self.notebook, filepath) for filepath in self.inputs]
 
         # Set cursor focus on the data start row entry of the first tab for ease of use
         self.files[0].data_row_entry.focus_set()
@@ -401,7 +401,7 @@ class Application(gui.Application):
         self.inputs.append(filepath)
 
         # Create a File object and append it to the list of file objects
-        file = File(self.notebook, filepath)
+        file = BasicFile(self.notebook, filepath)
         self.files.append(file)
 
         # Add the filepath to the listbox
@@ -2186,7 +2186,7 @@ class LimitLines(tk.Frame):
                 self.alpha_entries[i].insert(0, alphas[i] if alphas[i] else '')
 
 
-class File(gui.ScrollableTab):
+class BasicFile(gui.ScrollableTab):
     """A scrollable notebook tab that supports dynamically creating and deleting basic
     rows (plots), and stores all of the user-specified information about each plot."""
 
