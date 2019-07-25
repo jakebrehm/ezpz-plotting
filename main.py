@@ -789,7 +789,7 @@ class Flipbook(tk.Toplevel):
 
         # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
-            self.controls = Controls(self, flipbook=self, current=self.plots[self.page])
+            self.controls = Controls(self, self.plots[self.page])
             self.controls.withdraw()
 
         # ====================
@@ -980,7 +980,7 @@ class Flipbook(tk.Toplevel):
 
 class Controls(tk.Toplevel):
 
-    def __init__(self, *args, flipbook, current, **kwargs):
+    def __init__(self, master, current):
         """Create a controls window where the user can adjust the plot."""
 
         def custom_background(event=None):
@@ -1009,7 +1009,7 @@ class Controls(tk.Toplevel):
                 current.background_path = None
 
         # Create the top-level controls window
-        tk.Toplevel.__init__(self, *args, **kwargs)
+        tk.Toplevel.__init__(self, master)
         self.title('Controls')
         self.resizable(width=False, height=False)
         self.columnconfigure(0, weight=1)
@@ -1018,7 +1018,7 @@ class Controls(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", lambda: self.withdraw())
 
         # Initialize miscellaneous instance variables
-        self.flipbook = flipbook
+        self.flipbook = master
         self.current = current
         self.band_controls = None # Tolerance band controls object
         self.line_controls = None # Limit lines controls object
