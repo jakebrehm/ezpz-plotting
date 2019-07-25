@@ -964,10 +964,10 @@ class Flipbook(tk.Toplevel):
             # Plot the plus band on the appropriate axis
             elif plus[0] == 'primary':
                 self.primary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
-                                  linestyle='dashed')
+                                  linestyle=current.linestyle[p])
             elif plus[0] == 'secondary':
                 self.secondary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
-                                  linestyle='dashed')
+                                  linestyle=current.linestyle[p])
         # Iterate through the minus bands of the current plot
         for m, minus in enumerate(current.minus_bands):
             # If there are no minus bands, skip to next iteration
@@ -975,10 +975,10 @@ class Flipbook(tk.Toplevel):
             # Plot the minus band on the appropriate axis
             elif minus[0] == 'primary':
                 self.primary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
-                                  linestyle='dashed')
+                                  linestyle=current.linestyle[m])
             elif minus[0] == 'secondary':
                 self.secondary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
-                                  linestyle='dashed')
+                                  linestyle=current.linestyle[m])
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1395,10 +1395,11 @@ class Controls(tk.Toplevel):
 
         # Fill the newly create entries with the relevant values
         self.band_controls.series = current.series
-        self.band_controls.minus_tolerance = current.minus_tolerance
-        self.band_controls.plus_tolerance = current.plus_tolerance
-        self.band_controls.lag = current.lag
         self.band_controls.color = current.color
+        self.band_controls.linestyle = current.linestyle
+        self.band_controls.plus_tolerance = current.plus_tolerance
+        self.band_controls.minus_tolerance = current.minus_tolerance
+        self.band_controls.lag = current.lag
         self.band_controls.bands_plus = current.plus_bands
         self.band_controls.bands_minus = current.minus_bands
 
@@ -1493,10 +1494,11 @@ class Controls(tk.Toplevel):
 
         # Store the current band controls values in the corresponding plot attributes
         current.series = self.band_controls.series
-        current.minus_tolerance = self.band_controls.minus_tolerance
-        current.plus_tolerance = self.band_controls.plus_tolerance
-        current.lag = self.band_controls.lag
+        current.linestyle = self.band_controls.linestyle
         current.color = self.band_controls.color
+        current.plus_tolerance = self.band_controls.plus_tolerance
+        current.minus_tolerance = self.band_controls.minus_tolerance
+        current.lag = self.band_controls.lag
         current.plus_bands = self.band_controls.bands_plus
         current.minus_bands = self.band_controls.bands_minus
 
@@ -1569,12 +1571,14 @@ class ToleranceBands(tk.Frame):
         # Reset the choices list for the series combobox and the color combobox
         self.series_choices = []
         self.color_choices = []
+        self.linestyle_choices = []
         # Reset the lists that hold references to each field of each row
         self.series_combos = []
         self.minus_tolerance_entries = []
         self.plus_tolerance_entries = []
         self.lag_entries = []
         self.color_combos = []
+        self.linestyle_combos = []
         # Reset the values that appear in the series combobox
         self.values = None
         # Clear the data for the plus tolerance and minus tolerance bands
@@ -1606,59 +1610,80 @@ class ToleranceBands(tk.Frame):
         PADDING = 2
 
         # Create a frame that will hold all of the fields
-        frame = tk.Frame(self)
+        frame = tk.LabelFrame(self)
         frame.grid(row=self.count+1 if not recreate else recreate+1,
                    column=0, pady=(10, 0))
 
+        # Put a frame inside of the labelframe, but with padding
+        container = tk.Frame(frame)
+        container.grid(row=0, column=0, padx=10, pady=10, sticky='NSEW')
+
+        # Specify a general width for combobox and entry widgets
+        COMBO_WIDTH = 14
+        ENTRY_WIDTH = 17
+
         # Add labels for series, plus and minus tolerance, lag, and color
-        series_label = ttk.Label(frame, text='series:')
+        series_label = ttk.Label(container, text='series:')
         series_label.grid(row=0, column=0, padx=PADDING)
 
-        plus_tolerance_label = ttk.Label(frame, text='+tol.:')
-        plus_tolerance_label.grid(row=0, column=1, padx=PADDING)
+        color_label = ttk.Label(container, text='color:')
+        color_label.grid(row=0, column=1, padx=PADDING)
 
-        minus_tolerance_label = ttk.Label(frame, text='-tol.:')
-        minus_tolerance_label.grid(row=0, column=2, padx=PADDING)
+        linestyle_label = ttk.Label(container, text='linestyle:')
+        linestyle_label.grid(row=0, column=2, padx=PADDING)
 
-        lag_label = ttk.Label(frame, text='lag:')
-        lag_label.grid(row=0, column=3, padx=PADDING)
+        plus_tolerance_label = ttk.Label(container, text='+tolerance:')
+        plus_tolerance_label.grid(row=2, column=0, padx=PADDING)
 
-        color_label = ttk.Label(frame, text='color:')
-        color_label.grid(row=0, column=4, padx=PADDING)
+        minus_tolerance_label = ttk.Label(container, text='-tolerance:')
+        minus_tolerance_label.grid(row=2, column=1, padx=PADDING)
+
+        lag_label = ttk.Label(container, text='lag:')
+        lag_label.grid(row=2, column=2, padx=PADDING)
 
         # Add a combobox to select which series to plot the bands around
         series_choice = tk.StringVar()
-        series_combo = ttk.Combobox(frame, width=14, state='readonly',
+        series_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
                                     textvariable=series_choice,
                                     postcommand=self.update_entries)
         series_combo.grid(row=1, column=0, padx=PADDING)
         self.series_choices.append(series_choice)
         self.series_combos.append(series_combo)
 
-        # Add an entry where the user can specify plus tolerance
-        plus_tolerance_entry = ttk.Entry(frame, width=8)
-        plus_tolerance_entry.grid(row=1, column=1, padx=PADDING)
-        self.plus_tolerance_entries.append(plus_tolerance_entry)
-
-        # Add an entry where the user can specify minus tolerance
-        minus_tolerance_entry = ttk.Entry(frame, width=8)
-        minus_tolerance_entry.grid(row=1, column=2, padx=PADDING)
-        self.minus_tolerance_entries.append(minus_tolerance_entry)
-
-        # Add an entry where the user can specify lag
-        lag_entry = ttk.Entry(frame, width=8)
-        lag_entry.grid(row=1, column=3, padx=PADDING)
-        self.lag_entries.append(lag_entry)
-
         # Add a combobox to select which color the bands should be
         color_choice = tk.StringVar()
         color_choice.set(random.choice(list(app.plot_colors.keys())))
-        color_combo = ttk.Combobox(frame, textvariable=color_choice,
-                                   width=8, state='readonly')
+        color_combo = ttk.Combobox(container, textvariable=color_choice,
+                                   width=COMBO_WIDTH, state='readonly')
         color_combo['values'] = list(app.plot_colors.keys())
-        color_combo.grid(row=1, column=4, padx=PADDING)
+        color_combo.grid(row=1, column=1, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
+
+        # Add a combobox to select which color the bands should be
+        linestyle_choice = tk.StringVar()
+        linestyle_choice.set('solid')
+        linestyle_combo = ttk.Combobox(container, textvariable=linestyle_choice,
+                                   width=COMBO_WIDTH, state='readonly')
+        linestyle_combo['values'] = ['solid', 'dashed', 'dashdot', 'dotted']
+        linestyle_combo.grid(row=1, column=2, padx=PADDING)
+        self.linestyle_choices.append(linestyle_choice)
+        self.linestyle_combos.append(linestyle_combo)
+
+        # Add an entry where the user can specify plus tolerance
+        plus_tolerance_entry = ttk.Entry(container, width=ENTRY_WIDTH)
+        plus_tolerance_entry.grid(row=3, column=0, padx=PADDING)
+        self.plus_tolerance_entries.append(plus_tolerance_entry)
+
+        # Add an entry where the user can specify minus tolerance
+        minus_tolerance_entry = ttk.Entry(container, width=ENTRY_WIDTH)
+        minus_tolerance_entry.grid(row=3, column=1, padx=PADDING)
+        self.minus_tolerance_entries.append(minus_tolerance_entry)
+
+        # Add an entry where the user can specify lag
+        lag_entry = ttk.Entry(container, width=ENTRY_WIDTH)
+        lag_entry.grid(row=3, column=2, padx=PADDING)
+        self.lag_entries.append(lag_entry)
 
         # If this method was not called by the recreate function, add filler
         # data to the plus bands and minus bands data lists
@@ -1681,11 +1706,13 @@ class ToleranceBands(tk.Frame):
         del(self.bands[-1])
         del(self.series_choices[-1])
         del(self.series_combos[-1])
+        del(self.color_choices[-1])
+        del(self.color_combos[-1])
+        del(self.linestyle_choices[-1])
+        del(self.linestyle_combos[-1])
         del(self.minus_tolerance_entries[-1])
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
-        del(self.color_choices[-1])
-        del(self.color_combos[-1])
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
         # Decrease the row count by one
@@ -1793,19 +1820,32 @@ class ToleranceBands(tk.Frame):
                 self.series_choices[i].set(series[i] if series[i] else '')
 
     @property
-    def minus_tolerance(self):
-        """Iterates through each row and returns a list of minus tolerance inputs."""
+    def color(self):
+        """Iterates through each row and returns a list of color combobox selections."""
 
-        return [entry.get() for entry in self.minus_tolerance_entries]
+        return [combo.get() for combo in self.color_combos]
 
-    @minus_tolerance.setter
-    def minus_tolerance(self, tolerances):
-        """Sets the value of each minus tolerance entry with the appropriate value."""
+    @color.setter
+    def color(self, colors):
+        """Sets the value of each color combobox with the appropriate value."""
 
-        if tolerances:
-            for i in range(len(tolerances)):
-                self.minus_tolerance_entries[i].delete(0, 'end')
-                self.minus_tolerance_entries[i].insert(0, tolerances[i] if tolerances[i] else '')
+        if colors:
+            for i in range(len(colors)):
+                self.color_choices[i].set(colors[i] if colors[i] else '')
+
+    @property
+    def linestyle(self):
+        """Iterates through each row and returns a list of linestyle combobox selections."""
+
+        return [combo.get() for combo in self.linestyle_combos]
+
+    @linestyle.setter
+    def linestyle(self, linestyles):
+        """Sets the value of each linestyle combobox with the appropriate value."""
+
+        if linestyles:
+            for i in range(len(linestyles)):
+                self.linestyle_choices[i].set(linestyles[i] if linestyles[i] else '')
 
     @property
     def plus_tolerance(self):
@@ -1823,6 +1863,21 @@ class ToleranceBands(tk.Frame):
                 self.plus_tolerance_entries[i].insert(0, tolerances[i] if tolerances[i] else '')
 
     @property
+    def minus_tolerance(self):
+        """Iterates through each row and returns a list of minus tolerance inputs."""
+
+        return [entry.get() for entry in self.minus_tolerance_entries]
+
+    @minus_tolerance.setter
+    def minus_tolerance(self, tolerances):
+        """Sets the value of each minus tolerance entry with the appropriate value."""
+
+        if tolerances:
+            for i in range(len(tolerances)):
+                self.minus_tolerance_entries[i].delete(0, 'end')
+                self.minus_tolerance_entries[i].insert(0, tolerances[i] if tolerances[i] else '')
+
+    @property
     def lag(self):
         """Iterates through each row and returns a list of lag inputs."""
 
@@ -1836,20 +1891,6 @@ class ToleranceBands(tk.Frame):
             for i in range(len(lags)):
                 self.lag_entries[i].delete(0, 'end')
                 self.lag_entries[i].insert(0, lags[i] if lags[i] else '')
-
-    @property
-    def color(self):
-        """Iterates through each row and returns a list of color combobox selections."""
-
-        return [combo.get() for combo in self.color_combos]
-
-    @color.setter
-    def color(self, colors):
-        """Sets the value of each color combobox with the appropriate value."""
-
-        if colors:
-            for i in range(len(colors)):
-                self.color_choices[i].set(colors[i] if colors[i] else '')
 
     @property
     def bands_plus(self):
@@ -2453,10 +2494,11 @@ class File(gui.ScrollableTab):
                 # Keep tracks of tolerance band information
                 self.bands = ToleranceBands()
                 self.series = []
+                self.color = []
+                self.linestyle = []
                 self.minus_tolerance = []
                 self.plus_tolerance = []
                 self.lag = []
-                self.color = []
                 self.plus_bands = []
                 self.minus_bands = []
 
