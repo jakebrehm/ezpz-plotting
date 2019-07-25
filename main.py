@@ -538,7 +538,6 @@ class Flipbook(tk.Toplevel):
         self.withdraw()
         self.title('Flipbook')
         self.resizable(width=False, height=False)
-        # self.grab_set()
         self.protocol("WM_DELETE_WINDOW", on_close)
 
         # Create a padded frame to keep all of the widgets in
@@ -790,7 +789,7 @@ class Flipbook(tk.Toplevel):
 
         # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
-            self.controls = Controls(self, self.plots[self.page])
+            self.controls = Controls(self, flipbook=self, current=self.plots[self.page])
             self.controls.withdraw()
 
         # ====================
@@ -916,14 +915,12 @@ class Flipbook(tk.Toplevel):
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
         # If the destination page is within the range of the total number of pages...
         if destination in range(self.pages + 1):
-            # Set the new page number; refresh the controls; update arrows and the plot
+            # Set the new page number; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
             self.controls.current = self.plots[self.page]
             self.update_plot()
-            # self.controls.refresh()
             self.update_arrows()
-            # self.update_plot()
-            # # Update controls again or else the controls for the wrong page will display
+            # Refresh the controls window
             self.controls.refresh()
 
         # Return 'break' to bypass event propagation
@@ -983,11 +980,8 @@ class Flipbook(tk.Toplevel):
 
 class Controls(tk.Toplevel):
 
-    def __init__(self, flipbook, current):
+    def __init__(self, *args, flipbook, current, **kwargs):
         """Create a controls window where the user can adjust the plot."""
-
-        # # If the controls window is already open, exit the function
-        # if self.controls: return
 
         def custom_background(event=None):
             """Allow the user to navigate to and select a custom background.
@@ -1015,7 +1009,7 @@ class Controls(tk.Toplevel):
                 current.background_path = None
 
         # Create the top-level controls window
-        tk.Toplevel.__init__(self)
+        tk.Toplevel.__init__(self, *args, **kwargs)
         self.title('Controls')
         self.resizable(width=False, height=False)
         self.columnconfigure(0, weight=1)
@@ -1204,9 +1198,6 @@ class Controls(tk.Toplevel):
 
     def refresh(self):
         """Refresh the controls window fields with the currently stored values."""
-
-        # # If the controls window is already open, exit the function
-        # if not self.controls: return
 
         # Get a reference to the current plot object
         current = self.current
