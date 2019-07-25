@@ -510,9 +510,9 @@ class Flipbook(tk.Toplevel):
             FLIPBOOK = False
 
         def show_controls():
-            """Update the controls window and make it visible."""
+            """Refresh the controls window and make it visible."""
 
-            self.controls.update()
+            self.controls.refresh()
             self.controls.deiconify()
 
         # Initialize variables
@@ -521,8 +521,6 @@ class Flipbook(tk.Toplevel):
         self.pages = sum(file._count for file in info) - 1 # Index of the last page
         self.secondary = None # Secondary axis
         self.controls = None # Controls window
-        self.band_controls = None # Tolerance band controls object
-        self.line_controls = None # Limit lines controls object
 
         # Get a list of plots, files, and plot numbers.
         # self.plots --> a list of all plots in each file, meant to make it easier to move
@@ -540,7 +538,7 @@ class Flipbook(tk.Toplevel):
         self.withdraw()
         self.title('Flipbook')
         self.resizable(width=False, height=False)
-        self.grab_set()
+        # self.grab_set()
         self.protocol("WM_DELETE_WINDOW", on_close)
 
         # Create a padded frame to keep all of the widgets in
@@ -639,6 +637,8 @@ class Flipbook(tk.Toplevel):
         file = self.files[self.page] # File index
         number = self.numbers[self.page] # Plot number in file
 
+        print('update plot called:', current)
+
         # ========================
         # STYLE SELECTION CONTROLS
         # ========================
@@ -654,9 +654,9 @@ class Flipbook(tk.Toplevel):
         elif current.style.get() == 'Fivethirtyeight':
             plt.style.use('fivethirtyeight')
 
-        # ===================
-        # MAIN UPDATE SECTION
-        # ===================
+        # =================
+        # MAIN UPDATE LOGIC
+        # =================
 
         # Display the filename of the current plot
         self.filename.set(f'{self.info[file].filename} - Plot {number + 1}')
@@ -669,22 +669,22 @@ class Flipbook(tk.Toplevel):
         self.secondary = None
 
         # Create a variable that keeps track of if a secondary axis is necessary
-        self.secondary_axis = True if current.y2 else False
+        current.secondary_axis = True if current.y2 else False
         # If it is, create the secondary axis
-        if self.secondary_axis: self.secondary = self.primary.twinx()
+        if current.secondary_axis: self.secondary = self.primary.twinx()
 
         # Clear the primary axis as well
         self.primary.clear()
 
         # Set the appropriate coordinates format to display on the flipbook
-        if self.secondary_axis:
+        if current.secondary_axis:
             self.primary.set_zorder(1)
             self.secondary.set_zorder(100)
             self.secondary.format_coord = self._coordinates(self.secondary, self.primary,
-                                                            self.secondary_axis)
-        if not self.secondary_axis:
+                                                            current.secondary_axis)
+        if not current.secondary_axis:
             self.primary.set_zorder(1000)
-            self.primary.format_coord = self._coordinates(self.primary, None, self.secondary_axis)
+            self.primary.format_coord = self._coordinates(self.primary, None, current.secondary_axis)
 
         # Choose colors for the primary axis - will be iterated-through sequentially
         y1_colors = ['k', 'b', 'r', 'g', plot_colors['purple'], plot_colors['orange'],
@@ -714,7 +714,7 @@ class Flipbook(tk.Toplevel):
             handles.append(line[0])
             labels.append(label)
         # If there is data to be plotted on the secondary axis, run the following code
-        if self.secondary_axis:
+        if current.secondary_axis:
             repeated = 0
             # Iterate through the secondary axis data for the current plot
             for y, y2 in enumerate(current.y2):
@@ -734,21 +734,21 @@ class Flipbook(tk.Toplevel):
         min_x = min(current.x.dropna())
         max_x = max(current.x.dropna())
         padding = (max_x - min_x) * (100/90) * (0.05)
-        self.x_lower_original = min_x - padding
-        self.x_upper_original = max_x + padding
-        self.primary.set_xlim(self.x_lower_original, self.x_upper_original)
+        current.x_lower_original = min_x - padding
+        current.x_upper_original = max_x + padding
+        self.primary.set_xlim(current.x_lower_original, current.x_upper_original)
         # Store the original y-axis limits to allow the user to revert to them if desired.
-        self.y1_lower_original = self.primary.get_ylim()[0]
-        self.y1_upper_original = self.primary.get_ylim()[1]
-        if self.secondary_axis:
-            self.y2_lower_original = self.secondary.get_ylim()[0]
-            self.y2_upper_original = self.secondary.get_ylim()[1]
+        current.y1_lower_original = self.primary.get_ylim()[0]
+        current.y1_upper_original = self.primary.get_ylim()[1]
+        if current.secondary_axis:
+            current.y2_lower_original = self.secondary.get_ylim()[0]
+            current.y2_upper_original = self.secondary.get_ylim()[1]
 
         # Turn the grid on, with both major and minor gridlines
         self.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
         self.primary.minorticks_on()
         self.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
-        if self.secondary_axis:
+        if current.secondary_axis:
             self.secondary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
 
         # Set the title, x axis label, and y axes labels according to user input
@@ -756,15 +756,15 @@ class Flipbook(tk.Toplevel):
         # Set the axis labels
         self.primary.set_xlabel(current.x_label)
         self.primary.set_ylabel(current.y1_label)
-        if self.secondary_axis: self.secondary.set_ylabel(current.y2_label)
+        if current.secondary_axis: self.secondary.set_ylabel(current.y2_label)
         # # Use the official representation of the object in case tex expressions are used
         # self.primary.set_xlabel(repr(current.x_label)[1:-1])
         # self.primary.set_ylabel(repr(current.y1_label)[1:-1])
-        # if self.secondary_axis: self.secondary.set_ylabel(repr(current.y2_label)[1:-1])
+        # if current.secondary_axis: self.secondary.set_ylabel(repr(current.y2_label)[1:-1])
 
         # Determine the number of lines being plotted
         lines = len(self.primary.lines)
-        if self.secondary_axis: lines += len(self.secondary.lines)
+        if current.secondary_axis: lines += len(self.secondary.lines)
         # Specify the maximum number of columns per row in the legend, and calculate
         # the number of rows accordingly
         max_columns = 5
@@ -792,7 +792,7 @@ class Flipbook(tk.Toplevel):
 
         # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
-            self.controls_window()
+            self.controls = Controls(self, self.plots[self.page])
             self.controls.withdraw()
 
         # ====================
@@ -843,45 +843,45 @@ class Flipbook(tk.Toplevel):
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
-        # =======================
-        # TOLERANCE BAND CONTROLS
-        # =======================
+        # # =======================
+        # # TOLERANCE BAND CONTROLS
+        # # =======================
 
-        # Iterate through the plus bands of the current plot
-        for p, plus in enumerate(self.band_controls.plus_bands):
-            # If there are no plus bands, skip to next iteration
-            if not plus: continue
-            # Plot the plus band on the appropriate axis
-            elif plus[0] == 'primary':
-                self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
-                                  linestyle='dashed')
-            elif plus[0] == 'secondary':
-                self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
-                                  linestyle='dashed')
-        # Iterate through the minus bands of the current plot
-        for m, minus in enumerate(self.band_controls.minus_bands):
-            # If there are no minus bands, skip to next iteration
-            if not minus: continue
-            # Plot the minus band on the appropriate axis
-            elif minus[0] == 'primary':
-                self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
-                                  linestyle='dashed')
-            elif minus[0] == 'secondary':
-                self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
-                                  linestyle='dashed')
+        # # Iterate through the plus bands of the current plot
+        # for p, plus in enumerate(self.controls.band_controls.plus_bands):
+        #     # If there are no plus bands, skip to next iteration
+        #     if not plus: continue
+        #     # Plot the plus band on the appropriate axis
+        #     elif plus[0] == 'primary':
+        #         self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
+        #                           linestyle='dashed')
+        #     elif plus[0] == 'secondary':
+        #         self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
+        #                           linestyle='dashed')
+        # # Iterate through the minus bands of the current plot
+        # for m, minus in enumerate(self.controls.band_controls.minus_bands):
+        #     # If there are no minus bands, skip to next iteration
+        #     if not minus: continue
+        #     # Plot the minus band on the appropriate axis
+        #     elif minus[0] == 'primary':
+        #         self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
+        #                           linestyle='dashed')
+        #     elif minus[0] == 'secondary':
+        #         self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
+        #                           linestyle='dashed')
 
         # ===================
         # LIMIT LINE CONTROLS
         # ===================
 
         # Iterate through the values list of the limit lines
-        for v, value in enumerate(self.line_controls.value):
+        for v, value in enumerate(self.controls.line_controls.value):
             # If there are no values, skip to next iteration (e.g. blank rows)
             if not value: continue
             # Determine the axis to plot the limit line on
             axis = self.primary if current.line_axis[v] == 'primary' else \
                    ( self.secondary if current.line_axis[v] == 'secondary' and \
-                     self.secondary_axis else None )
+                     current.secondary_axis else None )
             # Plot the limit line after determining its orientation
             if current.line_orientation[v] == 'vertical':
                 axis.axvline(x=float(current.line_value[v]),
@@ -920,11 +920,13 @@ class Flipbook(tk.Toplevel):
         if destination in range(self.pages + 1):
             # Set the new page number; refresh the controls; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
-            self.refresh_controls()
-            self.update_arrows()
+            self.controls.current = self.plots[self.page]
             self.update_plot()
-            # Update controls again or else the controls for the wrong page will display
-            self.refresh_controls()
+            # self.controls.refresh()
+            self.update_arrows()
+            # self.update_plot()
+            # # Update controls again or else the controls for the wrong page will display
+            self.controls.refresh()
 
         # Return 'break' to bypass event propagation
         return ('break')
@@ -936,10 +938,10 @@ class Flipbook(tk.Toplevel):
         legend_line = event.artist
         original_line = self.line_map[legend_line]
         # Determine whether to show or hide the original line
-        visibility = not original_line.get_visible()
+        visible = not original_line.get_visible()
         # Set the visibility accordingly
-        original_line.set_visible(visibility)
-        legend_line.set_alpha(1.0) if visibility else legend_line.set_alpha(0.2)
+        original_line.set_visible(visible)
+        legend_line.set_alpha(1.0 if visible else 0.2)
         # Update the plot
         self.canvas.draw()
 
@@ -980,11 +982,14 @@ class Flipbook(tk.Toplevel):
         # Return the approprate coordinates format function
         return format_coord
 
-    def controls_window(self):
+
+class Controls(tk.Toplevel):
+
+    def __init__(self, flipbook, current):
         """Create a controls window where the user can adjust the plot."""
 
-        # If the controls window is already open, exit the function
-        if self.controls: return
+        # # If the controls window is already open, exit the function
+        # if self.controls: return
 
         def custom_background(event=None):
             """Allow the user to navigate to and select a custom background.
@@ -994,7 +999,7 @@ class Flipbook(tk.Toplevel):
             option is selected."""
 
             # Get a reference to the current plot
-            current = self.plots[self.page]
+            current = self.current
             # If the user chooses to use a custom background...
             if self.background_choice.get() == 'Custom':
                 # Get the filepath of the selected file
@@ -1011,20 +1016,23 @@ class Flipbook(tk.Toplevel):
                 # Otherwise, set the current plot's background_path attribute to None
                 current.background_path = None
 
-        # Get a reference to the current plot object
-        current = self.plots[self.page]
-
         # Create the top-level controls window
-        self.controls = tk.Toplevel(self)
-        self.controls.title('Controls')
-        self.controls.resizable(width=False, height=False)
-        self.controls.columnconfigure(0, weight=1)
-        self.controls.rowconfigure(0, weight=1)
+        tk.Toplevel.__init__(self)
+        self.title('Controls')
+        self.resizable(width=False, height=False)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
         # When the user closes the controls window, just hide it instead
-        self.controls.protocol("WM_DELETE_WINDOW", lambda: self.controls.withdraw())
+        self.protocol("WM_DELETE_WINDOW", lambda: self.withdraw())
+
+        # Initialize miscellaneous instance variables
+        self.flipbook = flipbook
+        self.current = current
+        self.band_controls = None # Tolerance band controls object
+        self.line_controls = None # Limit lines controls object
 
         # Create the primary frame, which will hold the notebook and provide padding
-        primary = gui.PaddedFrame(self.controls)
+        primary = gui.PaddedFrame(self)
         primary.grid(row=0, column=0, sticky='NSEW')
         primary.columnconfigure(0, weight=1)
         primary.rowconfigure(0, weight=1)
@@ -1039,16 +1047,16 @@ class Flipbook(tk.Toplevel):
         annotations = gui.ScrollableTab(notebook, 'Annotations', cheight=400, cwidth=400)
 
         # Separate the primary and secondary frames
-        gui.Separator(self.controls).grid(row=1, column=0, sticky='NSEW')
+        gui.Separator(self).grid(row=1, column=0, sticky='NSEW')
 
         # Create the secondary frame which will contain the update button
-        secondary = gui.PaddedFrame(self.controls)
+        secondary = gui.PaddedFrame(self)
         secondary.grid(row=2, column=0, sticky='NSEW')
         secondary.columnconfigure(0, weight=1)
 
         # Create the update button
         update_button = ttk.Button(secondary, text='Update', takefocus=0,
-                                   command=self.update_controls)
+                                   command=self.update)
         update_button.grid(row=0, column=0, sticky='E')
 
         # ==========
@@ -1191,19 +1199,19 @@ class Flipbook(tk.Toplevel):
         # ===============
 
         # Refresh the controls with values for the current plot
-        self.refresh_controls()
+        self.refresh()
 
         # Bind the enter key to the same function the update button calls
-        self.controls.bind('<Return>', self.update_controls)
+        self.bind('<Return>', self.update)
 
-    def refresh_controls(self):
+    def refresh(self):
         """Refresh the controls window fields with the currently stored values."""
 
-        # If the controls window is already open, exit the function
-        if not self.controls: return
+        # # If the controls window is already open, exit the function
+        # if not self.controls: return
 
         # Get a reference to the current plot object
-        current = self.plots[self.page]
+        current = self.current
 
         # ====================
         # AXES LIMITS CONTROLS
@@ -1217,17 +1225,17 @@ class Flipbook(tk.Toplevel):
             entry.insert(0, value if value else original)
 
         # Fill in each field with their respective values
-        fill_entry(self.x_lower_entry, current.x_lower, self.x_lower_original)
-        fill_entry(self.x_upper_entry, current.x_upper, self.x_upper_original)
-        fill_entry(self.y1_lower_entry, current.y1_lower, self.y1_lower_original)
-        fill_entry(self.y1_upper_entry, current.y1_upper, self.y1_upper_original)
+        fill_entry(self.x_lower_entry, current.x_lower, current.x_lower_original)
+        fill_entry(self.x_upper_entry, current.x_upper, current.x_upper_original)
+        fill_entry(self.y1_lower_entry, current.y1_lower, current.y1_lower_original)
+        fill_entry(self.y1_upper_entry, current.y1_upper, current.y1_upper_original)
         # Disable the secondary axis entry fields if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
-        if self.secondary_axis:
+        if current.secondary_axis:
             self.y2_lower_entry['state'] = 'normal'
-            fill_entry(self.y2_lower_entry, current.y2_lower, self.y2_lower_original)
+            fill_entry(self.y2_lower_entry, current.y2_lower, current.y2_lower_original)
             self.y2_upper_entry['state'] = 'normal'
-            fill_entry(self.y2_upper_entry, current.y2_upper, self.y2_upper_original)
+            fill_entry(self.y2_upper_entry, current.y2_upper, current.y2_upper_original)
         else:
             self.y2_lower_entry.delete(0, 'end')
             self.y2_lower_entry['state'] = 'disabled'
@@ -1243,7 +1251,7 @@ class Flipbook(tk.Toplevel):
         fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
         # Disable the secondary axis entry field if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
-        if self.secondary_axis:
+        if current.secondary_axis:
             self.secondary_ticks_entry['state'] = 'normal'
             fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
         else:
@@ -1264,40 +1272,40 @@ class Flipbook(tk.Toplevel):
         # Set the current background combobox selection to the stored background value
         self.background_choice.set(current.background.get())
 
-        # =======================
-        # TOLERANCE BAND CONTROLS
-        # =======================
+        # # =======================
+        # # TOLERANCE BAND CONTROLS
+        # # =======================
 
-        # If the band_controls widget already exists, remove it from view.
-        # Destroying it will cause the program to not be able to reference those fields.
-        if self.band_controls: self.band_controls.grid_forget()
-        # Re-grid the tolerance bands object of the current plot
-        self.band_controls = current.bands
-        self.band_controls.setup(self.tolerance_bands)
-        self.band_controls.grid(row=0, column=0, sticky='NSEW')
+        # # If the band_controls widget already exists, remove it from view.
+        # # Destroying it will cause the program to not be able to reference those fields.
+        # if self.band_controls: self.band_controls.grid_forget()
+        # # Re-grid the tolerance bands object of the current plot
+        # self.band_controls = current.bands
+        # self.band_controls.setup(self.tolerance_bands)
+        # self.band_controls.grid(row=0, column=0, sticky='NSEW')
 
-        # If the attributes of the current plot object have been changed...
-        if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
-            # Determine which of those lists is the longest and recreate that many rows
-            longest = len(max(current.series, current.minus_tolerance,
-                              current.plus_tolerance, current.lag))
-            self.band_controls.recreate(rows=longest)
+        # # If the attributes of the current plot object have been changed...
+        # if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
+        #     # Determine which of those lists is the longest and recreate that many rows
+        #     longest = len(max(current.series, current.minus_tolerance,
+        #                       current.plus_tolerance, current.lag))
+        #     self.band_controls.recreate(rows=longest)
 
-        # Fill the newly create entries with the relevant values
-        self.band_controls.series = current.series
-        self.band_controls.minus_tolerance = current.minus_tolerance
-        self.band_controls.plus_tolerance = current.plus_tolerance
-        self.band_controls.lag = current.lag
-        self.band_controls.color = current.color
+        # # Fill the newly create entries with the relevant values
+        # self.band_controls.series = current.series
+        # self.band_controls.minus_tolerance = current.minus_tolerance
+        # self.band_controls.plus_tolerance = current.plus_tolerance
+        # self.band_controls.lag = current.lag
+        # self.band_controls.color = current.color
 
-        # Every time the combobox is selected, update its options with the currently
-        # plotted columns.
-        values = []
-        for column in current.y1_columns:
-            values.append(current.labels[column-1])
-        for column in current.y2_columns:
-            values.append(current.labels[column-1])
-        self.band_controls.update_series(values)
+        # # Every time the combobox is selected, update its options with the currently
+        # # plotted columns.
+        # values = []
+        # for column in current.y1_columns:
+        #     values.append(current.labels[column-1])
+        # for column in current.y2_columns:
+        #     values.append(current.labels[column-1])
+        # self.band_controls.update_series(values)
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1327,12 +1335,14 @@ class Flipbook(tk.Toplevel):
         self.line_controls.linestyle = current.line_style
         self.line_controls.alpha = current.line_alpha
 
-    def update_controls(self, event=None):
+    def update(self, event=None):
         """Update the current plot object with the user-entered values and refresh
         both the plot and the controls window."""
 
+        print('update controls called')
+
         # Get a reference to the current plot object
-        current = self.plots[self.page]
+        current = self.current
 
         # ====================
         # AXES LIMITS CONTROLS
@@ -1345,13 +1355,13 @@ class Flipbook(tk.Toplevel):
             return float(entry.get()) if entry.get() else float(original)
 
         # Store the axes limits values in the corresponding plot object attributes
-        current.x_lower = update_axis(self.x_lower_entry, self.x_lower_original)
-        current.x_upper = update_axis(self.x_upper_entry, self.x_upper_original)
-        current.y1_lower = update_axis(self.y1_lower_entry, self.y1_lower_original)
-        current.y1_upper = update_axis(self.y1_upper_entry, self.y1_upper_original)
-        if self.secondary_axis:
-            current.y2_lower = update_axis(self.y2_lower_entry, self.y2_lower_original)
-            current.y2_upper = update_axis(self.y2_upper_entry, self.y2_upper_original)
+        current.x_lower = update_axis(self.x_lower_entry, current.x_lower_original)
+        current.x_upper = update_axis(self.x_upper_entry, current.x_upper_original)
+        current.y1_lower = update_axis(self.y1_lower_entry, current.y1_lower_original)
+        current.y1_upper = update_axis(self.y1_upper_entry, current.y1_upper_original)
+        if current.secondary_axis:
+            current.y2_lower = update_axis(self.y2_lower_entry, current.y2_lower_original)
+            current.y2_upper = update_axis(self.y2_upper_entry, current.y2_upper_original)
 
         # ===================
         # AXIS TICKS CONTROLS
@@ -1375,18 +1385,18 @@ class Flipbook(tk.Toplevel):
         # Store the currently selected value from the background combobox
         current.background.set(self.background_choice.get())
 
-        # =======================
-        # TOLERANCE BAND CONTROLS
-        # =======================
+        # # =======================
+        # # TOLERANCE BAND CONTROLS
+        # # =======================
 
-        # Store the current band controls values in the corresponding plot attributes
-        current.series = self.band_controls.series
-        current.minus_tolerance = self.band_controls.minus_tolerance
-        current.plus_tolerance = self.band_controls.plus_tolerance
-        current.lag = self.band_controls.lag
-        current.color = self.band_controls.color
-        # Pass the current plot object to the calculate method to create the bands
-        self.band_controls.calculate(current)
+        # # Store the current band controls values in the corresponding plot attributes
+        # current.series = self.band_controls.series
+        # current.minus_tolerance = self.band_controls.minus_tolerance
+        # current.plus_tolerance = self.band_controls.plus_tolerance
+        # current.lag = self.band_controls.lag
+        # current.color = self.band_controls.color
+        # # Pass the current plot object to the calculate method to create the bands
+        # self.band_controls.calculate(current)
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1401,8 +1411,8 @@ class Flipbook(tk.Toplevel):
         current.line_alpha = self.line_controls.alpha
 
         # Update the plot and refresh the controls window
-        self.update_plot()
-        self.refresh_controls()
+        self.flipbook.update_plot()
+        self.refresh()
 
 
 class ToleranceBands(tk.Frame):
@@ -2276,6 +2286,17 @@ class File(gui.ScrollableTab):
                 self.y1_label = None
                 self.y2_label = None
 
+                # Keep track of whether or not a secondary axis is required
+                self.secondary_axis = None
+
+                # Keep track of original axis limits
+                self.x_lower_original = None
+                self.x_upper_original = None
+                self.y1_lower_original = None
+                self.y1_upper_original = None
+                self.y2_lower_original = None
+                self.y2_upper_original = None
+
                 # Keep track of axis limits
                 self.x_lower = None
                 self.x_upper = None
@@ -2975,6 +2996,7 @@ def test_function():
             files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     open_flipbook()
+    # Controls()
 app.after(100, test_function)
 
 # Run the program in a continuous loop
