@@ -1982,16 +1982,6 @@ class LimitLines(tk.Frame):
         alpha_label = ttk.Label(container, text='alpha:')
         alpha_label.grid(row=2, column=2, padx=PADDING)
 
-        # Add a combobox to select which way to orient the line
-        orientation_choice = tk.StringVar()
-        orientation_choice.set('horizontal')
-        orientation_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
-                                    textvariable=orientation_choice,
-                                    values=['vertical', 'horizontal'])
-        orientation_combo.grid(row=1, column=1, padx=PADDING)
-        self.orientation_choices.append(orientation_choice)
-        self.orientation_combos.append(orientation_combo)
-
         # Add a combobox to select which axis to plot the line on
         axis_choice = tk.StringVar()
         axis_choice.set('primary')
@@ -2002,15 +1992,15 @@ class LimitLines(tk.Frame):
         self.axis_choices.append(axis_choice)
         self.axis_combos.append(axis_combo)
 
-        # Add a combobox to select which linestyle to use for the plot
-        linestyle_choice = tk.StringVar()
-        linestyle_choice.set('solid')
-        linestyle_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
-                                    textvariable=linestyle_choice,
-                                    values=['solid', 'dotted', 'dashed', 'dashdot'])
-        linestyle_combo.grid(row=3, column=1, padx=PADDING)
-        self.linestyle_choices.append(linestyle_choice)
-        self.linestyle_combos.append(linestyle_combo)
+        # Add a combobox to select which way to orient the line
+        orientation_choice = tk.StringVar()
+        orientation_choice.set('horizontal')
+        orientation_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
+                                    textvariable=orientation_choice,
+                                    values=['vertical', 'horizontal'])
+        orientation_combo.grid(row=1, column=1, padx=PADDING)
+        self.orientation_choices.append(orientation_choice)
+        self.orientation_combos.append(orientation_combo)
 
         # Add an entry where the user can specify the appropriate coordinate/value
         value_entry = ttk.Entry(container, width=ENTRY_WIDTH, justify='center')
@@ -2026,6 +2016,16 @@ class LimitLines(tk.Frame):
         color_combo.grid(row=3, column=0, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
+
+        # Add a combobox to select which linestyle to use for the plot
+        linestyle_choice = tk.StringVar()
+        linestyle_choice.set('solid')
+        linestyle_combo = ttk.Combobox(container, width=COMBO_WIDTH, state='readonly',
+                                    textvariable=linestyle_choice,
+                                    values=['solid', 'dotted', 'dashed', 'dashdot'])
+        linestyle_combo.grid(row=3, column=1, padx=PADDING)
+        self.linestyle_choices.append(linestyle_choice)
+        self.linestyle_combos.append(linestyle_combo)
 
         # Add an entry where the user can specify alpha
         alpha_entry = ttk.Entry(container, width=ENTRY_WIDTH, justify='center')
