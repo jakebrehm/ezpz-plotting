@@ -637,8 +637,6 @@ class Flipbook(tk.Toplevel):
         file = self.files[self.page] # File index
         number = self.numbers[self.page] # Plot number in file
 
-        print('update plot called:', current)
-
         # ========================
         # STYLE SELECTION CONTROLS
         # ========================
@@ -843,46 +841,40 @@ class Flipbook(tk.Toplevel):
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
-        # # =======================
-        # # TOLERANCE BAND CONTROLS
-        # # =======================
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
 
-        # # Iterate through the plus bands of the current plot
-        # for p, plus in enumerate(self.controls.band_controls.plus_bands):
-        #     # If there are no plus bands, skip to next iteration
-        #     if not plus: continue
-        #     # Plot the plus band on the appropriate axis
-        #     elif plus[0] == 'primary':
-        #         self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
-        #                           linestyle='dashed')
-        #     elif plus[0] == 'secondary':
-        #         self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
-        #                           linestyle='dashed')
-        # # Iterate through the minus bands of the current plot
-        # for m, minus in enumerate(self.controls.band_controls.minus_bands):
-        #     # If there are no minus bands, skip to next iteration
-        #     if not minus: continue
-        #     # Plot the minus band on the appropriate axis
-        #     elif minus[0] == 'primary':
-        #         self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
-        #                           linestyle='dashed')
-        #     elif minus[0] == 'secondary':
-        #         self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
-        #                           linestyle='dashed')
+        # Iterate through the plus bands of the current plot
+        for p, plus in enumerate(current.plus_bands):
+            # If there are no plus bands, skip to next iteration
+            if not plus: continue
+            # Plot the plus band on the appropriate axis
+            elif plus[0] == 'primary':
+                self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                  linestyle='dashed')
+            elif plus[0] == 'secondary':
+                self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                                  linestyle='dashed')
+        # Iterate through the minus bands of the current plot
+        for m, minus in enumerate(current.minus_bands):
+            # If there are no minus bands, skip to next iteration
+            if not minus: continue
+            # Plot the minus band on the appropriate axis
+            elif minus[0] == 'primary':
+                self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                  linestyle='dashed')
+            elif minus[0] == 'secondary':
+                self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                                  linestyle='dashed')
 
         # ===================
         # LIMIT LINE CONTROLS
         # ===================
 
         # Iterate through the values list of the limit lines
-        print(current.line_axis)
-        print(current.line_value)
-        print(self.controls.line_controls.value)
-        # for v, value in enumerate(self.controls.line_controls.value):
-        # if current.line_value:
         for v, value in enumerate(current.line_value):
             # If there are no values, skip to next iteration (e.g. blank rows)
-            # if not value: continue
             if not value: continue
             # Determine the axis to plot the limit line on
             axis = self.primary if current.line_axis[v] == 'primary' else \
@@ -1278,40 +1270,42 @@ class Controls(tk.Toplevel):
         # Set the current background combobox selection to the stored background value
         self.background_choice.set(current.background.get())
 
-        # # =======================
-        # # TOLERANCE BAND CONTROLS
-        # # =======================
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
 
-        # # If the band_controls widget already exists, remove it from view.
-        # # Destroying it will cause the program to not be able to reference those fields.
-        # if self.band_controls: self.band_controls.grid_forget()
-        # # Re-grid the tolerance bands object of the current plot
-        # self.band_controls = current.bands
-        # self.band_controls.setup(self.tolerance_bands)
-        # self.band_controls.grid(row=0, column=0, sticky='NSEW')
+        # If the band_controls widget already exists, remove it from view.
+        # Destroying it will cause the program to not be able to reference those fields.
+        if self.band_controls: self.band_controls.grid_forget()
+        # Re-grid the tolerance bands object of the current plot
+        self.band_controls = current.bands
+        self.band_controls.setup(self.tolerance_bands)
+        self.band_controls.grid(row=0, column=0, sticky='NSEW')
 
-        # # If the attributes of the current plot object have been changed...
-        # if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
-        #     # Determine which of those lists is the longest and recreate that many rows
-        #     longest = len(max(current.series, current.minus_tolerance,
-        #                       current.plus_tolerance, current.lag))
-        #     self.band_controls.recreate(rows=longest)
+        # If the attributes of the current plot object have been changed...
+        if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
+            # Determine which of those lists is the longest and recreate that many rows
+            longest = len(max(current.series, current.minus_tolerance,
+                              current.plus_tolerance, current.lag))
+            self.band_controls.recreate(rows=longest)
 
-        # # Fill the newly create entries with the relevant values
-        # self.band_controls.series = current.series
-        # self.band_controls.minus_tolerance = current.minus_tolerance
-        # self.band_controls.plus_tolerance = current.plus_tolerance
-        # self.band_controls.lag = current.lag
-        # self.band_controls.color = current.color
+        # Fill the newly create entries with the relevant values
+        self.band_controls.series = current.series
+        self.band_controls.minus_tolerance = current.minus_tolerance
+        self.band_controls.plus_tolerance = current.plus_tolerance
+        self.band_controls.lag = current.lag
+        self.band_controls.color = current.color
+        self.band_controls.bands_plus = current.plus_bands
+        self.band_controls.bands_minus = current.minus_bands
 
-        # # Every time the combobox is selected, update its options with the currently
-        # # plotted columns.
-        # values = []
-        # for column in current.y1_columns:
-        #     values.append(current.labels[column-1])
-        # for column in current.y2_columns:
-        #     values.append(current.labels[column-1])
-        # self.band_controls.update_series(values)
+        # Every time the combobox is selected, update its options with the currently
+        # plotted columns.
+        values = []
+        for column in current.y1_columns:
+            values.append(current.labels[column-1])
+        for column in current.y2_columns:
+            values.append(current.labels[column-1])
+        self.band_controls.update_series(values)
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1344,8 +1338,6 @@ class Controls(tk.Toplevel):
     def update(self, event=None):
         """Update the current plot object with the user-entered values and refresh
         both the plot and the controls window."""
-
-        print('update controls called')
 
         # Get a reference to the current plot object
         current = self.current
@@ -1391,18 +1383,21 @@ class Controls(tk.Toplevel):
         # Store the currently selected value from the background combobox
         current.background.set(self.background_choice.get())
 
-        # # =======================
-        # # TOLERANCE BAND CONTROLS
-        # # =======================
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
 
-        # # Store the current band controls values in the corresponding plot attributes
-        # current.series = self.band_controls.series
-        # current.minus_tolerance = self.band_controls.minus_tolerance
-        # current.plus_tolerance = self.band_controls.plus_tolerance
-        # current.lag = self.band_controls.lag
-        # current.color = self.band_controls.color
-        # # Pass the current plot object to the calculate method to create the bands
-        # self.band_controls.calculate(current)
+        # Store the current band controls values in the corresponding plot attributes
+        current.series = self.band_controls.series
+        current.minus_tolerance = self.band_controls.minus_tolerance
+        current.plus_tolerance = self.band_controls.plus_tolerance
+        current.lag = self.band_controls.lag
+        current.color = self.band_controls.color
+        current.plus_bands = self.band_controls.bands_plus
+        current.minus_bands = self.band_controls.bands_minus
+
+        # Pass the current plot object to the calculate method to create the bands
+        self.band_controls.calculate(current)
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1580,12 +1575,12 @@ class ToleranceBands(tk.Frame):
         # Destroy the last row and remove all references to the objects
         self.bands[-1].destroy()
         del(self.bands[-1])
-        # del(self.series_choices[-1])
+        del(self.series_choices[-1])
         del(self.series_combos[-1])
         del(self.minus_tolerance_entries[-1])
         del(self.plus_tolerance_entries[-1])
         del(self.lag_entries[-1])
-        # del(self.color_choices[-1])
+        del(self.color_choices[-1])
         del(self.color_combos[-1])
         del(self.minus_bands[-1])
         del(self.plus_bands[-1])
@@ -1751,6 +1746,32 @@ class ToleranceBands(tk.Frame):
         if colors:
             for i in range(len(colors)):
                 self.color_choices[i].set(colors[i] if colors[i] else '')
+
+    @property
+    def bands_plus(self):
+        """Gets the plus band data."""
+
+        return self.plus_bands
+
+    @bands_plus.setter
+    def bands_plus(self, bands):
+        """Sets the plus band data."""
+
+        self.plus_bands = bands
+
+
+    @property
+    def bands_minus(self):
+        """Gets the minus band data."""
+
+        return self.minus_bands
+
+    @bands_minus.setter
+    def bands_minus(self, bands):
+        """Sets the minus band data."""
+
+        self.minus_bands = bands
+
 
 
 class LimitLines(tk.Frame):
@@ -2328,11 +2349,13 @@ class File(gui.ScrollableTab):
 
                 # Keep tracks of tolerance band information
                 self.bands = ToleranceBands()
-                self.series = None
-                self.minus_tolerance = None
-                self.plus_tolerance = None
-                self.lag = None
-                self.color = None
+                self.series = []
+                self.minus_tolerance = []
+                self.plus_tolerance = []
+                self.lag = []
+                self.color = []
+                self.plus_bands = []
+                self.minus_bands = []
 
                 # Keep track of limit line information
                 self.lines = LimitLines()
