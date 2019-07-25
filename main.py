@@ -31,11 +31,6 @@ import re
 import configobj
 import random
 
-# Initialize program constants
-PADDING = 12 # General padding between widgets on the GUI
-FLIPBOOK = False # keeps track of whether or not the flipbook is open
-HELP = False # keeps track of whether or not the help window is open
-
 clipboard = {
         'title': None,
         'x column': None,
@@ -67,430 +62,551 @@ plot_colors = {
 # A list of values that may appear in a csv that are equivalent to None
 none_values = [None, '1.#QNAN' 'nan', np.nan]
 
-def save_preset():
-    """Copies all user inputs to a config file and saves in the specified location."""
 
-    # Show a dialog box where the user can choose where to save the preset file
-    valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
-    location = fd.asksaveasfilename(title='Choose where to save the preset file',
-                                    defaultextension='.ini',
-                                    filetypes=valid)
+class Application(gui.Application):
+    """The main application of the program, which combines the GUI and all related
+    methods and functionality."""
 
-    # Create a ConfigObj object, targeted at the specified filepath
-    preset = configobj.ConfigObj(location)
+    def __init__(self, padding=12):
+        """Initialize the main GUI and miscellaneous constants of the program."""
 
-    # Iterator through the file objects
-    for f, file in enumerate(files):
-        # For each plot in each file, filepath, data start row, label row, and unit row
-        # will be the same. Record these under the main section for this file.
-        preset[f'File {f+1}'] = {
-            'filepath': inputs[f],
-            'data start': file.data_row_entry.get(),
-            'label row': file.label_row_entry.get(),
-            'unit row': file.unit_row_entry.get() if file.unit_row_entry.get() else '',
-        }
+        # Initialize the application using the lemons GUI module
+        gui.Application.__init__(self, padding=12)
+        self.configure(
+            title='EZPZ Plotting',
+            icon=gui.ResourcePath('Assets\\icon.ico'),
+            resizable=False
+        )
 
-        # The rest of the inputs are specific to each plot. Iterate through each plot,
-        # recording each one's inputs under a different subsection of the preset.
-        for n, section in enumerate(file.plots):
-            preset[f'File {f+1}'][f'Plot {n+1}'] = {
-                'title': files[f]._titles[n].get(),
-                'x column': files[f]._x_columns[n].get(),
-                'y1 columns': files[f]._y1_columns[n].get(),
-                'y2 columns': files[f]._y2_columns[n].get(),
-                'x label': files[f]._x_labels[n].get(),
-                'y1 label': files[f]._y1_labels[n].get(),
-                'y2 label': files[f]._y2_labels[n].get(),
+        # Initialize program constants
+        self.FLIPBOOK = False # keeps track of whether or not the flipbook is open
+        self.HELP = False # keeps track of whether or not the help window is open
+
+        # Add a header/logo to the top of the application
+        header = gui.Header(self, logo=gui.ResourcePath('Assets\\logo.png'), downscale=10)
+        header.grid(row=0, column=0, sticky='NSEW')
+
+        # Add a separator between the header and the listbox
+        gui.Separator(self, padding=(0, padding)).grid(row=1, column=0, sticky='NSEW')
+
+        # Add a listbox that will show the users the inputs that have been loaded
+        browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
+        self.listbox = gui.InputField(self, quantity='multiple', appearance='list', width=80,
+                                 image=browse_image, command=self.browse)
+        self.listbox.grid(row=2, column=0, sticky='NSEW')
+
+        # Create a separator between the listbox and the primary frame
+        gui.Separator(self, padding=(0, padding)).grid(row=3, column=0, sticky='NSEW')
+
+        # Create the primary frame, where the notebook will be held
+        self.primary = tk.Frame(self)
+        self.primary.grid(row=4, column=0, sticky='NSEW')
+        self.primary.columnconfigure(0, weight=1)
+        self.primary.rowconfigure(0, minsize=278)
+
+        # On first load or reset, show a message saying that no inputs have been loaded
+        message = 'Please provide at least one input file.\n\nControls will appear here.'
+        no_input_label = tk.Label(self.primary, text=message)
+        no_input_label.grid(row=0, column=0, sticky='NSEW')
+
+        # Create a separator between the primary frame and the footer
+        gui.Separator(self, padding=(0, padding)).grid(row=5, column=0, sticky='NSEW')
+
+        # Create the footer
+        footer = tk.Frame(self)
+        footer.grid(row=6, column=0, sticky='NSEW')
+        footer.columnconfigure(1, weight=1)
+
+        # Create a frame inside of the footer that will hold all of the controls
+        row_controls = tk.Frame(footer)
+        row_controls.grid(row=0, column=0, sticky='NSEW')
+
+        # Add a create row button
+        plus_image = gui.RenderImage('Assets\\plus.png', downscale=9)
+        self.plus_button = ttk.Button(row_controls, takefocus=0, image=plus_image, state='disabled')
+        self.plus_button['command'] = self.plus_row
+        self.plus_button.image = plus_image
+        self.plus_button.grid(row=0, column=0, padx=2, sticky='NSEW')
+
+        # Add a delete row button
+        minus_image = gui.RenderImage('Assets\\minus.png', downscale=9)
+        self.minus_button = ttk.Button(row_controls, takefocus=0, image=minus_image, state='disabled')
+        self.minus_button['command'] = self.minus_row
+        self.minus_button.image = minus_image
+        self.minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
+
+        # Add a plot button
+        plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
+        self.plot_button = ttk.Button(footer, takefocus=0, image=plot_image, state='disabled')
+        self.plot_button['command'] = self.open_flipbook
+        self.plot_button.image = plot_image
+        self.plot_button.grid(row=0, column=2, padx=2, sticky='NSEW')
+
+        # Create a menu bar
+        menu_bar = tk.Menu(self.root)
+        self.file_menu = tk.Menu(menu_bar, tearoff=0)
+        self.file_menu.add_command(label='Load Files', command=self.listbox.Browse)
+        self.file_menu.add_command(label='Add File', state='disabled', command=self.add_file)
+        self.file_menu.add_command(label='Remove File', state='disabled', command=self.remove_file)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label='Save Preset', state='disabled', command=self.save_preset)
+        self.file_menu.add_command(label='Load Preset', command=self.load_preset)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label='Exit', command=lambda: self.root.destroy())
+        menu_bar.add_cascade(label='File', menu=self.file_menu)
+        self.edit_menu = tk.Menu(menu_bar, tearoff=0)
+        self.edit_menu.add_command(label='Clear Form', state='disabled', command=self.clear_all)
+        self.edit_menu.add_command(label='Reset Form', state='disabled', command=self.reset)
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label='Paste (Selected File)', state='disabled', command=self.paste_file)
+        self.edit_menu.add_command(label='Paste (All Files)', state='disabled', command=self.paste_all)
+        menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
+        help_menu = tk.Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label='View Help', command=self.open_help)
+        help_menu.add_separator()
+        help_menu.add_command(label='About', state='disabled')
+        menu_bar.add_cascade(label='Help', menu=help_menu)
+        self.root.config(menu=menu_bar)
+
+        # Create keyboard shortcut that will function the same as clicking the 'Plot' button
+        self.root.bind('<Return>', self.open_flipbook)
+
+        # Create keyboard shortcuts for creating and deleting rows
+        self.root.bind('<Control-minus>', self.minus_row)
+        self.root.bind('<Control-=>', self.plus_row)
+
+        # Create keyboard shortcuts for moving between notebook tabs
+        self.root.bind('<Insert>',
+            lambda event, direction='previous': switch_tab(event, direction)) # Insert
+        self.root.bind('<Prior>',
+            lambda event, direction='next': switch_tab(event, direction)) # Page Up
+
+        # Create keyboard shortcuts for moving between rows of a notebook tab
+        self.root.bind('<Control-Tab>',
+            lambda event, direction='next': switch_row(event, direction))
+        self.root.bind('<Control-Shift-Tab>',
+            lambda event, direction='previous': switch_row(event, direction))
+
+    def save_preset(self):
+        """Copies all user inputs to a config file and saves in the specified location."""
+
+        # Show a dialog box where the user can choose where to save the preset file
+        valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
+        location = fd.asksaveasfilename(title='Choose where to save the preset file',
+                                        defaultextension='.ini',
+                                        filetypes=valid)
+
+        # Create a ConfigObj object, targeted at the specified filepath
+        preset = configobj.ConfigObj(location)
+
+        # Iterator through the file objects
+        for f, file in enumerate(self.files):
+            # For each plot in each file, filepath, data start row, label row, and unit row
+            # will be the same. Record these under the main section for this file.
+            preset[f'File {f+1}'] = {
+                'filepath': self.inputs[f],
+                'data start': file.data_row_entry.get(),
+                'label row': file.label_row_entry.get(),
+                'unit row': file.unit_row_entry.get() if file.unit_row_entry.get() else '',
             }
 
-    # Save the completed preset file to the specified filepath
-    preset.write()
-
-
-def load_preset():
-    """Gets user input information from the specified preset file and pastes them
-    into the GUI."""
-
-    global inputs, files
-
-    # Have the user navigate to the preset file and initialize a ConfigObj object
-    location = fd.askopenfilename(title='Choose the preset file')
-    preset = configobj.ConfigObj(location)
-
-    # If the user presses cancel or if the preset file is empty (possibly corrupt),
-    # display a message and exit the function.
-    if len(preset) == 0:
-        message = 'It looks like the preset file you chose is either empty or not ' \
-                  'formatted correctly. Please double check the file and try again.'
-        mb.showinfo('Oops!', message)
-        return
-
-    # Grab the filepath for each file in the preset
-    inputs = [info['filepath'] for file, info in preset.items()]
-
-    # Insert the filepaths into the listbox
-    listbox.clear()
-    listbox.field['state'] = 'normal'
-    for filepath in inputs: listbox.field.insert('end', ' ' + filepath)
-    listbox.field['state'] = 'disable'
-    listbox.field['justify'] = 'left'
-
-    # With the inputs variable initialized, it is safe to enable all fields and
-    # create tabs/rows for each input
-    enable()
-    input_controls()
-
-    # Iterate through the preset and create the necessary number of rows for each file
-    for f, (file, info) in enumerate(preset.items()):
-        # If info has a length of greater than five, that means that rows need to be added.
-        # The first five entries are filepath, data start row, label row, unit row, and
-        # the first row that is already created by default for each file.
-        if len(info) > 5:
-            rows_needed = len(info) - 5
-            for _ in range(rows_needed): plus_row(tab=f)
-
-    # Iterate through the preset again and fill the GUI fields with the relevant data
-    for f, (file, info) in enumerate(preset.items()):
-        files[f].data_row_entry.insert(0, info['data start'])
-        files[f].label_row_entry.insert(0, info['label row'])
-        files[f].unit_row_entry.insert(0, info['unit row'])
-        plots = [key for key in info.keys()
-                 if key not in ['filepath', 'data start', 'label row', 'unit row']]
-        for p, plot in enumerate(plots):
-            files[f]._titles[p].insert(0, info[plot]['title'])
-            files[f]._x_columns[p].insert(0, info[plot]['x column'])
-            files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
-            files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
-            files[f]._x_labels[p].insert(0, info[plot]['x label'])
-            files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
-            files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
-
-
-def browse():
-    """Allow the user to browse for inputs, then initialize the GUI."""
-
-    global inputs
-
-    # Only run this code if there are inputs stored in the listbox
-    if listbox.get():
-        inputs = listbox.get()
-        enable()
-        input_controls()
-
-
-def enable():
-    """Change the GUI to its enabled state, which only occurs when inputs are loaded."""
-
-    # Enable the buttons in the footer
-    plot_button['state'] = 'normal'
-    plus_button['state'] = 'normal'
-    minus_button['state'] = 'normal'
+            # The rest of the inputs are specific to each plot. Iterate through each plot,
+            # recording each one's inputs under a different subsection of the preset.
+            for n, section in enumerate(file.plots):
+                preset[f'File {f+1}'][f'Plot {n+1}'] = {
+                    'title': self.files[f]._titles[n].get(),
+                    'x column': self.files[f]._x_columns[n].get(),
+                    'y1 columns': self.files[f]._y1_columns[n].get(),
+                    'y2 columns': self.files[f]._y2_columns[n].get(),
+                    'x label': self.files[f]._x_labels[n].get(),
+                    'y1 label': self.files[f]._y1_labels[n].get(),
+                    'y2 label': self.files[f]._y2_labels[n].get(),
+                }
+
+        # Save the completed preset file to the specified filepath
+        preset.write()
+
+
+    def load_preset(self, location=None):
+        """Gets user input information from the specified preset file and pastes them
+        into the GUI."""
+
+        # If no location was specified, have the user navigate to the preset file
+        if not location:
+            location = fd.askopenfilename(title='Choose the preset file')
+
+        # Initialize a ConfigObj object
+        preset = configobj.ConfigObj(location)
+
+        # If the user presses cancel or if the preset file is empty (possibly corrupt),
+        # display a message and exit the function.
+        if len(preset) == 0:
+            message = 'It looks like the preset file you chose is either empty or not ' \
+                      'formatted correctly. Please double check the file and try again.'
+            mb.showinfo('Oops!', message)
+            return
+
+        # Grab the filepath for each file in the preset
+        self.inputs = [info['filepath'] for file, info in preset.items()]
+
+        # Insert the filepaths into the listbox
+        self.listbox.clear()
+        self.listbox.field['state'] = 'normal'
+        for filepath in self.inputs: self.listbox.field.insert('end', ' ' + filepath)
+        self.listbox.field['state'] = 'disable'
+        self.listbox.field['justify'] = 'left'
+
+        # With the inputs variable initialized, it is safe to enable all fields and
+        # create tabs/rows for each input
+        self.enable()
+        self.input_controls()
+
+        # Iterate through the preset and create the necessary number of rows for each file
+        for f, (file, info) in enumerate(preset.items()):
+            # If info has a length of greater than five, that means that rows need to be added.
+            # The first five entries are filepath, data start row, label row, unit row, and
+            # the first row that is already created by default for each file.
+            if len(info) > 5:
+                rows_needed = len(info) - 5
+                for _ in range(rows_needed): self.plus_row(tab=f)
+
+        # Iterate through the preset again and fill the GUI fields with the relevant data
+        for f, (file, info) in enumerate(preset.items()):
+            self.files[f].data_row_entry.insert(0, info['data start'])
+            self.files[f].label_row_entry.insert(0, info['label row'])
+            self.files[f].unit_row_entry.insert(0, info['unit row'])
+            plots = [key for key in info.keys()
+                     if key not in ['filepath', 'data start', 'label row', 'unit row']]
+            for p, plot in enumerate(plots):
+                self.files[f]._titles[p].insert(0, info[plot]['title'])
+                self.files[f]._x_columns[p].insert(0, info[plot]['x column'])
+                self.files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
+                self.files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
+                self.files[f]._x_labels[p].insert(0, info[plot]['x label'])
+                self.files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
+                self.files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
+
+
+    def browse(self):
+        """Allow the user to browse for inputs, then initialize the GUI."""
+
+        # Only run this code if there are inputs stored in the listbox
+        if self.listbox.get():
+            self.inputs = self.listbox.get()
+            self.enable()
+            self.input_controls()
+
+
+    def enable(self):
+        """Change the GUI to its enabled state, which only occurs when inputs are loaded."""
+
+        # Enable the buttons in the footer
+        self.plot_button['state'] = 'normal'
+        self.plus_button['state'] = 'normal'
+        self.minus_button['state'] = 'normal'
+
+        # Enable the entries in the file menu
+        self.file_menu.entryconfig(1, state='normal')
+        self.file_menu.entryconfig(2, state='normal')
+        self.file_menu.entryconfig(4, state='normal')
+
+        # Enable the entries in the edit menu
+        self.edit_menu.entryconfig(0, state='normal')
+        self.edit_menu.entryconfig(1, state='normal')
+        self.edit_menu.entryconfig(3, state='normal')
+        self.edit_menu.entryconfig(4, state='normal')
 
-    # Enable the entries in the file menu
-    file_menu.entryconfig(1, state='normal')
-    file_menu.entryconfig(2, state='normal')
-    file_menu.entryconfig(4, state='normal')
 
-    # Enable the entries in the edit menu
-    edit_menu.entryconfig(0, state='normal')
-    edit_menu.entryconfig(1, state='normal')
-    edit_menu.entryconfig(3, state='normal')
-    edit_menu.entryconfig(4, state='normal')
-
-
-def reset():
-    """Revert the GUI back to its disabled state, before any inputs were loaded."""
+    def reset(self):
+        """Revert the GUI back to its disabled state, before any inputs were loaded."""
 
-    # Clear the listbox
-    listbox.clear()
+        # Clear the listbox
+        self.listbox.clear()
 
-    # Disable the buttons in the footer
-    plot_button['state'] = 'disabled'
-    plus_button['state'] = 'disabled'
-    minus_button['state'] = 'disabled'
+        # Disable the buttons in the footer
+        self.plot_button['state'] = 'disabled'
+        self.plus_button['state'] = 'disabled'
+        self.minus_button['state'] = 'disabled'
 
-    # Disable the entries in the file menu
-    file_menu.entryconfig(1, state='disabled')
-    file_menu.entryconfig(2, state='disabled')
-    file_menu.entryconfig(4, state='disabled')
+        # Disable the entries in the file menu
+        self.file_menu.entryconfig(1, state='disabled')
+        self.file_menu.entryconfig(2, state='disabled')
+        self.file_menu.entryconfig(4, state='disabled')
 
-    # Disable the entries in the edit menu
-    edit_menu.entryconfig(0, state='disabled')
-    edit_menu.entryconfig(1, state='disabled')
-    edit_menu.entryconfig(3, state='disabled')
-    edit_menu.entryconfig(4, state='disabled')
+        # Disable the entries in the edit menu
+        self.edit_menu.entryconfig(0, state='disabled')
+        self.edit_menu.entryconfig(1, state='disabled')
+        self.edit_menu.entryconfig(3, state='disabled')
+        self.edit_menu.entryconfig(4, state='disabled')
 
-    # Destroy everything in the primary frame - namely, the notebook
-    for child in primary.winfo_children(): child.destroy()
+        # Destroy everything in the primary frame - namely, the notebook
+        for child in self.primary.winfo_children(): child.destroy()
 
-    # Recreate the message that lets the user know there are no inputs loaded
-    message = 'Please provide at least one input file.\n\nControls will appear here.'
-    no_input_label = tk.Label(primary, text=message)
-    no_input_label.grid(row=0, column=0, sticky='NSEW')
+        # Recreate the message that lets the user know there are no inputs loaded
+        message = 'Please provide at least one input file.\n\nControls will appear here.'
+        no_input_label = tk.Label(self.primary, text=message)
+        no_input_label.grid(row=0, column=0, sticky='NSEW')
 
 
-def input_controls():
-    """Creates a tab for each input file, and one row for each tab."""
+    def input_controls(self):
+        """Creates a tab for each input file, and one row for each tab."""
 
-    global primary, notebook, files
+        # Destroy everything in the primary frame
+        for child in self.primary.winfo_children(): child.destroy()
 
-    # Destroy everything in the primary frame
-    for child in primary.winfo_children(): child.destroy()
+        # Place a notebook in the primary frame
+        self.notebook = ttk.Notebook(self.primary, takefocus=0)
+        self.notebook.grid(row=0, column=0, sticky='NSEW')
 
-    # Place a notebook in the primary frame
-    notebook = ttk.Notebook(primary, takefocus=0)
-    notebook.grid(row=0, column=0, sticky='NSEW')
+        # Create an object file for each inputs and add them to a list to keep track
+        self.files = [File(self.notebook, filepath) for filepath in self.inputs]
 
-    # Create an object file for each inputs and add them to a list to keep track
-    files = [File(notebook, filepath) for filepath in inputs]
+        # Set cursor focus on the data start row entry of the first tab for ease of use
+        self.files[0].data_row_entry.focus_set()
 
-    # Set cursor focus on the data start row entry of the first tab for ease of use
-    files[0].data_row_entry.focus_set()
 
+    def plus_row(self, event=None, tab=None):
+        """Add a row to the specified file/tab of the notebook."""
 
-def plus_row(event=None, tab=None):
-    """Add a row to the specified file/tab of the notebook."""
+        try:
+            # If a tab is not specified, set tab equal to the index of the current tab.
+            # This is the case when clicking the 'create row' button on the GUI.
+            # Otherwise, the tab parameter is used when loading presets, etc.
+            if not tab: tab = self.notebook.index(self.notebook.select())
+            # Add a row to the tab
+            self.files[tab].add_row()
+        except NameError: pass
 
-    try:
-        # If a tab is not specified, set tab equal to the index of the current tab.
-        # This is the case when clicking the 'create row' button on the GUI.
-        # Otherwise, the tab parameter is used when loading presets, etc.
-        if not tab: tab = notebook.index(notebook.select())
-        # Add a row to the tab
-        files[tab].add_row()
-    except NameError: pass
 
+    def minus_row(self, event=None, tab=None):
+        """Remove a row from the specified file/tab of the notebook."""
 
-def minus_row(event=None, tab=None):
-    """Remove a row from the specified file/tab of the notebook."""
+        try:
+            # If a tab is not specified, set tab equal to the index of the current tab.
+            # This is the case when clicking the 'delete row' button on the GUI.
+            # Otherwise, the tab parameter is used when loading presets, etc.
+            if not tab: tab = self.notebook.index(self.notebook.select())
+            # Remove a row from the tab
+            self.files[tab].delete_row()
+        except NameError: pass
 
-    try:
-        # If a tab is not specified, set tab equal to the index of the current tab.
-        # This is the case when clicking the 'delete row' button on the GUI.
-        # Otherwise, the tab parameter is used when loading presets, etc.
-        if not tab: tab = notebook.index(notebook.select())
-        # Remove a row from the tab
-        files[tab].delete_row()
-    except NameError: pass
 
+    def add_file(self):
+        """Retroactively add a file to the current inputs."""
 
-def add_file():
-    """Retroactively add a file to the current inputs."""
+        # Ask the user to locate the file he/she wishes to add
+        filepath = fd.askopenfilename(title='Choose the preset file')
 
-    global inputs
+        # Don't continue if no filepath was selected by the user
+        if len(filepath) == 0: return
 
-    # Ask the user to locate the file he/she wishes to add
-    filepath = fd.askopenfilename(title='Choose the preset file')
+        # Append the filepath to the list of inputs
+        self.inputs.append(filepath)
 
-    # Don't continue if no filepath was selected by the user
-    if len(filepath) == 0: return
+        # Create a File object and append it to the list of file objects
+        file = File(self.notebook, filepath)
+        self.files.append(file)
 
-    # Append the filepath to the list of inputs
-    inputs.append(filepath)
+        # Add the filepath to the listbox
+        self.listbox.field['state'] = 'normal'
+        self.listbox.field.insert('end', filepath)
+        self.listbox.field['state'] = 'disable'
+        self.listbox.field['justify'] = 'left'
 
-    # Create a File object and append it to the list of file objects
-    file = File(notebook, filepath)
-    files.append(file)
 
-    # Add the filepath to the listbox
-    listbox.field['state'] = 'normal'
-    listbox.field.insert('end', filepath)
-    listbox.field['state'] = 'disable'
-    listbox.field['justify'] = 'left'
+    def remove_file(self):
+        """Retroactively remove a file from the current inputs."""
 
+        # Don't continue if the currently selected file is the last remaining input
+        if not len(self.files) > 1: return
 
-def remove_file():
-    """Retroactively remove a file from the current inputs."""
+        # Get the index of the currently selected tab
+        current = self.notebook.index(self.notebook.select())
 
-    global files
+        # Delete the information about this tab that is stored in the inputs and files lists
+        del(self.inputs[current])
+        del(self.files[current])
 
-    # Don't continue if the currently selected file is the last remaining input
-    if not len(files) > 1: return
+        # Destroy the currently selected tab
+        # The select method of a notebook gives a name; however, the nametowidget method
+        # finds the respective object
+        app.root.nametowidget(self.notebook.select()).destroy()
 
-    # Get the index of the currently selected tab
-    current = notebook.index(notebook.select())
+        # Remove the filepath from the listbox
+        listbox.field['state'] = 'normal'
+        listbox.field.delete(current)
+        listbox.field['state'] = 'disable'
+        listbox.field['justify'] = 'left'
 
-    # Delete the information about this tab that is stored in the inputs and files lists
-    del(inputs[current])
-    del(files[current])
 
-    # Destroy the currently selected tab
-    # The select method of a notebook gives a name; however, the nametowidget method
-    # finds the respective object
-    app.root.nametowidget(notebook.select()).destroy()
+    def switch_tab(self, event, direction):
+        """Switch to either the next or previous tab in the notebook."""
 
-    # Remove the filepath from the listbox
-    listbox.field['state'] = 'normal'
-    listbox.field.delete(current)
-    listbox.field['state'] = 'disable'
-    listbox.field['justify'] = 'left'
-
-
-def switch_tab(event, direction):
-    """Switch to either the next or previous tab in the notebook."""
-
-    # Get the index of the tab that the user wants to go to
-    current = notebook.index(notebook.select())
-    destination = (current + 1) if direction == 'next' else (current - 1)
-    try:
-        # Attempt to select the notebook tab
-        notebook.select(destination)
-    except (NameError, tk.TclError):
-        pass # If the currently selected tab is either the first or the last, do nothing
-    else:
-        # If there was no error, set cursor focus on the data start row entry
-        files[destination].data_row_entry.focus_set()
-
-
-def switch_row(event, direction):
-    """Switch to the same field that is currently selected in either the next
-    or previous row."""
-
-    # Get a reference to the File object that is currently selected
-    current = notebook.index(notebook.select())
-    file = files[current]
-
-    # Create a list that contains all possible fields contained in each row
-    fields = [file._titles, file._x_columns, file._y1_columns, file._y2_columns,
-              file._x_labels, file._y1_labels, file._y2_labels]
-
-    # Iterate through the list and find the widget that currently has focus,
-    # then store which entry it is as well as the row that it's in
-    for f, field in enumerate(fields):
-        for i, item in enumerate(field):
-            if item == app.root.focus_get():
-                entry = f
-                row = i
-                break # Once the field is found, break from the loop
+        # Get the index of the tab that the user wants to go to
+        current = self.notebook.index(self.notebook.select())
+        destination = (current + 1) if direction == 'next' else (current - 1)
+        try:
+            # Attempt to select the notebook tab
+            self.notebook.select(destination)
+        except (NameError, tk.TclError):
+            pass # If the currently selected tab is either the first or the last, do nothing
         else:
-            continue # Continue if the inner loop was not broken
-        break # If the inner loop was broken, break from the outer loop
-    else:
-        # If the widget was not found, don't execute any of the following code.
-        # This is intended to happen with the data start, label, and unit row entries.
-        return
-
-    # Get the index of the row that the user wants to go to
-    destination = (row + 1) if direction == 'next' else (row - 1)
-
-    # If the row exists, find the relevant widget and set focus on it
-    if destination in range(len(fields[entry])):
-        next_widget = fields[entry][destination]
-        next_widget.focus_set()
-
-    # Return 'break' to bypass event propagation
-    return ('break')
+            # If there was no error, set cursor focus on the data start row entry
+            self.files[destination].data_row_entry.focus_set()
 
 
-def open_flipbook(event=None):
-    """Open the flipbook."""
+    def switch_row(self, event, direction):
+        """Switch to the same field that is currently selected in either the next
+        or previous row."""
 
-    global FLIPBOOK
+        # Get a reference to the File object that is currently selected
+        current = self.notebook.index(self.notebook.select())
+        file = self.files[current]
 
-    # If the flipbook is already open, exit the function
-    if FLIPBOOK: return
+        # Create a list that contains all possible fields contained in each row
+        fields = [file._titles, file._x_columns, file._y1_columns, file._y2_columns,
+                  file._x_labels, file._y1_labels, file._y2_labels]
 
-    # Store all of the inputs in each tab
-    for file in files: file.generate()
+        # Iterate through the list and find the widget that currently has focus,
+        # then store which entry it is as well as the row that it's in
+        for f, field in enumerate(fields):
+            for i, item in enumerate(field):
+                if item == app.root.focus_get():
+                    entry = f
+                    row = i
+                    break # Once the field is found, break from the loop
+            else:
+                continue # Continue if the inner loop was not broken
+            break # If the inner loop was broken, break from the outer loop
+        else:
+            # If the widget was not found, don't execute any of the following code.
+            # This is intended to happen with the data start, label, and unit row entries.
+            return
 
-    # Hide the main window and open the flipbook object
-    app.root.withdraw()
-    flipbook = Flipbook(app.root, info=files)
-    FLIPBOOK = True
+        # Get the index of the row that the user wants to go to
+        destination = (row + 1) if direction == 'next' else (row - 1)
 
+        # If the row exists, find the relevant widget and set focus on it
+        if destination in range(len(fields[entry])):
+            next_widget = fields[entry][destination]
+            next_widget.focus_set()
 
-def open_help(event=None):
-    """Open the help window."""
-
-    global HELP
-
-    # If the help window is already open, exit the function
-    if HELP: return
-
-    # Open the help window
-    help_window = Help(app.root)
-    HELP = True
-
-
-def paste_file():
-    """Paste the contents of the clipboard into every row of the currently
-    selected file."""
-
-    # Get the index of the currently selected notebook tab
-    current = notebook.index(notebook.select())
-
-    # Iterate through the rows of the currently selected file and delete the
-    # contents of every field, then insert the contents of the clipboard.
-    for row in range(len(files[current]._rows)):
-        if clipboard['title']:
-            files[current]._titles[row].delete(0, 'end')
-            files[current]._titles[row].insert(0, clipboard['title'])
-        if clipboard['x column']:
-            files[current]._x_columns[row].delete(0, 'end')
-            files[current]._x_columns[row].insert(0, clipboard['x column'])
-        if clipboard['y1 columns']:
-            files[current]._y1_columns[row].delete(0, 'end')
-            files[current]._y1_columns[row].insert(0, clipboard['y1 columns'])
-        if clipboard['y2 columns']:
-            files[current]._y2_columns[row].delete(0, 'end')
-            files[current]._y2_columns[row].insert(0, clipboard['y2 columns'])
-        if clipboard['x label']:
-            files[current]._x_labels[row].delete(0, 'end')
-            files[current]._x_labels[row].insert(0, clipboard['x label'])
-        if clipboard['y1 label']:
-            files[current]._y1_labels[row].delete(0, 'end')
-            files[current]._y1_labels[row].insert(0, clipboard['y1 label'])
-        if clipboard['y2 label']:
-            files[current]._y2_labels[row].delete(0, 'end')
-            files[current]._y2_labels[row].insert(0, clipboard['y2 label'])
+        # Return 'break' to bypass event propagation
+        return ('break')
 
 
-def paste_all():
-    """Paste the contents of the clipboard into every row of every file."""
+    def open_flipbook(self, event=None):
+        """Open the flipbook."""
 
-    # Iterate through the rows of each file and delete the contents of
-    # every field, then insert the contents of the clipboard.
-    for file in files:
-        for row in range(len(file._rows)):
+        # If the flipbook is already open, exit the function
+        if self.FLIPBOOK: return
+
+        # Store all of the inputs in each tab
+        for file in self.files: file.generate()
+
+        # Hide the main window and open the flipbook object
+        app.root.withdraw()
+        flipbook = Flipbook(app.root, info=self.files)
+        self.FLIPBOOK = True
+
+
+    def open_help(self, event=None):
+        """Open the help window."""
+
+        # If the help window is already open, exit the function
+        if self.HELP: return
+
+        # Open the help window
+        help_window = Help(app.root)
+        self.HELP = True
+
+
+    def paste_file(self):
+        """Paste the contents of the clipboard into every row of the currently
+        selected file."""
+
+        # Get the index of the currently selected notebook tab
+        current = self.notebook.index(self.notebook.select())
+
+        # Iterate through the rows of the currently selected file and delete the
+        # contents of every field, then insert the contents of the clipboard.
+        for row in range(len(self.files[current]._rows)):
             if clipboard['title']:
-                file._titles[row].delete(0, 'end')
-                file._titles[row].insert(0, clipboard['title'])
+                self.files[current]._titles[row].delete(0, 'end')
+                self.files[current]._titles[row].insert(0, clipboard['title'])
             if clipboard['x column']:
-                file._x_columns[row].delete(0, 'end')
-                file._x_columns[row].insert(0, clipboard['x column'])
+                self.files[current]._x_columns[row].delete(0, 'end')
+                self.files[current]._x_columns[row].insert(0, clipboard['x column'])
             if clipboard['y1 columns']:
-                file._y1_columns[row].delete(0, 'end')
-                file._y1_columns[row].insert(0, clipboard['y1 columns'])
+                self.files[current]._y1_columns[row].delete(0, 'end')
+                self.files[current]._y1_columns[row].insert(0, clipboard['y1 columns'])
             if clipboard['y2 columns']:
-                file._y2_columns[row].delete(0, 'end')
-                file._y2_columns[row].insert(0, clipboard['y2 columns'])
+                self.files[current]._y2_columns[row].delete(0, 'end')
+                self.files[current]._y2_columns[row].insert(0, clipboard['y2 columns'])
             if clipboard['x label']:
-                file._x_labels[row].delete(0, 'end')
-                file._x_labels[row].insert(0, clipboard['x label'])
+                self.files[current]._x_labels[row].delete(0, 'end')
+                self.files[current]._x_labels[row].insert(0, clipboard['x label'])
             if clipboard['y1 label']:
-                file._y1_labels[row].delete(0, 'end')
-                file._y1_labels[row].insert(0, clipboard['y1 label'])
+                self.files[current]._y1_labels[row].delete(0, 'end')
+                self.files[current]._y1_labels[row].insert(0, clipboard['y1 label'])
             if clipboard['y2 label']:
+                self.files[current]._y2_labels[row].delete(0, 'end')
+                self.files[current]._y2_labels[row].insert(0, clipboard['y2 label'])
+
+
+    def paste_all(self):
+        """Paste the contents of the clipboard into every row of every file."""
+
+        # Iterate through the rows of each file and delete the contents of
+        # every field, then insert the contents of the clipboard.
+        for file in self.files:
+            for row in range(len(file._rows)):
+                if clipboard['title']:
+                    file._titles[row].delete(0, 'end')
+                    file._titles[row].insert(0, clipboard['title'])
+                if clipboard['x column']:
+                    file._x_columns[row].delete(0, 'end')
+                    file._x_columns[row].insert(0, clipboard['x column'])
+                if clipboard['y1 columns']:
+                    file._y1_columns[row].delete(0, 'end')
+                    file._y1_columns[row].insert(0, clipboard['y1 columns'])
+                if clipboard['y2 columns']:
+                    file._y2_columns[row].delete(0, 'end')
+                    file._y2_columns[row].insert(0, clipboard['y2 columns'])
+                if clipboard['x label']:
+                    file._x_labels[row].delete(0, 'end')
+                    file._x_labels[row].insert(0, clipboard['x label'])
+                if clipboard['y1 label']:
+                    file._y1_labels[row].delete(0, 'end')
+                    file._y1_labels[row].insert(0, clipboard['y1 label'])
+                if clipboard['y2 label']:
+                    file._y2_labels[row].delete(0, 'end')
+                    file._y2_labels[row].insert(0, clipboard['y2 label'])
+
+
+    def clear_all(self):
+        """Clears the contents of every field."""
+
+        # Iterate through each file, deleting the contents of each field.
+        for file in self.files:
+            file.data_row_entry.delete(0, 'end')
+            file.label_row_entry.delete(0, 'end')
+            file.unit_row_entry.delete(0, 'end')
+            for row in range(len(file._rows)):
+                file._titles[row].delete(0, 'end')
+                file._x_columns[row].delete(0, 'end')
+                file._y1_columns[row].delete(0, 'end')
+                file._y2_columns[row].delete(0, 'end')
+                file._x_labels[row].delete(0, 'end')
+                file._y1_labels[row].delete(0, 'end')
                 file._y2_labels[row].delete(0, 'end')
-                file._y2_labels[row].insert(0, clipboard['y2 label'])
 
 
-def clear_all():
-    """Clears the contents of every field."""
+    def test(self):
+        """Function that loads a preset and opens the flipbook for testing purposes."""
 
-    # Iterate through each file, deleting the contents of each field.
-    for file in files:
-        file.data_row_entry.delete(0, 'end')
-        file.label_row_entry.delete(0, 'end')
-        file.unit_row_entry.delete(0, 'end')
-        for row in range(len(file._rows)):
-            file._titles[row].delete(0, 'end')
-            file._x_columns[row].delete(0, 'end')
-            file._y1_columns[row].delete(0, 'end')
-            file._y2_columns[row].delete(0, 'end')
-            file._x_labels[row].delete(0, 'end')
-            file._y1_labels[row].delete(0, 'end')
-            file._y2_labels[row].delete(0, 'end')
+        self.load_preset('Presets\\preset.ini')
+        self.open_flipbook()
 
 
 class Flipbook(tk.Toplevel):
@@ -507,7 +623,7 @@ class Flipbook(tk.Toplevel):
             global FLIPBOOK
             self.destroy()
             app.root.deiconify()
-            FLIPBOOK = False
+            app.FLIPBOOK = False
 
         def show_controls():
             """Refresh the controls window and make it visible."""
@@ -1764,7 +1880,6 @@ class ToleranceBands(tk.Frame):
         self.minus_bands = bands
 
 
-
 class LimitLines(tk.Frame):
     """Creates a GUI frame that can hold a dynamic amount of rows for
     horizontal line fields. Keeps track of inputs."""
@@ -2862,164 +2977,9 @@ class Help(tk.Toplevel):
         gui.CenterWindow(self)
 
 
-# Initialize the application using the lemons GUI module
-app = gui.Application(padding=PADDING)
-app.configure(
-        title='EZPZ Plotting',
-        icon=gui.ResourcePath('Assets\\icon.ico'),
-        resizable=False
-    )
-
-# Add a header/logo to the top of the application
-header = gui.Header(app, logo=gui.ResourcePath('Assets\\logo.png'), downscale=10)
-header.grid(row=0, column=0, sticky='NSEW')
-
-# Add a separator between the header and the listbox
-gui.Separator(app, padding=(0, PADDING)).grid(row=1, column=0, sticky='NSEW')
-
-# Add a listbox that will show the users the inputs that have been loaded
-browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
-listbox = gui.InputField(app, quantity='multiple', appearance='list', width=80,
-                         image=browse_image, command=browse)
-listbox.grid(row=2, column=0, sticky='NSEW')
-
-# Create a separator between the listbox and the primary frame
-gui.Separator(app, padding=(0, PADDING)).grid(row=3, column=0, sticky='NSEW')
-
-# Create the primary frame, where the notebook will be held
-primary = tk.Frame(app)
-primary.grid(row=4, column=0, sticky='NSEW')
-primary.columnconfigure(0, weight=1)
-primary.rowconfigure(0, minsize=278)
-
-# On first load or reset, show a message saying that no inputs have been loaded
-message = 'Please provide at least one input file.\n\nControls will appear here.'
-no_input_label = tk.Label(primary, text=message)
-no_input_label.grid(row=0, column=0, sticky='NSEW')
-
-# Create a separator between the primary frame and the footer
-gui.Separator(app, padding=(0, PADDING)).grid(row=5, column=0, sticky='NSEW')
-
-# Create the footer
-footer = tk.Frame(app)
-footer.grid(row=6, column=0, sticky='NSEW')
-footer.columnconfigure(1, weight=1)
-
-# Create a frame inside of the footer that will hold all of the controls
-row_controls = tk.Frame(footer)
-row_controls.grid(row=0, column=0, sticky='NSEW')
-
-# Add a create row button
-plus_image = gui.RenderImage('Assets\\plus.png', downscale=9)
-plus_button = ttk.Button(row_controls, takefocus=0, image=plus_image, state='disabled')
-plus_button['command'] = plus_row
-plus_button.grid(row=0, column=0, padx=2, sticky='NSEW')
-
-# Add a delete row button
-minus_image = gui.RenderImage('Assets\\minus.png', downscale=9)
-minus_button = ttk.Button(row_controls, takefocus=0, image=minus_image, state='disabled')
-minus_button['command'] = minus_row
-minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
-
-# Add a plot button
-plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
-plot_button = ttk.Button(footer, takefocus=0, image=plot_image, state='disabled')
-plot_button['command'] = open_flipbook
-plot_button.grid(row=0, column=2, padx=2, sticky='NSEW')
-
-# Create a menu bar
-menu_bar = tk.Menu(app.root)
-file_menu = tk.Menu(menu_bar, tearoff=0)
-file_menu.add_command(label='Load Files', command=listbox.Browse)
-file_menu.add_command(label='Add File', state='disabled', command=add_file)
-file_menu.add_command(label='Remove File', state='disabled', command=remove_file)
-file_menu.add_separator()
-file_menu.add_command(label='Save Preset', state='disabled', command=save_preset)
-file_menu.add_command(label='Load Preset', command=load_preset)
-file_menu.add_separator()
-file_menu.add_command(label='Exit', command=lambda: app.root.destroy())
-menu_bar.add_cascade(label='File', menu=file_menu)
-edit_menu = tk.Menu(menu_bar, tearoff=0)
-edit_menu.add_command(label='Clear Form', state='disabled', command=clear_all)
-edit_menu.add_command(label='Reset Form', state='disabled', command=reset)
-edit_menu.add_separator()
-edit_menu.add_command(label='Paste (Selected File)', state='disabled', command=paste_file)
-edit_menu.add_command(label='Paste (All Files)', state='disabled', command=paste_all)
-menu_bar.add_cascade(label='Edit', menu=edit_menu)
-help_menu = tk.Menu(menu_bar, tearoff=0)
-help_menu.add_command(label='View Help', command=open_help)
-help_menu.add_separator()
-help_menu.add_command(label='About', state='disabled')
-menu_bar.add_cascade(label='Help', menu=help_menu)
-app.root.config(menu=menu_bar)
-
-# Create keyboard shortcut that will function the same as clicking the 'Plot' button
-app.root.bind('<Return>', open_flipbook)
-
-# Create keyboard shortcuts for creating and deleting rows
-app.root.bind('<Control-minus>', minus_row)
-app.root.bind('<Control-=>', plus_row)
-
-# Create keyboard shortcuts for moving between notebook tabs
-app.root.bind('<Insert>',
-    lambda event, direction='previous': switch_tab(event, direction)) # Insert
-app.root.bind('<Prior>',
-    lambda event, direction='next': switch_tab(event, direction)) # Page Up
-
-# Create keyboard shortcuts for moving between rows of a notebook tab
-app.root.bind('<Control-Tab>',
-    lambda event, direction='next': switch_row(event, direction))
-app.root.bind('<Control-Shift-Tab>',
-    lambda event, direction='previous': switch_row(event, direction))
-
-# Define a function that runs every time the application loads for testing purposes
-def test_function():
-    global inputs, files
-
-    location = 'Presets\\preset.ini'
-    preset = configobj.ConfigObj(location)
-
-    if len(preset) == 0:
-        message = 'It looks like the preset file you chose is either empty or not ' \
-                  'formatted correctly. Please double check the file and try again.'
-        mb.showinfo('Oops!', message)
-        return
-
-    inputs = [info['filepath'] for file, info in preset.items()]
-
-    listbox.clear()
-    listbox.field['state'] = 'normal'
-    for filepath in inputs: listbox.field.insert('end', ' ' + filepath)
-    listbox.field['state'] = 'disable'
-    listbox.field['justify'] = 'left'
-
-    enable()
-    input_controls()
-
-    for f, (file, info) in enumerate(preset.items()):
-        if len(info) > 5:
-            rows_needed = len(info) - 5
-            for _ in range(rows_needed): plus_row(tab=f)
-
-    for f, (file, info) in enumerate(preset.items()):
-        files[f].data_row_entry.insert(0, info['data start'])
-        files[f].label_row_entry.insert(0, info['label row'])
-        files[f].unit_row_entry.insert(0, info['unit row'])
-        plots = [key for key in info.keys()
-                 if key not in ['filepath', 'data start', 'label row', 'unit row']]
-
-        for p, plot in enumerate(plots):
-            files[f]._titles[p].insert(0, info[plot]['title'])
-            files[f]._x_columns[p].insert(0, info[plot]['x column'])
-            files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
-            files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
-            files[f]._x_labels[p].insert(0, info[plot]['x label'])
-            files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
-            files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
-
-    open_flipbook()
-    # Controls()
-app.after(100, test_function)
-
+# Initialize the application
+app = Application()
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
