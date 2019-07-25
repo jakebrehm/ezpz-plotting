@@ -31,37 +31,6 @@ import re
 import configobj
 import random
 
-clipboard = {
-        'title': None,
-        'x column': None,
-        'y1 columns': None,
-        'y2 columns': None,
-        'x label': None,
-        'y1 label': None,
-        'y2 label': None,
-    } # When copy and pasting on the GUI, the values are stored here
-
-plot_colors = {
-        'blue':     'b',
-        'green':    'g',
-        'red':      'r',
-        'cyan':     'c',
-        'magenta':  'm',
-        'yellow':   'y',
-        'white':    'w',
-        'black':    'k',
-        'gray':     '#808080',
-        'pink':     '#ff4d4d',
-        'purple':   '#660066',
-        'gold':     '#b38600',
-        'orange':   '#ff6600',
-        'brown':    '#663300',
-        'lime':     '#00ff00',
-    } # A list of all preset color options for plotting purposes
-
-# A list of values that may appear in a csv that are equivalent to None
-none_values = [None, '1.#QNAN' 'nan', np.nan]
-
 
 class Application(gui.Application):
     """The main application of the program, which combines the GUI and all related
@@ -186,6 +155,34 @@ class Application(gui.Application):
             lambda event, direction='next': switch_row(event, direction))
         self.root.bind('<Control-Shift-Tab>',
             lambda event, direction='previous': switch_row(event, direction))
+
+        self.clipboard = {
+            'title': None,
+            'x column': None,
+            'y1 columns': None,
+            'y2 columns': None,
+            'x label': None,
+            'y1 label': None,
+            'y2 label': None,
+        } # When copy and pasting on the GUI, the values are stored here
+
+        self.plot_colors = {
+                'blue':     'b',
+                'green':    'g',
+                'red':      'r',
+                'cyan':     'c',
+                'magenta':  'm',
+                'yellow':   'y',
+                'white':    'w',
+                'black':    'k',
+                'gray':     '#808080',
+                'pink':     '#ff4d4d',
+                'purple':   '#660066',
+                'gold':     '#b38600',
+                'orange':   '#ff6600',
+                'brown':    '#663300',
+                'lime':     '#00ff00',
+            } # A list of all preset color options for plotting purposes
 
     def save_preset(self):
         """Copies all user inputs to a config file and saves in the specified location."""
@@ -531,27 +528,27 @@ class Application(gui.Application):
         # Iterate through the rows of the currently selected file and delete the
         # contents of every field, then insert the contents of the clipboard.
         for row in range(len(self.files[current]._rows)):
-            if clipboard['title']:
+            if self.clipboard['title']:
                 self.files[current]._titles[row].delete(0, 'end')
-                self.files[current]._titles[row].insert(0, clipboard['title'])
-            if clipboard['x column']:
+                self.files[current]._titles[row].insert(0, self.clipboard['title'])
+            if self.clipboard['x column']:
                 self.files[current]._x_columns[row].delete(0, 'end')
-                self.files[current]._x_columns[row].insert(0, clipboard['x column'])
-            if clipboard['y1 columns']:
+                self.files[current]._x_columns[row].insert(0, self.clipboard['x column'])
+            if self.clipboard['y1 columns']:
                 self.files[current]._y1_columns[row].delete(0, 'end')
-                self.files[current]._y1_columns[row].insert(0, clipboard['y1 columns'])
-            if clipboard['y2 columns']:
+                self.files[current]._y1_columns[row].insert(0, self.clipboard['y1 columns'])
+            if self.clipboard['y2 columns']:
                 self.files[current]._y2_columns[row].delete(0, 'end')
-                self.files[current]._y2_columns[row].insert(0, clipboard['y2 columns'])
-            if clipboard['x label']:
+                self.files[current]._y2_columns[row].insert(0, self.clipboard['y2 columns'])
+            if self.clipboard['x label']:
                 self.files[current]._x_labels[row].delete(0, 'end')
-                self.files[current]._x_labels[row].insert(0, clipboard['x label'])
-            if clipboard['y1 label']:
+                self.files[current]._x_labels[row].insert(0, self.clipboard['x label'])
+            if self.clipboard['y1 label']:
                 self.files[current]._y1_labels[row].delete(0, 'end')
-                self.files[current]._y1_labels[row].insert(0, clipboard['y1 label'])
-            if clipboard['y2 label']:
+                self.files[current]._y1_labels[row].insert(0, self.clipboard['y1 label'])
+            if self.clipboard['y2 label']:
                 self.files[current]._y2_labels[row].delete(0, 'end')
-                self.files[current]._y2_labels[row].insert(0, clipboard['y2 label'])
+                self.files[current]._y2_labels[row].insert(0, self.clipboard['y2 label'])
 
 
     def paste_all(self):
@@ -561,27 +558,27 @@ class Application(gui.Application):
         # every field, then insert the contents of the clipboard.
         for file in self.files:
             for row in range(len(file._rows)):
-                if clipboard['title']:
+                if self.clipboard['title']:
                     file._titles[row].delete(0, 'end')
-                    file._titles[row].insert(0, clipboard['title'])
-                if clipboard['x column']:
+                    file._titles[row].insert(0, self.clipboard['title'])
+                if self.clipboard['x column']:
                     file._x_columns[row].delete(0, 'end')
-                    file._x_columns[row].insert(0, clipboard['x column'])
-                if clipboard['y1 columns']:
+                    file._x_columns[row].insert(0, self.clipboard['x column'])
+                if self.clipboard['y1 columns']:
                     file._y1_columns[row].delete(0, 'end')
-                    file._y1_columns[row].insert(0, clipboard['y1 columns'])
-                if clipboard['y2 columns']:
+                    file._y1_columns[row].insert(0, self.clipboard['y1 columns'])
+                if self.clipboard['y2 columns']:
                     file._y2_columns[row].delete(0, 'end')
-                    file._y2_columns[row].insert(0, clipboard['y2 columns'])
-                if clipboard['x label']:
+                    file._y2_columns[row].insert(0, self.clipboard['y2 columns'])
+                if self.clipboard['x label']:
                     file._x_labels[row].delete(0, 'end')
-                    file._x_labels[row].insert(0, clipboard['x label'])
-                if clipboard['y1 label']:
+                    file._x_labels[row].insert(0, self.clipboard['x label'])
+                if self.clipboard['y1 label']:
                     file._y1_labels[row].delete(0, 'end')
-                    file._y1_labels[row].insert(0, clipboard['y1 label'])
-                if clipboard['y2 label']:
+                    file._y1_labels[row].insert(0, self.clipboard['y1 label'])
+                if self.clipboard['y2 label']:
                     file._y2_labels[row].delete(0, 'end')
-                    file._y2_labels[row].insert(0, clipboard['y2 label'])
+                    file._y2_labels[row].insert(0, self.clipboard['y2 label'])
 
 
     def clear_all(self):
@@ -800,13 +797,13 @@ class Flipbook(tk.Toplevel):
             self.primary.format_coord = self._coordinates(self.primary, None, current.secondary_axis)
 
         # Choose colors for the primary axis - will be iterated-through sequentially
-        y1_colors = ['k', 'b', 'r', 'g', plot_colors['purple'], plot_colors['orange'],
-                     plot_colors['brown']]
+        y1_colors = ['k', 'b', 'r', 'g', app.plot_colors['purple'], app.plot_colors['orange'],
+                     app.plot_colors['brown']]
         # Create a copy of the primary axis plot colors
         y1_plot_colors = y1_colors[:]
         # Choose colors for the secondary axis - will be iterated-through sequentially
-        y2_colors = [plot_colors['gray'], 'c', plot_colors['pink'], plot_colors['lime'],
-                     'm', plot_colors['gold'], 'y']
+        y2_colors = [app.plot_colors['gray'], 'c', app.plot_colors['pink'], app.plot_colors['lime'],
+                     'm', app.plot_colors['gold'], 'y']
         # Create a copy of the secondary axis plot colors
         y2_plot_colors = y2_colors[:]
 
@@ -966,10 +963,10 @@ class Flipbook(tk.Toplevel):
             if not plus: continue
             # Plot the plus band on the appropriate axis
             elif plus[0] == 'primary':
-                self.primary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                self.primary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
                                   linestyle='dashed')
             elif plus[0] == 'secondary':
-                self.secondary.plot(current.x, plus[1], plot_colors[current.color[p]],
+                self.secondary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
                                   linestyle='dashed')
         # Iterate through the minus bands of the current plot
         for m, minus in enumerate(current.minus_bands):
@@ -977,10 +974,10 @@ class Flipbook(tk.Toplevel):
             if not minus: continue
             # Plot the minus band on the appropriate axis
             elif minus[0] == 'primary':
-                self.primary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                self.primary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
                                   linestyle='dashed')
             elif minus[0] == 'secondary':
-                self.secondary.plot(current.x, minus[1], plot_colors[current.color[m]],
+                self.secondary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
                                   linestyle='dashed')
 
         # ===================
@@ -999,12 +996,12 @@ class Flipbook(tk.Toplevel):
             if current.line_orientation[v] == 'vertical':
                 axis.axvline(x=float(current.line_value[v]),
                              linestyle=current.line_style[v],
-                             color=plot_colors[current.line_color[v]],
+                             color=app.plot_colors[current.line_color[v]],
                              alpha=float(current.line_alpha[v]))
             elif current.line_orientation[v] == 'horizontal':
                 axis.axhline(y=float(current.line_value[v]),
                              linestyle=current.line_style[v],
-                             color=plot_colors[current.line_color[v]],
+                             color=app.plot_colors[current.line_color[v]],
                              alpha=float(current.line_alpha[v]))
 
         # Update the canvas
@@ -1655,10 +1652,10 @@ class ToleranceBands(tk.Frame):
 
         # Add a combobox to select which color the bands should be
         color_choice = tk.StringVar()
-        color_choice.set(random.choice(list(plot_colors.keys())))
+        color_choice.set(random.choice(list(app.plot_colors.keys())))
         color_combo = ttk.Combobox(frame, textvariable=color_choice,
                                    width=8, state='readonly')
-        color_combo['values'] = list(plot_colors.keys())
+        color_combo['values'] = list(app.plot_colors.keys())
         color_combo.grid(row=1, column=4, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
@@ -2022,10 +2019,10 @@ class LimitLines(tk.Frame):
 
         # Add a combobox to select which color the line should be
         color_choice = tk.StringVar()
-        color_choice.set(random.choice(list(plot_colors.keys())))
+        color_choice.set(random.choice(list(app.plot_colors.keys())))
         color_combo = ttk.Combobox(container, textvariable=color_choice,
                                    width=COMBO_WIDTH, state='readonly')
-        color_combo['values'] = list(plot_colors.keys())
+        color_combo['values'] = list(app.plot_colors.keys())
         color_combo.grid(row=3, column=0, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
@@ -2372,25 +2369,25 @@ class File(gui.ScrollableTab):
     def copy(self, ID):
         """Copies the contents of the selected row to the clipboard."""
 
-        clipboard['title'] = self._titles[ID].get()
-        clipboard['x column'] = self._x_columns[ID].get()
-        clipboard['y1 columns'] = self._y1_columns[ID].get()
-        clipboard['y2 columns'] = self._y2_columns[ID].get()
-        clipboard['x label'] = self._x_labels[ID].get()
-        clipboard['y1 label'] = self._y1_labels[ID].get()
-        clipboard['y2 label'] = self._y2_labels[ID].get()
+        app.clipboard['title'] = self._titles[ID].get()
+        app.clipboard['x column'] = self._x_columns[ID].get()
+        app.clipboard['y1 columns'] = self._y1_columns[ID].get()
+        app.clipboard['y2 columns'] = self._y2_columns[ID].get()
+        app.clipboard['x label'] = self._x_labels[ID].get()
+        app.clipboard['y1 label'] = self._y1_labels[ID].get()
+        app.clipboard['y2 label'] = self._y2_labels[ID].get()
 
     def paste(self, ID):
         """Pastest the contents of the clipboards into the selected row."""
 
         self.clear(ID)
-        self._titles[ID].insert(0, clipboard['title'])
-        self._x_columns[ID].insert(0, clipboard['x column'])
-        self._y1_columns[ID].insert(0, clipboard['y1 columns'])
-        self._y2_columns[ID].insert(0, clipboard['y2 columns'])
-        self._x_labels[ID].insert(0, clipboard['x label'])
-        self._y1_labels[ID].insert(0, clipboard['y1 label'])
-        self._y2_labels[ID].insert(0, clipboard['y2 label'])
+        self._titles[ID].insert(0, app.clipboard['title'])
+        self._x_columns[ID].insert(0, app.clipboard['x column'])
+        self._y1_columns[ID].insert(0, app.clipboard['y1 columns'])
+        self._y2_columns[ID].insert(0, app.clipboard['y2 columns'])
+        self._x_labels[ID].insert(0, app.clipboard['x label'])
+        self._y1_labels[ID].insert(0, app.clipboard['y1 label'])
+        self._y2_labels[ID].insert(0, app.clipboard['y2 label'])
 
     def clear(self, ID):
         """Clears the contents of the selected row."""
