@@ -606,6 +606,458 @@ class Application(gui.Application):
         self.open_flipbook()
 
 
+class BasicFile(gui.ScrollableTab):
+    """A scrollable notebook tab that supports dynamically creating and deleting basic
+    rows (plots), and stores all of the user-specified information about each plot."""
+
+    def __init__(self, notebook, filepath):
+        """Initialize the scrollable notebook tab as well as the lists that will hold
+        references to each field in each row. Creates the data start row, label row,
+        and unit row entry fields for the file and adds a single row by default."""
+
+        self.filepath = filepath
+        self.filename = self.filepath.split('/')[-1]
+        gui.ScrollableTab.__init__(self, notebook, self.filename, cwidth=571, cheight=252)
+
+        # Initialize internal variables and field-reference storage lists
+        self._count = 0
+        self._rows = []
+        self._titles = []
+        self._x_columns = []
+        self._y1_columns = []
+        self._y2_columns = []
+        self._x_labels = []
+        self._y1_labels = []
+        self._y2_labels = []
+
+        # Hold a reference to each row/plot in order to be used outside of the class
+        self.plots = []
+
+        # Create a frame to hold the general file settings/controls
+        controls = tk.Frame(self)
+        controls.grid(row=0, column=0, pady=20, sticky='NSEW')
+        for column in [0, 3, 6, 9]:
+            controls.columnconfigure(column, weight=1)
+
+        # Create label and entry fields where the user can enter the data start row
+        data_row_label = tk.Label(controls, text='Data start row:')
+        data_row_label.grid(row=0, column=1, sticky='NSEW')
+
+        self.data_row_entry = ttk.Entry(controls, width=10)
+        self.data_row_entry.grid(row=0, column=2, padx=5, sticky='NSEW')
+
+        # Create label and entry fields where the user can enter the label row
+        label_row_label = tk.Label(controls, text='Label row:')
+        label_row_label.grid(row=0, column=4, sticky='NSEW')
+
+        self.label_row_entry = ttk.Entry(controls, width=10)
+        self.label_row_entry.grid(row=0, column=5, padx=5, sticky='NSEW')
+
+        # Create label and entry fields where the user can enter the unit row
+        unit_row_label = tk.Label(controls, text='Unit row:')
+        unit_row_label.grid(row=0, column=7, sticky='NSEW')
+
+        self.unit_row_entry = ttk.Entry(controls, width=10)
+        self.unit_row_entry.grid(row=0, column=8, padx=5, sticky='NSEW')
+
+        # Make each field scroll into view upon a focus event
+        self.data_row_entry.bind('<FocusIn>', self._scroll_into_view)
+        self.label_row_entry.bind('<FocusIn>', self._scroll_into_view)
+        self.unit_row_entry.bind('<FocusIn>', self._scroll_into_view)
+
+        # Add a row/plot by default
+        self.add_row()
+
+    def add_row(self):
+        """Add a row/plot to the current file."""
+
+        # Define padding constants
+        MARGIN = 8
+        TOOLS = 2
+        PADDING = 5
+
+        # Create a label frame that will hold the contents of each row
+        frame = tk.LabelFrame(self, text=f'Plot {self._count + 1}')
+        frame.grid(row=self._count + 1, column=0, padx=MARGIN, pady=(0, MARGIN*2), sticky='NSEW')
+        frame.columnconfigure(0, weight=1)
+
+        # Create a frame that everything else will be placed inside of
+        inner = tk.Frame(frame)
+        inner.grid(row=0, column=0, padx=MARGIN*2, pady=MARGIN*2, sticky='NSEW')
+        inner.columnconfigure(0, weight=1)
+        inner.columnconfigure(1, weight=1)
+        inner.columnconfigure(2, weight=1)
+        inner.columnconfigure(3, weight=10)
+
+        # Create a frame that will hold all of the tools for the row
+        tools = tk.Frame(inner)
+        tools.grid(row=0, column=0, columnspan=4, padx=PADDING, sticky='NSEW')
+        tools.columnconfigure(1, weight=1)
+
+        # Create label and entry fields where the user can enter the title
+        title_label = tk.Label(tools, text='Title:')
+        title_label.grid(row=0, column=0, sticky='NSEW')
+
+        title_entry = ttk.Entry(tools)
+        title_entry.grid(row=0, column=1, padx=PADDING, sticky='NSEW')
+        self._titles.append(title_entry)
+
+        # Create a copy button
+        copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
+        copy_button = ttk.Button(tools, takefocus=0, width=3, image=copy_image, text='C')
+        copy_button['command'] = lambda ID=self._count: self.copy(ID)
+        copy_button.image = copy_image
+        copy_button.grid(row=0, column=2, padx=TOOLS, sticky='NSEW')
+
+        # Create a paste button
+        paste_image = gui.RenderImage('Assets\\paste.png', downscale=12)
+        paste_button = ttk.Button(tools, takefocus=0, width=3, image=paste_image, text='P')
+        paste_button['command'] = lambda ID=self._count: self.paste(ID)
+        paste_button.image = paste_image
+        paste_button.grid(row=0, column=3, padx=TOOLS, sticky='NSEW')
+
+        # Create a clear button
+        clear_image = gui.RenderImage('Assets\\clear.png', downscale=12)
+        clear_button = ttk.Button(tools, takefocus=0, width=3, image=clear_image, text='X')
+        clear_button['command'] = lambda ID=self._count: self.clear(ID)
+        clear_button.image = clear_image
+        clear_button.grid(row=0, column=4, padx=TOOLS, sticky='NSEW')
+
+        # Add spacing between the tools and the next row of fields
+        gui.Space(inner, row=1, column=0, columnspan=4, padding=PADDING)
+
+        # Create label and entry fields where the user can enter the x-axis columns
+        x_column_label = tk.Label(inner, text='x column:')
+        x_column_label.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
+
+        x_column_entry = ttk.Entry(inner, width=10)
+        x_column_entry.grid(row=3, column=0, padx=PADDING, sticky='NSEW')
+        self._x_columns.append(x_column_entry)
+
+        # Create label and entry fields where the user can enter the primary axis columns
+        y1_column_label = tk.Label(inner, text='y1 columns:')
+        y1_column_label.grid(row=2, column=1, padx=PADDING, sticky='NSEW')
+
+        y1_column_entry = ttk.Entry(inner, width=10)
+        y1_column_entry.grid(row=3, column=1, padx=PADDING, sticky='NSEW')
+        self._y1_columns.append(y1_column_entry)
+
+        # Create label and entry fields where the user can enter the secondary axis columns
+        y2_column_label = tk.Label(inner, text='y2 columns:')
+        y2_column_label.grid(row=2, column=2, padx=PADDING, sticky='NSEW')
+
+        y2_column_entry = ttk.Entry(inner, width=10)
+        y2_column_entry.grid(row=3, column=2, padx=PADDING, sticky='NSEW')
+        self._y2_columns.append(y2_column_entry)
+
+        # Create label and entry fields where the user can enter the x-axis label
+        x_axis_label = tk.Label(inner, text='x axis label:')
+        x_axis_label.grid(row=2, column=3, padx=PADDING, sticky='NSEW')
+
+        x_axis_entry = ttk.Entry(inner)
+        x_axis_entry.grid(row=3, column=3, padx=PADDING, sticky='NSEW')
+        self._x_labels.append(x_axis_entry)
+
+        # Add spacing between the first and second rows of fields
+        gui.Space(inner, row=4, column=0, columnspan=4, padding=PADDING)
+
+        # Create label and entry fields where the user can enter the primary axis label
+        y1_axis_label = tk.Label(inner, text='y1 axis label:')
+        y1_axis_label.grid(row=5, column=0, columnspan=3, padx=PADDING, sticky='NSEW')
+
+        y1_axis_entry = ttk.Entry(inner)
+        y1_axis_entry.grid(row=6, column=0, columnspan=3, padx=PADDING, sticky='NSEW')
+        self._y1_labels.append(y1_axis_entry)
+
+        # Create label and entry fields where the user can enter the secondary axis label
+        y2_axis_label = tk.Label(inner, text='y2 axis label:')
+        y2_axis_label.grid(row=5, column=3, padx=PADDING, sticky='NSEW')
+
+        y2_axis_entry = ttk.Entry(inner)
+        y2_axis_entry.grid(row=6, column=3, padx=PADDING, sticky='NSEW')
+        self._y2_labels.append(y2_axis_entry)
+
+        # Make each field scroll into view upon a focus event
+        title_entry.bind('<FocusIn>', self._scroll_into_view)
+        x_column_entry.bind('<FocusIn>', self._scroll_into_view)
+        y1_column_entry.bind('<FocusIn>', self._scroll_into_view)
+        y2_column_entry.bind('<FocusIn>', self._scroll_into_view)
+        x_axis_entry.bind('<FocusIn>', self._scroll_into_view)
+        y1_axis_entry.bind('<FocusIn>', self._scroll_into_view)
+        y2_axis_entry.bind('<FocusIn>', self._scroll_into_view)
+
+        # Increment the row count, keep a reference to the frame, and create a plot object
+        self._count += 1
+        self._rows.append(frame)
+        self.add_plot()
+
+    def delete_row(self):
+        """Delete a row/plot from the bottom of the current file."""
+
+        # Only allow a row/plot to be deleted if there is more than one row/plot
+        if len(self._rows) <= 1: return
+
+        # Destroy the last row, removing it from the GUI
+        self._rows[-1].destroy()
+        # Delete references to the deleted row/plot
+        del(self._rows[-1])
+        del(self.plots[-1])
+        # Decrement the row/plot count
+        self._count -= 1
+
+    def _scroll_into_view(self, event):
+        """Scrolls the bound widget into view instead of only moving focus offscreen."""
+
+        # Get the current coordinates of the tops and bottoms of the widget and canvas
+        widget_top = event.widget.winfo_rooty()
+        widget_bottom = widget_top + event.widget.winfo_height()
+        canvas_top = self.canvas.winfo_rooty()
+        canvas_bottom = canvas_top + self.canvas.winfo_height()
+
+        # Get the parent and grandparent of the widget
+        parent_inner = app.root.nametowidget(event.widget.winfo_parent())
+        parent_outer = app.root.nametowidget(parent_inner.winfo_parent())
+
+        # Define a certain amount of padding to act as a buffer
+        BUFFER = 30
+        if widget_bottom > canvas_bottom:
+            delta = int(widget_bottom - canvas_bottom) + BUFFER
+            self.canvas.yview_scroll(delta, 'units')
+        elif widget_top < canvas_top:
+            delta = int(widget_top - canvas_top) - BUFFER
+            self.canvas.yview_scroll(delta, 'units')
+
+    def copy(self, ID):
+        """Copies the contents of the selected row to the clipboard."""
+
+        app.clipboard['title'] = self._titles[ID].get()
+        app.clipboard['x column'] = self._x_columns[ID].get()
+        app.clipboard['y1 columns'] = self._y1_columns[ID].get()
+        app.clipboard['y2 columns'] = self._y2_columns[ID].get()
+        app.clipboard['x label'] = self._x_labels[ID].get()
+        app.clipboard['y1 label'] = self._y1_labels[ID].get()
+        app.clipboard['y2 label'] = self._y2_labels[ID].get()
+
+    def paste(self, ID):
+        """Pastest the contents of the clipboards into the selected row."""
+
+        self.clear(ID)
+        self._titles[ID].insert(0, app.clipboard['title'])
+        self._x_columns[ID].insert(0, app.clipboard['x column'])
+        self._y1_columns[ID].insert(0, app.clipboard['y1 columns'])
+        self._y2_columns[ID].insert(0, app.clipboard['y2 columns'])
+        self._x_labels[ID].insert(0, app.clipboard['x label'])
+        self._y1_labels[ID].insert(0, app.clipboard['y1 label'])
+        self._y2_labels[ID].insert(0, app.clipboard['y2 label'])
+
+    def clear(self, ID):
+        """Clears the contents of the selected row."""
+
+        self._titles[ID].delete(0, 'end')
+        self._x_columns[ID].delete(0, 'end')
+        self._y1_columns[ID].delete(0, 'end')
+        self._y2_columns[ID].delete(0, 'end')
+        self._x_labels[ID].delete(0, 'end')
+        self._y1_labels[ID].delete(0, 'end')
+        self._y2_labels[ID].delete(0, 'end')
+
+    def add_plot(self):
+        """Create a new plot object and hold a reference to it."""
+
+        class Plot:
+            """Object that holds information about a singular plot."""
+
+            def __init__(self):
+                """Initialize the object's attributes."""
+
+                # Keep track of the columns to plot and the title/axis labels
+                self.x = None
+                self.y1 = None
+                self.y2 = None
+                self.title = None
+                self.x_label = None
+                self.y1_label = None
+                self.y2_label = None
+
+                # Keep track of whether or not a secondary axis is required
+                self.secondary_axis = None
+
+                # Keep track of original axis limits
+                self.x_lower_original = None
+                self.x_upper_original = None
+                self.y1_lower_original = None
+                self.y1_upper_original = None
+                self.y2_lower_original = None
+                self.y2_upper_original = None
+
+                # Keep track of axis limits
+                self.x_lower = None
+                self.x_upper = None
+                self.y1_lower = None
+                self.y1_upper = None
+                self.y2_lower = None
+                self.y2_upper = None
+
+                # Keep track of number of primary and secondary ticks
+                self.primary_ticks = None
+                self.secondary_ticks = None
+
+                # Keep track of the style selection
+                self.style = tk.StringVar()
+                self.style.set('Default')
+
+                # Keep track of the background selection, and path if necessary
+                self.background = tk.StringVar()
+                self.background.set('None')
+                self.background_path = None
+
+                # Keep tracks of tolerance band information
+                self.bands = ToleranceBands()
+                self.series = []
+                self.color = []
+                self.linestyle = []
+                self.minus_tolerance = []
+                self.plus_tolerance = []
+                self.lag = []
+                self.plus_bands = []
+                self.minus_bands = []
+
+                # Keep track of limit line information
+                self.lines = LimitLines()
+                self.line_axis = []
+                self.line_orientation = []
+                self.line_value = []
+                self.line_color = []
+                self.line_style = []
+                self.line_alpha = []
+
+            def _x_data(self, x_column):
+                """Pull the appropriate x-information from the data."""
+
+                return self.data[self.labels[x_column-1]]
+
+            def _y_data(self, y_columns):
+                """Pull the appropriate y-information from the data."""
+
+                return [self.data[self.labels[column-1]] for column in y_columns]
+
+            def _generate(self, data, labels, x_column, y1_columns, y2_columns=None,
+                          units=None):
+                """The main function for the object which stores the inputs and calls
+                other relevant functions."""
+
+                # Store the inputs as instance variables
+                self.data = data
+                self.labels = labels
+                self.units = units
+                self.x_column = x_column
+                self.y1_columns = y1_columns
+                self.y2_columns = y2_columns
+
+                # Grab the relevant data and store as instance variables
+                self.x = self._x_data(x_column)
+                self.y1 = self._y_data(y1_columns)
+                self.y2 = self._y_data(y2_columns) if y2_columns else None
+
+            def _labels(self, title, x_label, y1_label, y2_label):
+                """Store the label inputs as instance variables. This is separate from
+                the _generate method solely because it didn't feel like it fit there."""
+
+                # Store the label inputs as instance variables
+                self.title = title if title else None
+                self.x_label = x_label if x_label else None
+                self.y1_label = y1_label if y1_label else None
+                self.y2_label = y2_label if y2_label else None
+
+        # Create a new plot object and hold a reference to it
+        plot = Plot()
+        self.plots.append(plot)
+
+    def _filetype(self, path):
+        """Determine the filetype of the input."""
+
+        name, extension = os.path.splitext(path)
+        if extension in ['.csv', '.dat']: return 'CSV'
+        elif extension in ['.xls', '.xlsx', '.xlsm']: return 'Excel'
+        else: raise TypeError(f'The .{extension} filetype is not supported.')
+
+    def _labels(self, label_row):
+        """Grab the labels from the specified row."""
+
+        # Grab the labels using the appropriate method for the filetype
+        if self._type == 'CSV':
+            labels = pd.read_csv(self.filepath, skiprows=label_row-1, nrows=1,
+                                 index_col=False, header=None)
+        elif self._type == 'Excel':
+            labels = pd.read_excel(self.filepath, skiprows=label_row-1, nrows=1,
+                                   index_col=False, header=None, encoding='latin1')
+        # Convert the pandas dataframe to a list and return it
+        return list(labels.values.flatten())
+
+    def _units(self, unit_row):
+        """Grab the units from the specified row."""
+
+        # If the unit_row parameter is None, do not continue
+        if not unit_row: return None
+
+        # Grab the units using the appropriate method for the filetype
+        if self._type == 'CSV':
+            units = pd.read_csv(self.filepath, skiprows=unit_row-1, nrows=1,
+                                index_col=False, header=None)
+        elif self._type == 'Excel':
+            units = pd.read_excel(self.filepath, skiprows=unit_row-1, nrows=1,
+                                  index_col=False, header=None, encoding='latin1')
+        # Convert the pandas dataframe to a list and return it
+        return list(units.values.flatten())
+
+    def _data(self, data_start_row):
+        """Grab the appropriate data from the file."""
+
+        # Read the file using the appropriate method for the filetype
+        if self._type == 'CSV':
+            return pd.read_csv(self.filepath, skiprows=data_start_row-1,
+                                 names=self.labels, index_col=False,
+                                 header=None)
+        elif self._type == 'Excel':
+            return pd.read_excel(self.filepath, skiprows=data_start_row-1,
+                                 names=self.labels, index_col=False,
+                                 header=None, encoding='latin1')
+
+    def generate(self):
+        """The main function for the object which pulls all of the relevant data
+        from the file and adds the appropriate information to the plot objects."""
+
+        # Determine the file's type
+        self._type = self._filetype(self.filepath)
+
+        # Store the label row and corresponding labels as instance variables
+        self.label_row = int(self.label_row_entry.get())
+        self.labels = self._labels(self.label_row)
+
+        # Store the unit row and corresponding units as instance variables
+        self.unit_row = int(self.unit_row_entry.get()) if self.unit_row_entry.get() else None
+        self.units = self._units(self.unit_row)
+
+        # Store the data start row and corresponding data as instance variables
+        self.data_start_row = int(self.data_row_entry.get())
+        self.data = self._data(self.data_start_row)
+
+        # Iterate through each plot
+        for p, plot in enumerate(self.plots):
+            # Grab all entries in each field
+            title = self._titles[p].get()
+            x_column = int(self._x_columns[p].get())
+            self.y1_columns = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
+            self.y2_columns = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
+            x_label = self._x_labels[p].get()
+            y1_label = self._y1_labels[p].get()
+            y2_label = self._y2_labels[p].get()
+            # Feed the entries to the plot object
+            plot._generate(self.data, self.labels, x_column, self.y1_columns,
+                           self.y2_columns, self.units)
+            plot._labels(title, x_label, y1_label, y2_label)
+
+
 class Flipbook(tk.Toplevel):
     """The flipbook is where the plots and relevant information are shown. The main feature
     of the flipbook is that you are able to quickly and easily move through a series of
@@ -2186,458 +2638,6 @@ class LimitLines(tk.Frame):
                 self.alpha_entries[i].insert(0, alphas[i] if alphas[i] else '')
 
 
-class BasicFile(gui.ScrollableTab):
-    """A scrollable notebook tab that supports dynamically creating and deleting basic
-    rows (plots), and stores all of the user-specified information about each plot."""
-
-    def __init__(self, notebook, filepath):
-        """Initialize the scrollable notebook tab as well as the lists that will hold
-        references to each field in each row. Creates the data start row, label row,
-        and unit row entry fields for the file and adds a single row by default."""
-
-        self.filepath = filepath
-        self.filename = self.filepath.split('/')[-1]
-        gui.ScrollableTab.__init__(self, notebook, self.filename, cwidth=571, cheight=252)
-
-        # Initialize internal variables and field-reference storage lists
-        self._count = 0
-        self._rows = []
-        self._titles = []
-        self._x_columns = []
-        self._y1_columns = []
-        self._y2_columns = []
-        self._x_labels = []
-        self._y1_labels = []
-        self._y2_labels = []
-
-        # Hold a reference to each row/plot in order to be used outside of the class
-        self.plots = []
-
-        # Create a frame to hold the general file settings/controls
-        controls = tk.Frame(self)
-        controls.grid(row=0, column=0, pady=20, sticky='NSEW')
-        for column in [0, 3, 6, 9]:
-            controls.columnconfigure(column, weight=1)
-
-        # Create label and entry fields where the user can enter the data start row
-        data_row_label = tk.Label(controls, text='Data start row:')
-        data_row_label.grid(row=0, column=1, sticky='NSEW')
-
-        self.data_row_entry = ttk.Entry(controls, width=10)
-        self.data_row_entry.grid(row=0, column=2, padx=5, sticky='NSEW')
-
-        # Create label and entry fields where the user can enter the label row
-        label_row_label = tk.Label(controls, text='Label row:')
-        label_row_label.grid(row=0, column=4, sticky='NSEW')
-
-        self.label_row_entry = ttk.Entry(controls, width=10)
-        self.label_row_entry.grid(row=0, column=5, padx=5, sticky='NSEW')
-
-        # Create label and entry fields where the user can enter the unit row
-        unit_row_label = tk.Label(controls, text='Unit row:')
-        unit_row_label.grid(row=0, column=7, sticky='NSEW')
-
-        self.unit_row_entry = ttk.Entry(controls, width=10)
-        self.unit_row_entry.grid(row=0, column=8, padx=5, sticky='NSEW')
-
-        # Make each field scroll into view upon a focus event
-        self.data_row_entry.bind('<FocusIn>', self._scroll_into_view)
-        self.label_row_entry.bind('<FocusIn>', self._scroll_into_view)
-        self.unit_row_entry.bind('<FocusIn>', self._scroll_into_view)
-
-        # Add a row/plot by default
-        self.add_row()
-
-    def add_row(self):
-        """Add a row/plot to the current file."""
-
-        # Define padding constants
-        MARGIN = 8
-        TOOLS = 2
-        PADDING = 5
-
-        # Create a label frame that will hold the contents of each row
-        frame = tk.LabelFrame(self, text=f'Plot {self._count + 1}')
-        frame.grid(row=self._count + 1, column=0, padx=MARGIN, pady=(0, MARGIN*2), sticky='NSEW')
-        frame.columnconfigure(0, weight=1)
-
-        # Create a frame that everything else will be placed inside of
-        inner = tk.Frame(frame)
-        inner.grid(row=0, column=0, padx=MARGIN*2, pady=MARGIN*2, sticky='NSEW')
-        inner.columnconfigure(0, weight=1)
-        inner.columnconfigure(1, weight=1)
-        inner.columnconfigure(2, weight=1)
-        inner.columnconfigure(3, weight=10)
-
-        # Create a frame that will hold all of the tools for the row
-        tools = tk.Frame(inner)
-        tools.grid(row=0, column=0, columnspan=4, padx=PADDING, sticky='NSEW')
-        tools.columnconfigure(1, weight=1)
-
-        # Create label and entry fields where the user can enter the title
-        title_label = tk.Label(tools, text='Title:')
-        title_label.grid(row=0, column=0, sticky='NSEW')
-
-        title_entry = ttk.Entry(tools)
-        title_entry.grid(row=0, column=1, padx=PADDING, sticky='NSEW')
-        self._titles.append(title_entry)
-
-        # Create a copy button
-        copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
-        copy_button = ttk.Button(tools, takefocus=0, width=3, image=copy_image, text='C')
-        copy_button['command'] = lambda ID=self._count: self.copy(ID)
-        copy_button.image = copy_image
-        copy_button.grid(row=0, column=2, padx=TOOLS, sticky='NSEW')
-
-        # Create a paste button
-        paste_image = gui.RenderImage('Assets\\paste.png', downscale=12)
-        paste_button = ttk.Button(tools, takefocus=0, width=3, image=paste_image, text='P')
-        paste_button['command'] = lambda ID=self._count: self.paste(ID)
-        paste_button.image = paste_image
-        paste_button.grid(row=0, column=3, padx=TOOLS, sticky='NSEW')
-
-        # Create a clear button
-        clear_image = gui.RenderImage('Assets\\clear.png', downscale=12)
-        clear_button = ttk.Button(tools, takefocus=0, width=3, image=clear_image, text='X')
-        clear_button['command'] = lambda ID=self._count: self.clear(ID)
-        clear_button.image = clear_image
-        clear_button.grid(row=0, column=4, padx=TOOLS, sticky='NSEW')
-
-        # Add spacing between the tools and the next row of fields
-        gui.Space(inner, row=1, column=0, columnspan=4, padding=PADDING)
-
-        # Create label and entry fields where the user can enter the x-axis columns
-        x_column_label = tk.Label(inner, text='x column:')
-        x_column_label.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
-
-        x_column_entry = ttk.Entry(inner, width=10)
-        x_column_entry.grid(row=3, column=0, padx=PADDING, sticky='NSEW')
-        self._x_columns.append(x_column_entry)
-
-        # Create label and entry fields where the user can enter the primary axis columns
-        y1_column_label = tk.Label(inner, text='y1 columns:')
-        y1_column_label.grid(row=2, column=1, padx=PADDING, sticky='NSEW')
-
-        y1_column_entry = ttk.Entry(inner, width=10)
-        y1_column_entry.grid(row=3, column=1, padx=PADDING, sticky='NSEW')
-        self._y1_columns.append(y1_column_entry)
-
-        # Create label and entry fields where the user can enter the secondary axis columns
-        y2_column_label = tk.Label(inner, text='y2 columns:')
-        y2_column_label.grid(row=2, column=2, padx=PADDING, sticky='NSEW')
-
-        y2_column_entry = ttk.Entry(inner, width=10)
-        y2_column_entry.grid(row=3, column=2, padx=PADDING, sticky='NSEW')
-        self._y2_columns.append(y2_column_entry)
-
-        # Create label and entry fields where the user can enter the x-axis label
-        x_axis_label = tk.Label(inner, text='x axis label:')
-        x_axis_label.grid(row=2, column=3, padx=PADDING, sticky='NSEW')
-
-        x_axis_entry = ttk.Entry(inner)
-        x_axis_entry.grid(row=3, column=3, padx=PADDING, sticky='NSEW')
-        self._x_labels.append(x_axis_entry)
-
-        # Add spacing between the first and second rows of fields
-        gui.Space(inner, row=4, column=0, columnspan=4, padding=PADDING)
-
-        # Create label and entry fields where the user can enter the primary axis label
-        y1_axis_label = tk.Label(inner, text='y1 axis label:')
-        y1_axis_label.grid(row=5, column=0, columnspan=3, padx=PADDING, sticky='NSEW')
-
-        y1_axis_entry = ttk.Entry(inner)
-        y1_axis_entry.grid(row=6, column=0, columnspan=3, padx=PADDING, sticky='NSEW')
-        self._y1_labels.append(y1_axis_entry)
-
-        # Create label and entry fields where the user can enter the secondary axis label
-        y2_axis_label = tk.Label(inner, text='y2 axis label:')
-        y2_axis_label.grid(row=5, column=3, padx=PADDING, sticky='NSEW')
-
-        y2_axis_entry = ttk.Entry(inner)
-        y2_axis_entry.grid(row=6, column=3, padx=PADDING, sticky='NSEW')
-        self._y2_labels.append(y2_axis_entry)
-
-        # Make each field scroll into view upon a focus event
-        title_entry.bind('<FocusIn>', self._scroll_into_view)
-        x_column_entry.bind('<FocusIn>', self._scroll_into_view)
-        y1_column_entry.bind('<FocusIn>', self._scroll_into_view)
-        y2_column_entry.bind('<FocusIn>', self._scroll_into_view)
-        x_axis_entry.bind('<FocusIn>', self._scroll_into_view)
-        y1_axis_entry.bind('<FocusIn>', self._scroll_into_view)
-        y2_axis_entry.bind('<FocusIn>', self._scroll_into_view)
-
-        # Increment the row count, keep a reference to the frame, and create a plot object
-        self._count += 1
-        self._rows.append(frame)
-        self.add_plot()
-
-    def delete_row(self):
-        """Delete a row/plot from the bottom of the current file."""
-
-        # Only allow a row/plot to be deleted if there is more than one row/plot
-        if len(self._rows) <= 1: return
-
-        # Destroy the last row, removing it from the GUI
-        self._rows[-1].destroy()
-        # Delete references to the deleted row/plot
-        del(self._rows[-1])
-        del(self.plots[-1])
-        # Decrement the row/plot count
-        self._count -= 1
-
-    def _scroll_into_view(self, event):
-        """Scrolls the bound widget into view instead of only moving focus offscreen."""
-
-        # Get the current coordinates of the tops and bottoms of the widget and canvas
-        widget_top = event.widget.winfo_rooty()
-        widget_bottom = widget_top + event.widget.winfo_height()
-        canvas_top = self.canvas.winfo_rooty()
-        canvas_bottom = canvas_top + self.canvas.winfo_height()
-
-        # Get the parent and grandparent of the widget
-        parent_inner = app.root.nametowidget(event.widget.winfo_parent())
-        parent_outer = app.root.nametowidget(parent_inner.winfo_parent())
-
-        # Define a certain amount of padding to act as a buffer
-        BUFFER = 30
-        if widget_bottom > canvas_bottom:
-            delta = int(widget_bottom - canvas_bottom) + BUFFER
-            self.canvas.yview_scroll(delta, 'units')
-        elif widget_top < canvas_top:
-            delta = int(widget_top - canvas_top) - BUFFER
-            self.canvas.yview_scroll(delta, 'units')
-
-    def copy(self, ID):
-        """Copies the contents of the selected row to the clipboard."""
-
-        app.clipboard['title'] = self._titles[ID].get()
-        app.clipboard['x column'] = self._x_columns[ID].get()
-        app.clipboard['y1 columns'] = self._y1_columns[ID].get()
-        app.clipboard['y2 columns'] = self._y2_columns[ID].get()
-        app.clipboard['x label'] = self._x_labels[ID].get()
-        app.clipboard['y1 label'] = self._y1_labels[ID].get()
-        app.clipboard['y2 label'] = self._y2_labels[ID].get()
-
-    def paste(self, ID):
-        """Pastest the contents of the clipboards into the selected row."""
-
-        self.clear(ID)
-        self._titles[ID].insert(0, app.clipboard['title'])
-        self._x_columns[ID].insert(0, app.clipboard['x column'])
-        self._y1_columns[ID].insert(0, app.clipboard['y1 columns'])
-        self._y2_columns[ID].insert(0, app.clipboard['y2 columns'])
-        self._x_labels[ID].insert(0, app.clipboard['x label'])
-        self._y1_labels[ID].insert(0, app.clipboard['y1 label'])
-        self._y2_labels[ID].insert(0, app.clipboard['y2 label'])
-
-    def clear(self, ID):
-        """Clears the contents of the selected row."""
-
-        self._titles[ID].delete(0, 'end')
-        self._x_columns[ID].delete(0, 'end')
-        self._y1_columns[ID].delete(0, 'end')
-        self._y2_columns[ID].delete(0, 'end')
-        self._x_labels[ID].delete(0, 'end')
-        self._y1_labels[ID].delete(0, 'end')
-        self._y2_labels[ID].delete(0, 'end')
-
-    def add_plot(self):
-        """Create a new plot object and hold a reference to it."""
-
-        class Plot:
-            """Object that holds information about a singular plot."""
-
-            def __init__(self):
-                """Initialize the object's attributes."""
-
-                # Keep track of the columns to plot and the title/axis labels
-                self.x = None
-                self.y1 = None
-                self.y2 = None
-                self.title = None
-                self.x_label = None
-                self.y1_label = None
-                self.y2_label = None
-
-                # Keep track of whether or not a secondary axis is required
-                self.secondary_axis = None
-
-                # Keep track of original axis limits
-                self.x_lower_original = None
-                self.x_upper_original = None
-                self.y1_lower_original = None
-                self.y1_upper_original = None
-                self.y2_lower_original = None
-                self.y2_upper_original = None
-
-                # Keep track of axis limits
-                self.x_lower = None
-                self.x_upper = None
-                self.y1_lower = None
-                self.y1_upper = None
-                self.y2_lower = None
-                self.y2_upper = None
-
-                # Keep track of number of primary and secondary ticks
-                self.primary_ticks = None
-                self.secondary_ticks = None
-
-                # Keep track of the style selection
-                self.style = tk.StringVar()
-                self.style.set('Default')
-
-                # Keep track of the background selection, and path if necessary
-                self.background = tk.StringVar()
-                self.background.set('None')
-                self.background_path = None
-
-                # Keep tracks of tolerance band information
-                self.bands = ToleranceBands()
-                self.series = []
-                self.color = []
-                self.linestyle = []
-                self.minus_tolerance = []
-                self.plus_tolerance = []
-                self.lag = []
-                self.plus_bands = []
-                self.minus_bands = []
-
-                # Keep track of limit line information
-                self.lines = LimitLines()
-                self.line_axis = []
-                self.line_orientation = []
-                self.line_value = []
-                self.line_color = []
-                self.line_style = []
-                self.line_alpha = []
-
-            def _x_data(self, x_column):
-                """Pull the appropriate x-information from the data."""
-
-                return self.data[self.labels[x_column-1]]
-
-            def _y_data(self, y_columns):
-                """Pull the appropriate y-information from the data."""
-
-                return [self.data[self.labels[column-1]] for column in y_columns]
-
-            def _generate(self, data, labels, x_column, y1_columns, y2_columns=None,
-                          units=None):
-                """The main function for the object which stores the inputs and calls
-                other relevant functions."""
-
-                # Store the inputs as instance variables
-                self.data = data
-                self.labels = labels
-                self.units = units
-                self.x_column = x_column
-                self.y1_columns = y1_columns
-                self.y2_columns = y2_columns
-
-                # Grab the relevant data and store as instance variables
-                self.x = self._x_data(x_column)
-                self.y1 = self._y_data(y1_columns)
-                self.y2 = self._y_data(y2_columns) if y2_columns else None
-
-            def _labels(self, title, x_label, y1_label, y2_label):
-                """Store the label inputs as instance variables. This is separate from
-                the _generate method solely because it didn't feel like it fit there."""
-
-                # Store the label inputs as instance variables
-                self.title = title if title else None
-                self.x_label = x_label if x_label else None
-                self.y1_label = y1_label if y1_label else None
-                self.y2_label = y2_label if y2_label else None
-
-        # Create a new plot object and hold a reference to it
-        plot = Plot()
-        self.plots.append(plot)
-
-    def _filetype(self, path):
-        """Determine the filetype of the input."""
-
-        name, extension = os.path.splitext(path)
-        if extension in ['.csv', '.dat']: return 'CSV'
-        elif extension in ['.xls', '.xlsx', '.xlsm']: return 'Excel'
-        else: raise TypeError(f'The .{extension} filetype is not supported.')
-
-    def _labels(self, label_row):
-        """Grab the labels from the specified row."""
-
-        # Grab the labels using the appropriate method for the filetype
-        if self._type == 'CSV':
-            labels = pd.read_csv(self.filepath, skiprows=label_row-1, nrows=1,
-                                 index_col=False, header=None)
-        elif self._type == 'Excel':
-            labels = pd.read_excel(self.filepath, skiprows=label_row-1, nrows=1,
-                                   index_col=False, header=None, encoding='latin1')
-        # Convert the pandas dataframe to a list and return it
-        return list(labels.values.flatten())
-
-    def _units(self, unit_row):
-        """Grab the units from the specified row."""
-
-        # If the unit_row parameter is None, do not continue
-        if not unit_row: return None
-
-        # Grab the units using the appropriate method for the filetype
-        if self._type == 'CSV':
-            units = pd.read_csv(self.filepath, skiprows=unit_row-1, nrows=1,
-                                index_col=False, header=None)
-        elif self._type == 'Excel':
-            units = pd.read_excel(self.filepath, skiprows=unit_row-1, nrows=1,
-                                  index_col=False, header=None, encoding='latin1')
-        # Convert the pandas dataframe to a list and return it
-        return list(units.values.flatten())
-
-    def _data(self, data_start_row):
-        """Grab the appropriate data from the file."""
-
-        # Read the file using the appropriate method for the filetype
-        if self._type == 'CSV':
-            return pd.read_csv(self.filepath, skiprows=data_start_row-1,
-                                 names=self.labels, index_col=False,
-                                 header=None)
-        elif self._type == 'Excel':
-            return pd.read_excel(self.filepath, skiprows=data_start_row-1,
-                                 names=self.labels, index_col=False,
-                                 header=None, encoding='latin1')
-
-    def generate(self):
-        """The main function for the object which pulls all of the relevant data
-        from the file and adds the appropriate information to the plot objects."""
-
-        # Determine the file's type
-        self._type = self._filetype(self.filepath)
-
-        # Store the label row and corresponding labels as instance variables
-        self.label_row = int(self.label_row_entry.get())
-        self.labels = self._labels(self.label_row)
-
-        # Store the unit row and corresponding units as instance variables
-        self.unit_row = int(self.unit_row_entry.get()) if self.unit_row_entry.get() else None
-        self.units = self._units(self.unit_row)
-
-        # Store the data start row and corresponding data as instance variables
-        self.data_start_row = int(self.data_row_entry.get())
-        self.data = self._data(self.data_start_row)
-
-        # Iterate through each plot
-        for p, plot in enumerate(self.plots):
-            # Grab all entries in each field
-            title = self._titles[p].get()
-            x_column = int(self._x_columns[p].get())
-            self.y1_columns = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
-            self.y2_columns = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
-            x_label = self._x_labels[p].get()
-            y1_label = self._y1_labels[p].get()
-            y2_label = self._y2_labels[p].get()
-            # Feed the entries to the plot object
-            plot._generate(self.data, self.labels, x_column, self.y1_columns,
-                           self.y2_columns, self.units)
-            plot._labels(title, x_label, y1_label, y2_label)
-
-
 class Help(tk.Toplevel):
     """Help window that displays useful information such as button information
     and keyboard shortcuts to the user."""
@@ -2648,11 +2648,9 @@ class Help(tk.Toplevel):
         def on_close():
             """Define what happens when the help window is closed."""
 
-            global HELP
-
             # Destroy the window and reset the help window tracker variable
             self.destroy()
-            HELP = False
+            app.HELP = False
 
         MARGIN = 12
         CANVAS_WIDTH = 375
