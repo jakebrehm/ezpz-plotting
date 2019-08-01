@@ -603,6 +603,7 @@ class Application(gui.Application):
         """Function that loads a preset and opens the flipbook for testing purposes."""
 
         self.load_preset('Presets\\preset.ini')
+        # self.load_preset('Presets\\laptop.ini')
         self.open_flipbook()
 
 
@@ -1345,6 +1346,8 @@ class Flipbook(tk.Toplevel):
                         mode = 'expand',
                         bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
             )
+        # Make the legend draggable (possibly a control in the future)
+        legend.set_draggable(state=True)
 
         # Map the items in the legend to its corresponding line
         self.line_map = {}
