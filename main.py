@@ -226,7 +226,7 @@ class Application(gui.Application):
 
             # The rest of the inputs are specific to each plot. Iterate through each plot,
             # recording each one's inputs under a different subsection of the preset.
-            for n, section in enumerate(file.plots):
+            for n in range(len(file.plots)):
                 preset[f'File {f+1}'][f'Plot {n+1}'] = {
                     'title': self.files[f]._titles[n].get(),
                     'x column': self.files[f]._x_columns[n].get(),
@@ -276,7 +276,7 @@ class Application(gui.Application):
         self.input_controls()
 
         # Iterate through the preset and create the necessary number of rows for each file
-        for f, (file, info) in enumerate(preset.items()):
+        for f, (_, info) in enumerate(preset.items()):
             # If info has a length of greater than five, that means that rows need to be added.
             # The first five entries are filepath, data start row, label row, unit row, and
             # the first row that is already created by default for each file.
@@ -285,7 +285,7 @@ class Application(gui.Application):
                 for _ in range(rows_needed): self.plus_row(tab=f)
 
         # Iterate through the preset again and fill the GUI fields with the relevant data
-        for f, (file, info) in enumerate(preset.items()):
+        for f, (_, info) in enumerate(preset.items()):
             self.files[f].data_row_entry.insert(0, info['data start'])
             self.files[f].label_row_entry.insert(0, info['label row'])
             self.files[f].unit_row_entry.insert(0, info['unit row'])
@@ -364,23 +364,6 @@ class Application(gui.Application):
         no_input_label.grid(row=0, column=0, sticky='NSEW')
 
 
-    # def input_controls(self):
-    #     """Creates a tab for each input file, and one row for each tab."""
-
-    #     # Destroy everything in the primary frame
-    #     for child in self.primary.winfo_children(): child.destroy()
-
-    #     # Place a notebook in the primary frame
-    #     self.notebook = ttk.Notebook(self.primary, takefocus=0)
-    #     self.notebook.grid(row=0, column=0, sticky='NSEW')
-
-    #     # Create an object file for each inputs and add them to a list to keep track
-    #     self.files = [BasicFile(self.notebook, filepath) for filepath in self.inputs]
-
-    #     # Set cursor focus on the data start row entry of the first tab for ease of use
-    #     self.files[0].data_row_entry.focus_set()
-
-
     def input_controls(self, special=None):
         """Creates a tab for each input file, and one row for each tab."""
 
@@ -425,36 +408,6 @@ class Application(gui.Application):
             # Remove a row from the tab
             self.files[tab].delete_row()
         except NameError: pass
-
-
-    # def add_file(self):
-    #     """Retroactively add a file to the current inputs."""
-
-    #     # Ask the user to locate the file he/she wishes to add
-    #     filepath = fd.askopenfilename(title='Choose the file')
-
-    #     # Don't continue if no filepath was selected by the user
-    #     if len(filepath) == 0: return
-
-    #     # Append the filepath to the list of inputs
-    #     self.inputs.append(filepath)
-
-    #     if len(self.inputs) == 1:
-    #         # A length of one of the inputs list implies that the user is trying
-    #         # to add a file to a freshly resetted program; handle differely
-    #         self.enable()
-    #         self.input_controls()
-    #         self.listbox.clear()
-    #     else:
-    #         # Create a File object by default and append it to the list of file objects
-    #         file = BasicFile(self.notebook, filepath)
-    #         self.files.append(file)
-
-    #     # Add the filepath to the listbox
-    #     self.listbox.field['state'] = 'normal'
-    #     self.listbox.field.insert('end', filepath)
-    #     self.listbox.field['state'] = 'disable'
-    #     self.listbox.field['justify'] = 'left'
 
 
     def add_file(self, special=None):
@@ -585,7 +538,7 @@ class Application(gui.Application):
 
         # Hide the main window and open the flipbook object
         app.root.withdraw()
-        flipbook = Flipbook(app.root, info=self.files)
+        Flipbook(app.root, info=self.files)
         self.FLIPBOOK = True
 
 

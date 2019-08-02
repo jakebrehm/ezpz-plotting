@@ -6,6 +6,9 @@ import tkinter as tk
 from tkinter import ttk
 import re
 
+import matplotlib.pyplot as plt
+
+
 class PeakValleyFile(gui.ScrollableTab):
 
 	def __init__(self, notebook, filepath):
@@ -25,6 +28,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		self.plots = []
 		
+		self.READ_COMPLETE = False
+
 		controls = tk.Frame(self)
 		controls.grid(row=0, column=0, pady=20, sticky='NSEW')
 		controls.columnconfigure(0, weight=1)
@@ -56,7 +61,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.delimiter_combo = ttk.Combobox(info, width=7, state='readonly')
 		self.delimiter_combo['values'] = ['comma', 'tab']
 		self.delimiter_combo.grid(row=1, column=1, sticky='EW')
-		self.delimiter_combo.set('comma')
+		self.delimiter_combo.set('tab')
 
 		criteria = tk.Frame(controls)
 		criteria.grid(row=0, column=1, padx=20, sticky='NSEW')
@@ -80,28 +85,37 @@ class PeakValleyFile(gui.ScrollableTab):
 		checkboxes.grid(row=0, column=2, padx=(0, 20), sticky='NSEW')
 		checkboxes.columnconfigure(0, weight=1)
 
-		self.convert = tk.IntVar()
-		convert_checkbox = ttk.Checkbutton(checkboxes, text='Convert to cycles', takefocus=0, variable=self.convert)
-		convert_checkbox.grid(row=0, column=0, sticky='EW')
-		convert_checkbox.state(['!alternate', 'selected'])
+		convert = tk.IntVar()
+		self.convert_checkbox = ttk.Checkbutton(checkboxes, text='Convert to cycles', takefocus=0, variable=convert)
+		self.convert_checkbox.grid(row=0, column=0, sticky='EW')
+		self.convert_checkbox.state(['!alternate', 'selected'])
 
-		self.zero = tk.IntVar()
-		zero_checkbox = ttk.Checkbutton(checkboxes, text='Zero-out counter column', takefocus=0, variable=self.zero)
-		zero_checkbox.grid(row=1, column=0, sticky='EW')
-		zero_checkbox.state(['!alternate','selected'])
+		zero = tk.IntVar()
+		self.zero_checkbox = ttk.Checkbutton(checkboxes, text='Zero-out counter column', takefocus=0, variable=zero)
+		self.zero_checkbox.grid(row=1, column=0, sticky='EW')
+		self.zero_checkbox.state(['!alternate','selected'])
 
-		self.split = tk.IntVar()
-		split_checkbox = ttk.Checkbutton(checkboxes, text='Split peaks and valleys', takefocus=0, variable=self.split)
-		split_checkbox.grid(row=2, column=0, sticky='EW')
-		split_checkbox.state(['!alternate', 'selected'])
-		
-		self.read()
+		split = tk.IntVar()
+		self.split_checkbox = ttk.Checkbutton(checkboxes, text='Split peaks and valleys', takefocus=0, variable=split)
+		self.split_checkbox.grid(row=2, column=0, sticky='EW')
+		self.split_checkbox.state(['!alternate', 'selected'])
+
+		self.read_button = ttk.Button(controls, text='Read', width=10)
+		self.read_button['command'] = self.read
+		self.read_button.grid(row=1, column=0, columnspan=3, pady=20)
+
 
 	def add_row(self):
+
+		# Don't allow for rows to be added until the read has been completed
+		if not self.READ_COMPLETE: return
 		
 		MARGIN = 8
 		PADDING = 10
 		WIDTH = 7
+
+		# Destroy the read button
+		if self._count == 0: self.read_button.destroy()
 
 		frame = tk.LabelFrame(self, text=f'Plot {self._count + 1}')
 		frame.grid(row=self._count + 1, column=0,
@@ -158,10 +172,19 @@ class PeakValleyFile(gui.ScrollableTab):
 		edit_controls.columnconfigure(0, weight=1)
 		edit_controls.columnconfigure(1, weight=1)
 
-		copy_button = ttk.Button(edit_controls, text='C', width=5, takefocus=0)
-		copy_button.grid(row=0, column=0, padx=PADDING/5, sticky="EW")
-		paste_button = ttk.Button(edit_controls, text='P', width=5, takefocus=0)
-		paste_button.grid(row=0, column=1, padx=PADDING/5, sticky="EW")
+        # Create a copy button
+		copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
+		copy_button = ttk.Button(edit_controls, takefocus=0, width=3, image=copy_image, text='C')
+		# copy_button['command'] = lambda ID=self._count: self.copy(ID)
+		copy_button.image = copy_image
+		copy_button.grid(row=0, column=0, padx=PADDING/5, sticky='EW')
+
+		# Create a paste button
+		paste_image = gui.RenderImage('Assets\\paste.png', downscale=12)
+		paste_button = ttk.Button(edit_controls, takefocus=0, width=3, image=paste_image, text='C')
+		# paste_button['command'] = lambda ID=self._count: self.paste(ID)
+		paste_button.image = paste_image
+		paste_button.grid(row=0, column=1, padx=PADDING/5, sticky='EW')
 
 		# Update the comboboxes of the GUI to display the appropriate choices
 		self._update_combobox(plot=self._count+1, sections=self.section_total)
@@ -169,6 +192,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._count += 1
 		self._rows.append(frame)
 		self.add_plot()
+
 
 	def delete_row(self):
 		"""Delete a row/plot from the bottom of the current file."""
@@ -180,12 +204,14 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._rows[-1].destroy()
 		# Delete references to the deleted row/plot
 		del(self._rows[-1])
-		# del(self.plots[-1])
+		del(self.plots[-1])
 		# Decrement the row/plot count
 		self._count -= 1
 
+
 	def set_default_focus(self):
 		self.lower_entry.focus_set()
+
 
 	def _update_combobox(self, plot, sections):
 
@@ -204,9 +230,10 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		rows = self.sections[p].header_length
 		self._units[p]['values'] = list(range(1, rows + 1))
-		self._units[p].set(1)
+		self._units[p].set(rows)
 		self._labels[p]['values'] = list(range(1, rows + 1))
-		self._labels[p].set(rows)
+		self._labels[p].set(1)
+
 
 	def read(self):
 		
@@ -214,7 +241,7 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def __init__(self, section, raw_data):
 
-				self.raw_data = raw
+				self.raw_data = raw_data
 
 				self.section = section
 
@@ -259,12 +286,13 @@ class PeakValleyFile(gui.ScrollableTab):
 							return
 							
 
-
-		# delimiter = self.delimiter_combo.get()
+		# Pull the delimiter from the appropriate combobox
+		delimiter = self.delimiter_combo.get()
+		if delimiter == 'comma': delimiter = ','
+		elif delimiter == 'tab': delimiter = '\t'
 
 		with open(self.filepath, 'rb') as file:
-			# raw = [line.rstrip().decode('latin-1').split(delimiter) for line in file]
-			raw = [line.rstrip().decode('latin-1').split('\t') for line in file]
+			raw = [line.rstrip().decode('latin-1').split(delimiter) for line in file]
 		
 		# Remove empty rows to avoid errors during parsing
 		to_remove = []
@@ -309,7 +337,9 @@ class PeakValleyFile(gui.ScrollableTab):
 			section.parse_data(data_starts[s], data_ends[s])
 			self.sections.append(section)
 
+		self.READ_COMPLETE = True
 		self.add_row()
+
 
 	# def calculate(self):
 	# 	with open(self.filepath, 'rb') as file:
@@ -317,6 +347,7 @@ class PeakValleyFile(gui.ScrollableTab):
 	# 		data = pd.DataFrame(raw)
 	# 		print(data)
 	# 		print(data.iloc[:, [0]])
+
 
 	def add_plot(self):
 		"""Create a new plot object and hold a reference to it."""
@@ -335,6 +366,28 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				# return [self.data[self.labels[column-1]] for column in y_column]
 				return self.section.data.iloc[:, y_column-1]
+
+			def determine_failures(self, lower, upper):
+				print(lower, upper)
+				self.total = len(self.y1)
+				# self.passed = len(self.y1[(lower > self.y1) & (self.y1 < upper)])
+				# self.passed = len(self.y1[(lower > self.y1) & (self.y1 > upper)])
+				self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
+				self.fail_count = len(self.failed)
+				self.passed = self.y1[~self.y1.isin(self.failed)]
+				self.pass_count = len(self.passed)
+				print(f'passed: {self.pass_count}\n{self.passed}')
+				print(f'failed: {self.fail_count}\n{self.failed}')
+				# print(self.y1[(lower < self.y1) & (self.y1 < upper)])
+
+			def split(self):
+				average = sum(self.y1) / len(self.y1)
+				x_valleys = self.x[self.y1 < average]
+				x_peaks = self.x[self.y1 > average]
+				y_valleys = self.y1[self.y1 < average]
+				y_peaks = self.y1[self.y1 > average]
+				self.x = (x_valleys, x_peaks)
+				self.y1 = (y_valleys, y_peaks)
 
 			def _generate(self, section, labels, x_column, y_column, units=None):
 				"""The main function for the object which stores the inputs and calls
@@ -360,14 +413,19 @@ class PeakValleyFile(gui.ScrollableTab):
 		plot = Plot()
 		self.plots.append(plot)
 
+
 	def generate(self):
 		"""The main function for the object which pulls all of the relevant data
 		from the file and adds the appropriate information to the plot objects."""
 
+		# Store the current checkbox values
+		convert = self.convert_checkbox.instate(['selected'])
+		zero = self.zero_checkbox.instate(['selected'])
+		split = self.split_checkbox.instate(['selected'])
+
 		# Store the label row and corresponding labels as instance variables
-		self.lower = float(self.lower_entry.get()) if self.lower_entry.get() else None
-		self.upper = float(self.upper_entry.get()) if self.upper_entry.get() else None
-		print('lower, upper:', self.lower, self.upper)
+		lower = float(self.lower_entry.get()) if self.lower_entry.get() else None
+		upper = float(self.upper_entry.get()) if self.upper_entry.get() else None
 
 		for p, plot in enumerate(self.plots):
 			section_number = int(self._sections[p].get())
@@ -380,7 +438,22 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			plot._generate(section, label_row, x_column, y_column, unit_row)
 
+			# Determine how many failures there are before modifying plot.x
+			# and plot.y any further
+			if lower is not None and upper is not None:
+				plot.determine_failures(lower, upper)
+
+			if split: plot.split()
+
+
 if __name__ == '__main__':
+
+	def plot():
+		tab.generate()
+		for p, plot in enumerate(tab.plots):
+			plt.plot(plot.x, plot.y1)
+			plt.show()
+
 	filepath = 'testdata.dat'
 	app = gui.Application(padding=20)
 	notebook = ttk.Notebook(app)
@@ -395,6 +468,6 @@ if __name__ == '__main__':
 	delete_button['command'] = tab.delete_row
 	delete_button.grid(row=0, column=1, sticky='W')
 	plot_button = ttk.Button(buttons, text='Plot')
-	plot_button['command'] = tab.generate
+	plot_button['command'] = plot
 	plot_button.grid(row=0, column=2, sticky='W')
 	app.mainloop()
