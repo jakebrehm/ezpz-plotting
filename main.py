@@ -440,6 +440,9 @@ class Application(gui.Application):
         self.listbox.field['state'] = 'disable'
         self.listbox.field['justify'] = 'left'
 
+        # Select the newly added notebook tab
+        self.notebook.select(len(self.files)-1)
+
 
     def remove_file(self):
         """Retroactively remove a file from the current inputs."""
@@ -1157,10 +1160,10 @@ class BasicFile(gui.ScrollableTab):
                     legend_line.set_picker(5)
                     flipbook.line_map[legend_line] = original_line
 
-                # If the controls window has not been created yet, create it and leave it hidden
-                if not flipbook.controls:
-                    flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
-                    flipbook.controls.withdraw()
+                # # If the controls window has not been created yet, create it and leave it hidden
+                # if not flipbook.controls:
+                #     flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
+                #     flipbook.controls.withdraw()
 
                 # ====================
                 # AXES LIMITS CONTROLS
@@ -1453,12 +1456,12 @@ class Flipbook(tk.Toplevel):
         toolbar.update()
         toolbar.grid(row=0, column=0, sticky='NSEW')
 
-        # Create the controls button that allows the user to open the controls window
-        controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
-        controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
-                                     image=controls_image, command=show_controls)
-        controls_button.grid(row=0, column=1, sticky='E')
-        controls_button.image = controls_image
+        # # Create the controls button that allows the user to open the controls window
+        # controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
+        # controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
+        #                              image=controls_image, command=show_controls)
+        # controls_button.grid(row=0, column=1, sticky='E')
+        # controls_button.image = controls_image
 
         # Create a label that will display the filename of the current plot's corresponding file
         self.filename = tk.StringVar()
@@ -1493,8 +1496,8 @@ class Flipbook(tk.Toplevel):
         """Update the plot with new data or information."""
 
         current = self.plots[self.page] # Current plot object
-        file = self.files[self.page] # File index
-        number = self.numbers[self.page] # Plot number in file
+        file_number = self.files[self.page] # File index
+        plot_number = self.numbers[self.page] # Plot number in file
 
         # fileclass = self.info[self.page].__class__.__name__
         # if self.controls and fileclass != 'BasicFile':
@@ -1504,7 +1507,8 @@ class Flipbook(tk.Toplevel):
 
         # self.controls.disable()
 
-        current.update_plot(self, file, number)
+        # Update the plot using the plot object's update_plot method
+        current.update_plot(self, file_number, plot_number)
 
         # Update the canvas
         self.canvas.draw()
@@ -1534,11 +1538,11 @@ class Flipbook(tk.Toplevel):
         if destination in range(self.pages + 1):
             # Set the new page number; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
-            self.controls.current = self.plots[self.page]
+            # self.controls.current = self.plots[self.page]
             self.update_plot()
             self.update_arrows()
-            # Refresh the controls window
-            self.controls.refresh()
+            # # Refresh the controls window
+            # self.controls.refresh()
 
         # Return 'break' to bypass event propagation
         return ('break')

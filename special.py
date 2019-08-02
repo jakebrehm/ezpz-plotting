@@ -355,6 +355,10 @@ class PeakValleyFile(gui.ScrollableTab):
 		class Plot:
 			"""Object that holds information about a singular plot."""
 
+			# def __init__(self):
+			# 	self.FAILURES_DETERMINED = False
+			# 	self.DATA_SPLIT = False
+
 			def _x_data(self, x_column):
 				"""Pull the appropriate x-information from the data."""
 
@@ -368,26 +372,68 @@ class PeakValleyFile(gui.ScrollableTab):
 				return self.section.data.iloc[:, y_column-1]
 
 			def determine_failures(self, lower, upper):
+				# self.total = len(self.y1)
+				# self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
+				# self.fail_index = self.failed.index.values
+				# self.fail_count = len(self.failed)
+				# self.passed = self.y1[~self.y1.isin(self.failed)]
+				# self.pass_index = self.passed.index.values
+				# self.pass_count = len(self.passed)
+
+
+				self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
+				self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
+				# self.fail_index = self.y_failed.index.values
+
+				self.x_passed = self.x[~self.y1.isin(self.y_failed)]
+				self.y_passed = self.y1[~self.y1.isin(self.y_failed)]
+				# self.pass_index = self.y_passed.index.values
+
 				self.total = len(self.y1)
-				self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
-				self.fail_index = self.failed.index.values
-				self.fail_count = len(self.failed)
-				self.passed = self.y1[~self.y1.isin(self.failed)]
-				self.pass_index = self.passed.index.values
-				self.pass_count = len(self.passed)
+				self.fail_count = len(self.y_failed)
+				self.pass_count = len(self.y_passed)
+
+				self.x = [self.x_failed, self.x_passed]
+				self.y1 = [self.y_failed, self.y_passed]
+
+				self.FAILURES_DETERMINED = True
 
 			def split(self):
-				average = sum(self.y1) / len(self.y1)
-				x_valleys = self.x[self.y1 < average]
-				x_peaks = self.x[self.y1 > average]
-				y_valleys = self.y1[self.y1 < average]
-				y_peaks = self.y1[self.y1 > average]
-				self.x = (x_valleys, x_peaks)
-				self.y1 = (y_valleys, y_peaks)
+				# average = sum(self.y1) / len(self.y1)
+				# x_valleys = self.x[self.y1 < average]
+				# x_peaks = self.x[self.y1 > average]
+				# y_valleys = self.y1[self.y1 < average]
+				# y_peaks = self.y1[self.y1 > average]
+				# self.x = [x_valleys, x_peaks]
+				# self.y1 = [y_valleys, y_peaks]
+
+				if not self.FAILURES_DETERMINED:
+					average = sum(self.y1) / len(self.y1)
+					x_valleys = self.x[self.y1 < average]
+					x_peaks = self.x[self.y1 > average]
+					y_valleys = self.y1[self.y1 < average]
+					y_peaks = self.y1[self.y1 > average]
+					self.x = [x_valleys, x_peaks]
+					self.y1 = [y_valleys, y_peaks]
+				else:
+					average = sum(self.y1[1]) / len(self.y1[1])
+					x_valleys = self.x[1][self.y1[1] < average]
+					x_peaks = self.x[1][self.y1[1] > average]
+					y_valleys = self.y1[1][self.y1[1] < average]
+					y_peaks = self.y1[1][self.y1[1] > average]
+					self.x = [self.x[0], x_valleys, x_peaks]
+					self.y1 = [self.y1[0], y_valleys, y_peaks]
+
+				self.DATA_SPLIT = True
 
 			def _generate(self, section, labels, x_column, y_column, units=None):
 				"""The main function for the object which stores the inputs and calls
 				other relevant functions."""
+
+				# Reset certain variables each time this function runs
+				# (typically when the plot button is pressed)
+				self.FAILURES_DETERMINED = False
+				self.DATA_SPLIT = False
 
 				# Store the inputs as instance variables
 				self.section = section
@@ -397,13 +443,86 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.y_column = y_column
 
 				# Grab the relevant data and store as instance variables
-				self.x = self._x_data(x_column)
-				self.y1 = self._y_data(y_column)
+				self.x = self._x_data(self.x_column)
+				self.y1 = self._y_data(self.y_column)
+				self.x_original = self.x.copy()
+				self.y1_original = self.y1.copy()
+				# self.x_original = self._x_data(x_column)
+				# self.y1_original = self._y_data(y_column)
+				# self.x = [self.x_original]
+				# self.y1 = [self.y1_original]
+				# self.x = [self._x_data(self.x_column)]
+				# self.y1 = [self._y_data(self.y_column)]
 
 				self.section.parse_labels(labels)
 				self.labels = self.section.labels
 				self.section.parse_units(units)
 				self.units = self.section.units
+
+			def update_plot(self, flipbook, file_number, plot_number):
+				# =================
+				# MAIN UPDATE LOGIC
+				# =================
+
+				# Display the filename of the current plot
+				flipbook.filename.set(f'{flipbook.info[file_number].filename} - Plot {plot_number + 1}')
+
+				# Essentially reset the secondary axis by clearing and turning it off if it exists,
+				# then setting the self.secondary variable to None
+				if flipbook.secondary:
+				    flipbook.secondary.clear()
+				    flipbook.secondary.axis('off')
+				flipbook.secondary = None
+
+				# Create a variable that keeps track of if a secondary axis is necessary
+				self.secondary_axis = False
+
+				# Clear the primary axis as well
+				flipbook.primary.clear()
+
+				# Set the appropriate coordinates format to display on the flipbook
+				flipbook.primary.set_zorder(1000)
+				flipbook.primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
+
+				print(self.FAILURES_DETERMINED, self.DATA_SPLIT)
+
+				colors = {'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'k'}
+				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
+					flipbook.primary.scatter(self.x, self.y1, color='k')
+				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
+					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
+					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['valley'])
+					flipbook.primary.scatter(self.x[2], self.y1[2], color=colors['peak'])
+				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
+					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
+					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['pass'])
+				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
+					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
+					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
+
+				# # Iterate through the primary axis data for the current plot
+				# for y, y1 in enumerate(self.y1):
+				#     Get the column label and plot the line
+				# 	print(self.x[y], y1)
+				# 	line = flipbook.primary.scatter(self.x[y], y1)
+				#     column = self.y1_columns[y]
+				#     label = self.labels[column-1]
+				#     line = flipbook.primary.plot(self.x, y1, label=label)
+
+				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
+				# Store the original x-axis limits to allow the user to revert to them if desired.
+				min_x = min(self.x_original.dropna())
+				max_x = max(self.x_original.dropna())
+				padding = (max_x - min_x) * (100/90) * (0.05)
+				self.x_lower_original = min_x - padding
+				self.x_upper_original = max_x + padding
+				flipbook.primary.set_xlim(self.x_lower_original, self.x_upper_original)
+				# Store the original y-axis limits to allow the user to revert to them if desired.
+				self.y1_lower_original = flipbook.primary.get_ylim()[0]
+				self.y1_upper_original = flipbook.primary.get_ylim()[1]
+				if self.secondary_axis:
+				    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
+				    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
 
 		# Create a new plot object and hold a reference to it
 		plot = Plot()
