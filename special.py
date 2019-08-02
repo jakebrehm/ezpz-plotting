@@ -85,24 +85,24 @@ class PeakValleyFile(gui.ScrollableTab):
 		checkboxes.grid(row=0, column=2, padx=(0, 20), sticky='NSEW')
 		checkboxes.columnconfigure(0, weight=1)
 
-		convert = tk.IntVar()
-		self.convert_checkbox = ttk.Checkbutton(checkboxes, text='Convert to cycles', takefocus=0, variable=convert)
+		self.convert = tk.IntVar()
+		self.convert_checkbox = ttk.Checkbutton(checkboxes, text='Convert to cycles', takefocus=0, variable=self.convert)
 		self.convert_checkbox.grid(row=0, column=0, sticky='EW')
 		self.convert_checkbox.state(['!alternate', 'selected'])
 
-		zero = tk.IntVar()
-		self.zero_checkbox = ttk.Checkbutton(checkboxes, text='Zero-out counter column', takefocus=0, variable=zero)
+		self.zero = tk.IntVar()
+		self.zero_checkbox = ttk.Checkbutton(checkboxes, text='Zero-out counter column', takefocus=0, variable=self.zero)
 		self.zero_checkbox.grid(row=1, column=0, sticky='EW')
-		self.zero_checkbox.state(['!alternate','selected'])
+		self.zero_checkbox.state(['!alternate', 'selected'])
 
-		split = tk.IntVar()
-		self.split_checkbox = ttk.Checkbutton(checkboxes, text='Split peaks and valleys', takefocus=0, variable=split)
+		self.split = tk.IntVar()
+		self.split_checkbox = ttk.Checkbutton(checkboxes, text='Split peaks and valleys', takefocus=0, variable=self.split)
 		self.split_checkbox.grid(row=2, column=0, sticky='EW')
 		self.split_checkbox.state(['!alternate', 'selected'])
 
 		self.read_button = ttk.Button(controls, text='Read', width=10)
 		self.read_button['command'] = self.read
-		self.read_button.grid(row=1, column=0, columnspan=3, pady=20)
+		self.read_button.grid(row=1, column=0, columnspan=3, pady=(80, 0))
 
 
 	def add_row(self):
@@ -368,7 +368,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				return self.section.data.iloc[:, y_column-1]
 
 			def determine_failures(self, lower, upper):
-				print(lower, upper)
 				self.total = len(self.y1)
 				self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
 				self.fail_index = self.failed.index.values
@@ -376,9 +375,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.passed = self.y1[~self.y1.isin(self.failed)]
 				self.pass_index = self.passed.index.values
 				self.pass_count = len(self.passed)
-				# print(f'passed: {self.pass_count}\n{self.passed}')
-				# print(f'failed: {self.fail_count}\n{self.failed}')
-				print(self.fail_index, self.pass_index)
 
 			def split(self):
 				average = sum(self.y1) / len(self.y1)

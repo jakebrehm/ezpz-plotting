@@ -121,17 +121,9 @@ class Application(gui.Application):
         self.file_menu = tk.Menu(menu_bar, tearoff=0)
         self.file_menu.add_command(label='Load Files', command=self.listbox.Browse)
         self.file_menu.add_command(label='Add File', command=self.add_file)
-
         add_special = tk.Menu(menu_bar, tearoff=0)
+        add_special.add_command(label='Peak Valley', command=lambda: self.add_file('Peak Valley'))
         self.file_menu.add_cascade(label='Add Special', menu=add_special)
-
-        add_peak_valley = tk.Menu(add_special, tearoff=0)
-        add_special.add_cascade(label='Peak Valley', menu=add_peak_valley)
-
-        add_peak_valley.add_command(label='Tab Delimited',
-                                    command=lambda: self.add_file('Peak Valley'))
-        add_peak_valley.add_command(label='Comma Delimited')
-
         self.file_menu.add_command(label='Remove File', state='disabled', command=self.remove_file)
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Save Preset', state='disabled', command=self.save_preset)
@@ -345,9 +337,11 @@ class Application(gui.Application):
         self.minus_button['state'] = 'disabled'
 
         # Disable the entries in the file menu
-        self.file_menu.entryconfig(1, state='disabled')
-        self.file_menu.entryconfig(2, state='disabled')
-        self.file_menu.entryconfig(4, state='disabled')
+        # self.file_menu.entryconfig(1, state='disabled')
+        self.file_menu.entryconfig(3, state='disabled')
+        self.file_menu.entryconfig(5, state='disabled')
+        # self.file_menu.entryconfig(2, state='disabled')
+        # self.file_menu.entryconfig(4, state='disabled')
 
         # Disable the entries in the edit menu
         self.edit_menu.entryconfig(0, state='disabled')
@@ -1112,11 +1106,13 @@ class Flipbook(tk.Toplevel):
             app.root.deiconify()
             app.FLIPBOOK = False
 
+
         def show_controls():
             """Refresh the controls window and make it visible."""
 
             self.controls.refresh()
             self.controls.deiconify()
+
 
         # Initialize variables
         self.info = info # Make the information that was passed in accessible elsewhere
@@ -1216,10 +1212,10 @@ class Flipbook(tk.Toplevel):
         graph_widget.grid(row=2, column=0, sticky='NSEW')
 
         # Create keyboard shortcuts that allow for flipping between pages with the arrow keys
-        left_bind = self.bind('<Left>',
-                              lambda event, direction='left': self.flip_page(event, direction))
-        right_bind = self.bind('<Right>',
-                              lambda event, direction='right': self.flip_page(event, direction))
+        self.bind('<Left>',
+                  lambda event, direction='left': self.flip_page(event, direction))
+        self.bind('<Right>',
+                  lambda event, direction='right': self.flip_page(event, direction))
 
         # Add call the on_click method whenever the user clicks on a clickable object
         self.canvas.mpl_connect('pick_event', self.on_click)
@@ -1232,12 +1228,21 @@ class Flipbook(tk.Toplevel):
         self.deiconify()
         gui.CenterWindow(self)
 
+
     def update_plot(self):
         """Update the plot with new data or information."""
 
         current = self.plots[self.page] # Current plot object
         file = self.files[self.page] # File index
         number = self.numbers[self.page] # Plot number in file
+
+        fileclass = self.info[self.page].__class__.__name__
+        if self.controls and fileclass != 'BasicFile':
+            # self.controls.disable()
+            # return
+            print('the controls window would be disabled right now')
+
+        # self.controls.disable()
 
         # ========================
         # STYLE SELECTION CONTROLS
@@ -1427,23 +1432,24 @@ class Flipbook(tk.Toplevel):
         # BACKGROUND SELECTION CONTROLS
         # =============================
 
-        # If 'None' is selected, no background is drawn.
-        # Otherwise, load the background from a preset file or allow the user to select one
-        if current.background.get() == 'Tactair':
-            image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
+        def set_background(choice):
+            """Set whatever image the user selected as the plot background."""
+
+            # If 'None' is selected, no background is drawn
+            if choice == 'None': return
+            # Otherwise, load a background preset
+            elif choice == 'Tactair': path = 'Assets\\tactair.bmp'
+            elif choice == 'Young & Franklin': path = 'Assets\\yf.bmp'
+            # 'Custom' loads the background from a preset file
+            elif choice == 'Custom': path = current.background_path
+            # Load the image and display it on the plot
+            image = plt.imread(gui.ResourcePath(path))
             x_low, x_high = self.primary.get_xlim()
             y_low, y_high = self.primary.get_ylim()
             self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
-        elif current.background.get() == 'Young & Franklin':
-            image = plt.imread(gui.ResourcePath('Assets\\yf.bmp'))
-            x_low, x_high = self.primary.get_xlim()
-            y_low, y_high = self.primary.get_ylim()
-            self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
-        elif current.background.get() == 'Custom':
-            image = plt.imread(gui.ResourcePath(current.background_path))
-            x_low, x_high = self.primary.get_xlim()
-            y_low, y_high = self.primary.get_ylim()
-            self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+        # Set the background of the plot
+        set_background(current.background.get())
 
         # =======================
         # TOLERANCE BAND CONTROLS
@@ -1499,6 +1505,7 @@ class Flipbook(tk.Toplevel):
         # Update the canvas
         self.canvas.draw()
 
+
     def update_arrows(self):
         """Update the arrows of the flipbook when the page is changed."""
 
@@ -1512,6 +1519,7 @@ class Flipbook(tk.Toplevel):
         if 0 < self.page < self.pages:
             self.previous_button.config(state='normal')
             self.next_button.config(state='normal')
+
 
     def flip_page(self, event, direction):
         """Flip between pages of the flipbook."""
@@ -1531,6 +1539,7 @@ class Flipbook(tk.Toplevel):
         # Return 'break' to bypass event propagation
         return ('break')
 
+
     def on_click(self, event):
         """Hide or show a line when the corresponding object in the legend is clicked."""
 
@@ -1544,6 +1553,7 @@ class Flipbook(tk.Toplevel):
         legend_line.set_alpha(1.0 if visible else 0.2)
         # Update the plot
         self.canvas.draw()
+
 
     def _coordinates(self, current, other, secondary_exists):
         """Determine the appropriate coordinate format to use for the number of axes.
@@ -1801,6 +1811,7 @@ class Controls(tk.Toplevel):
         # Bind the enter key to the same function the update button calls
         self.bind('<Return>', self.update)
 
+
     def refresh(self):
         """Refresh the controls window fields with the currently stored values."""
 
@@ -1931,6 +1942,7 @@ class Controls(tk.Toplevel):
         self.line_controls.color = current.line_color
         self.line_controls.linestyle = current.line_style
         self.line_controls.alpha = current.line_alpha
+
 
     def update(self, event=None):
         """Update the current plot object with the user-entered values and refresh
@@ -3056,7 +3068,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
