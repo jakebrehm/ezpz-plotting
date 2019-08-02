@@ -484,8 +484,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				flipbook.primary.set_zorder(1000)
 				flipbook.primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
 
-				print(self.FAILURES_DETERMINED, self.DATA_SPLIT)
-
 				colors = {'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'k'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
 					flipbook.primary.scatter(self.x, self.y1, color='k')
@@ -499,15 +497,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
 					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
 					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
-
-				# # Iterate through the primary axis data for the current plot
-				# for y, y1 in enumerate(self.y1):
-				#     Get the column label and plot the line
-				# 	print(self.x[y], y1)
-				# 	line = flipbook.primary.scatter(self.x[y], y1)
-				#     column = self.y1_columns[y]
-				#     label = self.labels[column-1]
-				#     line = flipbook.primary.plot(self.x, y1, label=label)
 
 				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
 				# Store the original x-axis limits to allow the user to revert to them if desired.
