@@ -31,6 +31,8 @@ import re
 import configobj
 import random
 
+from special import PeakValleyFile
+
 
 class Application(gui.Application):
     """The main application of the program, which combines the GUI and all related
@@ -50,6 +52,9 @@ class Application(gui.Application):
         # Initialize program constants
         self.FLIPBOOK = False # keeps track of whether or not the flipbook is open
         self.HELP = False # keeps track of whether or not the help window is open
+
+        # Initialize the inputs list
+        self.inputs = []
 
         # Add a header/logo to the top of the application
         header = gui.Header(self, logo=gui.ResourcePath('Assets\\logo.png'), downscale=10)
@@ -115,7 +120,18 @@ class Application(gui.Application):
         menu_bar = tk.Menu(self.root)
         self.file_menu = tk.Menu(menu_bar, tearoff=0)
         self.file_menu.add_command(label='Load Files', command=self.listbox.Browse)
-        self.file_menu.add_command(label='Add File', state='disabled', command=self.add_file)
+        self.file_menu.add_command(label='Add File', command=self.add_file)
+
+        add_special = tk.Menu(menu_bar, tearoff=0)
+        self.file_menu.add_cascade(label='Add Special', menu=add_special)
+
+        add_peak_valley = tk.Menu(add_special, tearoff=0)
+        add_special.add_cascade(label='Peak Valley', menu=add_peak_valley)
+
+        add_peak_valley.add_command(label='Tab Delimited',
+                                    command=lambda: self.add_file('Peak Valley'))
+        add_peak_valley.add_command(label='Comma Delimited')
+
         self.file_menu.add_command(label='Remove File', state='disabled', command=self.remove_file)
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Save Preset', state='disabled', command=self.save_preset)
@@ -146,15 +162,15 @@ class Application(gui.Application):
 
         # Create keyboard shortcuts for moving between notebook tabs
         self.root.bind('<Insert>',
-            lambda event, direction='previous': switch_tab(event, direction)) # Insert
+            lambda event, direction='previous': self.switch_tab(event, direction)) # Insert
         self.root.bind('<Prior>',
-            lambda event, direction='next': switch_tab(event, direction)) # Page Up
+            lambda event, direction='next': self.switch_tab(event, direction)) # Page Up
 
         # Create keyboard shortcuts for moving between rows of a notebook tab
         self.root.bind('<Control-Tab>',
-            lambda event, direction='next': switch_row(event, direction))
+            lambda event, direction='next': self.switch_row(event, direction))
         self.root.bind('<Control-Shift-Tab>',
-            lambda event, direction='previous': switch_row(event, direction))
+            lambda event, direction='previous': self.switch_row(event, direction))
 
         self.clipboard = {
             'title': None,
@@ -183,6 +199,7 @@ class Application(gui.Application):
                 'brown':    '#663300',
                 'lime':     '#00ff00',
             } # A list of all preset color options for plotting purposes
+
 
     def save_preset(self):
         """Copies all user inputs to a config file and saves in the specified location."""
@@ -303,9 +320,11 @@ class Application(gui.Application):
         self.minus_button['state'] = 'normal'
 
         # Enable the entries in the file menu
-        self.file_menu.entryconfig(1, state='normal')
-        self.file_menu.entryconfig(2, state='normal')
-        self.file_menu.entryconfig(4, state='normal')
+        # self.file_menu.entryconfig(1, state='normal')
+        self.file_menu.entryconfig(3, state='normal')
+        self.file_menu.entryconfig(5, state='normal')
+        # self.file_menu.entryconfig(2, state='normal')
+        # self.file_menu.entryconfig(4, state='normal')
 
         # Enable the entries in the edit menu
         self.edit_menu.entryconfig(0, state='normal')
@@ -345,7 +364,24 @@ class Application(gui.Application):
         no_input_label.grid(row=0, column=0, sticky='NSEW')
 
 
-    def input_controls(self):
+    # def input_controls(self):
+    #     """Creates a tab for each input file, and one row for each tab."""
+
+    #     # Destroy everything in the primary frame
+    #     for child in self.primary.winfo_children(): child.destroy()
+
+    #     # Place a notebook in the primary frame
+    #     self.notebook = ttk.Notebook(self.primary, takefocus=0)
+    #     self.notebook.grid(row=0, column=0, sticky='NSEW')
+
+    #     # Create an object file for each inputs and add them to a list to keep track
+    #     self.files = [BasicFile(self.notebook, filepath) for filepath in self.inputs]
+
+    #     # Set cursor focus on the data start row entry of the first tab for ease of use
+    #     self.files[0].data_row_entry.focus_set()
+
+
+    def input_controls(self, special=None):
         """Creates a tab for each input file, and one row for each tab."""
 
         # Destroy everything in the primary frame
@@ -355,11 +391,14 @@ class Application(gui.Application):
         self.notebook = ttk.Notebook(self.primary, takefocus=0)
         self.notebook.grid(row=0, column=0, sticky='NSEW')
 
-        # Create an object file for each inputs and add them to a list to keep track
-        self.files = [BasicFile(self.notebook, filepath) for filepath in self.inputs]
+        # Create an object file for each input and add them to a list to keep track
+        if not special:
+            self.files = [BasicFile(self.notebook, filepath) for filepath in self.inputs]
+        elif special == 'Peak Valley':
+            self.files = [PeakValleyFile(self.notebook, filepath) for filepath in self.inputs]
 
-        # Set cursor focus on the data start row entry of the first tab for ease of use
-        self.files[0].data_row_entry.focus_set()
+        # Set cursor focus on the default field of the first tab for ease of use
+        self.files[0].set_default_focus()
 
 
     def plus_row(self, event=None, tab=None):
@@ -388,11 +427,41 @@ class Application(gui.Application):
         except NameError: pass
 
 
-    def add_file(self):
+    # def add_file(self):
+    #     """Retroactively add a file to the current inputs."""
+
+    #     # Ask the user to locate the file he/she wishes to add
+    #     filepath = fd.askopenfilename(title='Choose the file')
+
+    #     # Don't continue if no filepath was selected by the user
+    #     if len(filepath) == 0: return
+
+    #     # Append the filepath to the list of inputs
+    #     self.inputs.append(filepath)
+
+    #     if len(self.inputs) == 1:
+    #         # A length of one of the inputs list implies that the user is trying
+    #         # to add a file to a freshly resetted program; handle differely
+    #         self.enable()
+    #         self.input_controls()
+    #         self.listbox.clear()
+    #     else:
+    #         # Create a File object by default and append it to the list of file objects
+    #         file = BasicFile(self.notebook, filepath)
+    #         self.files.append(file)
+
+    #     # Add the filepath to the listbox
+    #     self.listbox.field['state'] = 'normal'
+    #     self.listbox.field.insert('end', filepath)
+    #     self.listbox.field['state'] = 'disable'
+    #     self.listbox.field['justify'] = 'left'
+
+
+    def add_file(self, special=None):
         """Retroactively add a file to the current inputs."""
 
         # Ask the user to locate the file he/she wishes to add
-        filepath = fd.askopenfilename(title='Choose the preset file')
+        filepath = fd.askopenfilename(title='Choose the file')
 
         # Don't continue if no filepath was selected by the user
         if len(filepath) == 0: return
@@ -400,9 +469,22 @@ class Application(gui.Application):
         # Append the filepath to the list of inputs
         self.inputs.append(filepath)
 
-        # Create a File object and append it to the list of file objects
-        file = BasicFile(self.notebook, filepath)
-        self.files.append(file)
+        if len(self.inputs) == 1:
+            # A length of one of the inputs list implies that the user is trying
+            # to add a file to a freshly resetted program; handle differely
+            self.enable()
+            self.input_controls(special)
+            self.listbox.clear()
+        else:
+            # Create a basic file object by default
+            if not special:
+                file = BasicFile(self.notebook, filepath)
+            # Otherwise, if the user is adding a special file, create the
+            # appropriate file object
+            elif special == 'Peak Valley':
+                file = PeakValleyFile(self.notebook, filepath)
+            # Append it to the list of file objects
+            self.files.append(file)
 
         # Add the filepath to the listbox
         self.listbox.field['state'] = 'normal'
@@ -430,10 +512,10 @@ class Application(gui.Application):
         app.root.nametowidget(self.notebook.select()).destroy()
 
         # Remove the filepath from the listbox
-        listbox.field['state'] = 'normal'
-        listbox.field.delete(current)
-        listbox.field['state'] = 'disable'
-        listbox.field['justify'] = 'left'
+        self.listbox.field['state'] = 'normal'
+        self.listbox.field.delete(current)
+        self.listbox.field['state'] = 'disable'
+        self.listbox.field['justify'] = 'left'
 
 
     def switch_tab(self, event, direction):
@@ -449,7 +531,7 @@ class Application(gui.Application):
             pass # If the currently selected tab is either the first or the last, do nothing
         else:
             # If there was no error, set cursor focus on the data start row entry
-            self.files[destination].data_row_entry.focus_set()
+            self.files[destination].set_default_focus()
 
 
     def switch_row(self, event, direction):
@@ -828,6 +910,9 @@ class BasicFile(gui.ScrollableTab):
             delta = int(widget_top - canvas_top) - BUFFER
             self.canvas.yview_scroll(delta, 'units')
 
+    def set_default_focus(self):
+        self.data_row_entry.focus_set()
+
     def copy(self, ID):
         """Copies the contents of the selected row to the clipboard."""
 
@@ -1070,7 +1155,6 @@ class Flipbook(tk.Toplevel):
         def on_close():
             """When the flipbook is closed, redisplay the main window as well."""
 
-            global FLIPBOOK
             self.destroy()
             app.root.deiconify()
             app.FLIPBOOK = False
@@ -3019,7 +3103,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# Run a test function
-app.after(100, app.test)
+# # Run a test function
+# app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
