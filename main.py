@@ -31,6 +31,7 @@ import re
 import configobj
 import random
 
+# Import custom classes for special types of files
 from special import PeakValleyFile
 
 
@@ -1002,6 +1003,265 @@ class BasicFile(gui.ScrollableTab):
                 self.y1_label = y1_label if y1_label else None
                 self.y2_label = y2_label if y2_label else None
 
+            def update_plot(self, flipbook, file, number):
+                # ========================
+                # STYLE SELECTION CONTROLS
+                # ========================
+
+                # Set the style according to whatever the user has selected
+                # Must come before the main section or else things like the legend won't update
+                if self.style.get() == 'Default':
+                    plt.style.use('default')
+                elif self.style.get() == 'Classic':
+                    plt.style.use('classic')
+                elif self.style.get() == 'Seaborn':
+                    plt.style.use('seaborn')
+                elif self.style.get() == 'Fivethirtyeight':
+                    plt.style.use('fivethirtyeight')
+
+                # =================
+                # MAIN UPDATE LOGIC
+                # =================
+
+                # Display the filename of the current plot
+                flipbook.filename.set(f'{flipbook.info[file].filename} - Plot {number + 1}')
+
+                # Essentially reset the secondary axis by clearing and turning it off if it exists,
+                # then setting the self.secondary variable to None
+                if flipbook.secondary:
+                    flipbook.secondary.clear()
+                    flipbook.secondary.axis('off')
+                flipbook.secondary = None
+
+                # Create a variable that keeps track of if a secondary axis is necessary
+                self.secondary_axis = True if self.y2 else False
+                # If it is, create the secondary axis
+                if self.secondary_axis: flipbook.secondary = flipbook.primary.twinx()
+
+                # Clear the primary axis as well
+                flipbook.primary.clear()
+
+                # Set the appropriate coordinates format to display on the flipbook
+                if self.secondary_axis:
+                    flipbook.primary.set_zorder(1)
+                    flipbook.secondary.set_zorder(100)
+                    flipbook.secondary.format_coord = flipbook._coordinates(flipbook.secondary, flipbook.primary,
+                                                                    self.secondary_axis)
+                if not self.secondary_axis:
+                    flipbook.primary.set_zorder(1000)
+                    flipbook.primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
+
+                # Choose colors for the primary axis - will be iterated-through sequentially
+                y1_colors = ['k', 'b', 'r', 'g', app.plot_colors['purple'], app.plot_colors['orange'],
+                            app.plot_colors['brown']]
+                # Create a copy of the primary axis plot colors
+                y1_plot_colors = y1_colors[:]
+                # Choose colors for the secondary axis - will be iterated-through sequentially
+                y2_colors = [app.plot_colors['gray'], 'c', app.plot_colors['pink'], app.plot_colors['lime'],
+                            'm', app.plot_colors['gold'], 'y']
+                # Create a copy of the secondary axis plot colors
+                y2_plot_colors = y2_colors[:]
+
+                # Keep track of each handle, label, and how many times the colors are repeated
+                handles = []
+                labels = []
+                repeated = 0
+                # Iterate through the primary axis data for the current plot
+                for y, y1 in enumerate(self.y1):
+                    # Determine how many times the colors list will be repeated
+                    if y % len(y1_plot_colors) == 0: repeated += 1
+                    # Determine the color of the line
+                    color = y1_plot_colors[y - repeated * len(y1_plot_colors)]
+                    # Get the column label and plot the line
+                    column = self.y1_columns[y]
+                    label = self.labels[column-1]
+                    line = flipbook.primary.plot(self.x, y1, color, label=label)
+                    handles.append(line[0])
+                    labels.append(label)
+                # If there is data to be plotted on the secondary axis, run the following code
+                if self.secondary_axis:
+                    repeated = 0
+                    # Iterate through the secondary axis data for the current plot
+                    for y, y2 in enumerate(self.y2):
+                        # Determine how many times the colors list will be repeated
+                        if y % len(y2_plot_colors) == 0: repeated += 1
+                        # Determine the colors of the line
+                        color = y2_plot_colors[y - repeated * len(y2_plot_colors)]
+                        # Get the column label and plot the line
+                        column = self.y2_columns[y]
+                        label = self.labels[column-1]
+                        line = flipbook.secondary.plot(self.x, y2, color, label=label)
+                        handles.append(line[0])
+                        labels.append(label)
+
+                # Determine adequate padding for the x-axis and set the x-axis limits accordingly.
+                # Store the original x-axis limits to allow the user to revert to them if desired.
+                min_x = min(self.x.dropna())
+                max_x = max(self.x.dropna())
+                padding = (max_x - min_x) * (100/90) * (0.05)
+                self.x_lower_original = min_x - padding
+                self.x_upper_original = max_x + padding
+                flipbook.primary.set_xlim(self.x_lower_original, self.x_upper_original)
+                # Store the original y-axis limits to allow the user to revert to them if desired.
+                self.y1_lower_original = flipbook.primary.get_ylim()[0]
+                self.y1_upper_original = flipbook.primary.get_ylim()[1]
+                if self.secondary_axis:
+                    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
+                    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
+
+                # Turn the grid on, with both major and minor gridlines
+                flipbook.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
+                flipbook.primary.minorticks_on()
+                flipbook.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+                if self.secondary_axis:
+                    flipbook.secondary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
+
+                # Set the title, x axis label, and y axes labels according to user input
+                flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=14)
+                # Set the axis labels
+                flipbook.primary.set_xlabel(self.x_label)
+                flipbook.primary.set_ylabel(self.y1_label)
+                if self.secondary_axis: flipbook.secondary.set_ylabel(self.y2_label)
+                # # Use the official representation of the object in case tex expressions are used
+                # flipbook.primary.set_xlabel(repr(self.x_label)[1:-1])
+                # flipbook.primary.set_ylabel(repr(self.y1_label)[1:-1])
+                # if self.secondary_axis: flipbook.secondary.set_ylabel(repr(self.y2_label)[1:-1])
+
+                # Determine the number of lines being plotted
+                lines = len(flipbook.primary.lines)
+                if self.secondary_axis: lines += len(flipbook.secondary.lines)
+                # Specify the maximum number of columns per row in the legend, and calculate
+                # the number of rows accordingly
+                max_columns = 5
+                rows = lines / max_columns
+                # If there will be more than two rows, calculate the number of columns required
+                # to keep the legend at two rows
+                if rows > 2: max_columns = math.ceil(lines / 2)
+                # Create the legend
+                legend = flipbook.primary.legend(
+                                handles = handles,
+                                labels = labels,
+                                loc = 'lower left',
+                                fancybox = True,
+                                shadow = True,
+                                ncol = max_columns,
+                                mode = 'expand',
+                                bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
+                    )
+                # Make the legend draggable (possibly a control in the future)
+                legend.set_draggable(state=True)
+
+                # Map the items in the legend to its corresponding line
+                flipbook.line_map = {}
+                for legend_line, original_line in zip(legend.get_lines(), handles):
+                    legend_line.set_picker(5)
+                    flipbook.line_map[legend_line] = original_line
+
+                # If the controls window has not been created yet, create it and leave it hidden
+                if not flipbook.controls:
+                    flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
+                    flipbook.controls.withdraw()
+
+                # ====================
+                # AXES LIMITS CONTROLS
+                # ====================
+
+                # Set each axis limit to the user-specified value
+                if self.x_lower: flipbook.primary.set_xlim(left=self.x_lower)
+                if self.x_upper: flipbook.primary.set_xlim(right=self.x_upper)
+                if self.y1_lower: flipbook.primary.set_ylim(bottom=self.y1_lower)
+                if self.y1_upper: flipbook.primary.set_ylim(top=self.y1_upper)
+                if self.y2_lower: flipbook.secondary.set_ylim(bottom=self.y2_lower)
+                if self.y2_upper: flipbook.secondary.set_ylim(top=self.y2_upper)
+
+                # ===================
+                # AXES TICKS CONTROLS
+                # ===================
+
+                # Set a standard number of axis ticks to make it easier to line up the gridlines
+                if self.primary_ticks:
+                    PRIMARY = flipbook.primary.get_ylim()
+                    flipbook.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1],
+                                            int(self.primary_ticks)))
+                if self.secondary_ticks:
+                    SECONDARY = flipbook.secondary.get_ylim()
+                    flipbook.secondary.set_yticks(np.linspace(SECONDARY[0], SECONDARY[1],
+                                            int(self.secondary_ticks)))
+
+                # =============================
+                # BACKGROUND SELECTION CONTROLS
+                # =============================
+
+                def set_background(choice):
+                    """Set whatever image the user selected as the plot background."""
+
+                    # If 'None' is selected, no background is drawn
+                    if choice == 'None': return
+                    # Otherwise, load a background preset
+                    elif choice == 'Tactair': path = 'Assets\\tactair.bmp'
+                    elif choice == 'Young & Franklin': path = 'Assets\\yf.bmp'
+                    # 'Custom' loads the background from a preset file
+                    elif choice == 'Custom': path = self.background_path
+                    # Load the image and display it on the plot
+                    image = plt.imread(gui.ResourcePath(path))
+                    x_low, x_high = flipbook.primary.get_xlim()
+                    y_low, y_high = flipbook.primary.get_ylim()
+                    flipbook.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+                # Set the background of the plot
+                set_background(self.background.get())
+
+                # =======================
+                # TOLERANCE BAND CONTROLS
+                # =======================
+
+                # Iterate through the plus bands of the current plot
+                for p, plus in enumerate(self.plus_bands):
+                    # If there are no plus bands, skip to next iteration
+                    if not plus: continue
+                    # Plot the plus band on the appropriate axis
+                    elif plus[0] == 'primary':
+                        flipbook.primary.plot(self.x, plus[1], app.plot_colors[self.color[p]],
+                                        linestyle=self.linestyle[p])
+                    elif plus[0] == 'secondary':
+                        flipbook.secondary.plot(self.x, plus[1], app.plot_colors[self.color[p]],
+                                        linestyle=self.linestyle[p])
+                # Iterate through the minus bands of the current plot
+                for m, minus in enumerate(self.minus_bands):
+                    # If there are no minus bands, skip to next iteration
+                    if not minus: continue
+                    # Plot the minus band on the appropriate axis
+                    elif minus[0] == 'primary':
+                        flipbook.primary.plot(self.x, minus[1], app.plot_colors[self.color[m]],
+                                        linestyle=self.linestyle[m])
+                    elif minus[0] == 'secondary':
+                        flipbook.secondary.plot(self.x, minus[1], app.plot_colors[self.color[m]],
+                                        linestyle=self.linestyle[m])
+
+                # ===================
+                # LIMIT LINE CONTROLS
+                # ===================
+
+                # Iterate through the values list of the limit lines
+                for v, value in enumerate(self.line_value):
+                    # If there are no values, skip to next iteration (e.g. blank rows)
+                    if not value: continue
+                    # Determine the axis to plot the limit line on
+                    axis = flipbook.primary if self.line_axis[v] == 'primary' else \
+                        ( flipbook.secondary if self.line_axis[v] == 'secondary' and \
+                            self.secondary_axis else None )
+                    # Plot the limit line after determining its orientation
+                    if self.line_orientation[v] == 'vertical':
+                        axis.axvline(x=float(self.line_value[v]),
+                                    linestyle=self.line_style[v],
+                                    color=app.plot_colors[self.line_color[v]],
+                                    alpha=float(self.line_alpha[v]))
+                    elif self.line_orientation[v] == 'horizontal':
+                        axis.axhline(y=float(self.line_value[v]),
+                                    linestyle=self.line_style[v],
+                                    color=app.plot_colors[self.line_color[v]],
+                                    alpha=float(self.line_alpha[v]))
+
         # Create a new plot object and hold a reference to it
         plot = Plot()
         self.plots.append(plot)
@@ -1236,271 +1496,15 @@ class Flipbook(tk.Toplevel):
         file = self.files[self.page] # File index
         number = self.numbers[self.page] # Plot number in file
 
-        fileclass = self.info[self.page].__class__.__name__
-        if self.controls and fileclass != 'BasicFile':
-            # self.controls.disable()
-            # return
-            print('the controls window would be disabled right now')
+        # fileclass = self.info[self.page].__class__.__name__
+        # if self.controls and fileclass != 'BasicFile':
+        #     # self.controls.disable()
+        #     print('the controls window would be disabled right now')
+        #     return
 
         # self.controls.disable()
 
-        # ========================
-        # STYLE SELECTION CONTROLS
-        # ========================
-
-        # Set the style according to whatever the user has selected
-        # Must come before the main section or else things like the legend won't update
-        if current.style.get() == 'Default':
-            plt.style.use('default')
-        elif current.style.get() == 'Classic':
-            plt.style.use('classic')
-        elif current.style.get() == 'Seaborn':
-            plt.style.use('seaborn')
-        elif current.style.get() == 'Fivethirtyeight':
-            plt.style.use('fivethirtyeight')
-
-        # =================
-        # MAIN UPDATE LOGIC
-        # =================
-
-        # Display the filename of the current plot
-        self.filename.set(f'{self.info[file].filename} - Plot {number + 1}')
-
-        # Essentially reset the secondary axis by clearing and turning it off if it exists,
-        # then setting the self.secondary variable to None
-        if self.secondary:
-            self.secondary.clear()
-            self.secondary.axis('off')
-        self.secondary = None
-
-        # Create a variable that keeps track of if a secondary axis is necessary
-        current.secondary_axis = True if current.y2 else False
-        # If it is, create the secondary axis
-        if current.secondary_axis: self.secondary = self.primary.twinx()
-
-        # Clear the primary axis as well
-        self.primary.clear()
-
-        # Set the appropriate coordinates format to display on the flipbook
-        if current.secondary_axis:
-            self.primary.set_zorder(1)
-            self.secondary.set_zorder(100)
-            self.secondary.format_coord = self._coordinates(self.secondary, self.primary,
-                                                            current.secondary_axis)
-        if not current.secondary_axis:
-            self.primary.set_zorder(1000)
-            self.primary.format_coord = self._coordinates(self.primary, None, current.secondary_axis)
-
-        # Choose colors for the primary axis - will be iterated-through sequentially
-        y1_colors = ['k', 'b', 'r', 'g', app.plot_colors['purple'], app.plot_colors['orange'],
-                     app.plot_colors['brown']]
-        # Create a copy of the primary axis plot colors
-        y1_plot_colors = y1_colors[:]
-        # Choose colors for the secondary axis - will be iterated-through sequentially
-        y2_colors = [app.plot_colors['gray'], 'c', app.plot_colors['pink'], app.plot_colors['lime'],
-                     'm', app.plot_colors['gold'], 'y']
-        # Create a copy of the secondary axis plot colors
-        y2_plot_colors = y2_colors[:]
-
-        # Keep track of each handle, label, and how many times the colors are repeated
-        handles = []
-        labels = []
-        repeated = 0
-        # Iterate through the primary axis data for the current plot
-        for y, y1 in enumerate(current.y1):
-            # Determine how many times the colors list will be repeated
-            if y % len(y1_plot_colors) == 0: repeated += 1
-            # Determine the color of the line
-            color = y1_plot_colors[y - repeated * len(y1_plot_colors)]
-            # Get the column label and plot the line
-            column = current.y1_columns[y]
-            label = current.labels[column-1]
-            line = self.primary.plot(current.x, y1, color, label=label)
-            handles.append(line[0])
-            labels.append(label)
-        # If there is data to be plotted on the secondary axis, run the following code
-        if current.secondary_axis:
-            repeated = 0
-            # Iterate through the secondary axis data for the current plot
-            for y, y2 in enumerate(current.y2):
-                # Determine how many times the colors list will be repeated
-                if y % len(y2_plot_colors) == 0: repeated += 1
-                # Determine the colors of the line
-                color = y2_plot_colors[y - repeated * len(y2_plot_colors)]
-                # Get the column label and plot the line
-                column = current.y2_columns[y]
-                label = current.labels[column-1]
-                line = self.secondary.plot(current.x, y2, color, label=label)
-                handles.append(line[0])
-                labels.append(label)
-
-        # Determine adequate padding for the x-axis and set the x-axis limits accordingly.
-        # Store the original x-axis limits to allow the user to revert to them if desired.
-        min_x = min(current.x.dropna())
-        max_x = max(current.x.dropna())
-        padding = (max_x - min_x) * (100/90) * (0.05)
-        current.x_lower_original = min_x - padding
-        current.x_upper_original = max_x + padding
-        self.primary.set_xlim(current.x_lower_original, current.x_upper_original)
-        # Store the original y-axis limits to allow the user to revert to them if desired.
-        current.y1_lower_original = self.primary.get_ylim()[0]
-        current.y1_upper_original = self.primary.get_ylim()[1]
-        if current.secondary_axis:
-            current.y2_lower_original = self.secondary.get_ylim()[0]
-            current.y2_upper_original = self.secondary.get_ylim()[1]
-
-        # Turn the grid on, with both major and minor gridlines
-        self.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
-        self.primary.minorticks_on()
-        self.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
-        if current.secondary_axis:
-            self.secondary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
-
-        # Set the title, x axis label, and y axes labels according to user input
-        self.figure.suptitle(current.title, fontweight='bold', fontsize=14)
-        # Set the axis labels
-        self.primary.set_xlabel(current.x_label)
-        self.primary.set_ylabel(current.y1_label)
-        if current.secondary_axis: self.secondary.set_ylabel(current.y2_label)
-        # # Use the official representation of the object in case tex expressions are used
-        # self.primary.set_xlabel(repr(current.x_label)[1:-1])
-        # self.primary.set_ylabel(repr(current.y1_label)[1:-1])
-        # if current.secondary_axis: self.secondary.set_ylabel(repr(current.y2_label)[1:-1])
-
-        # Determine the number of lines being plotted
-        lines = len(self.primary.lines)
-        if current.secondary_axis: lines += len(self.secondary.lines)
-        # Specify the maximum number of columns per row in the legend, and calculate
-        # the number of rows accordingly
-        max_columns = 5
-        rows = lines / max_columns
-        # If there will be more than two rows, calculate the number of columns required
-        # to keep the legend at two rows
-        if rows > 2: max_columns = math.ceil(lines / 2)
-        # Create the legend
-        legend = self.primary.legend(
-                        handles = handles,
-                        labels = labels,
-                        loc = 'lower left',
-                        fancybox = True,
-                        shadow = True,
-                        ncol = max_columns,
-                        mode = 'expand',
-                        bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
-            )
-        # Make the legend draggable (possibly a control in the future)
-        legend.set_draggable(state=True)
-
-        # Map the items in the legend to its corresponding line
-        self.line_map = {}
-        for legend_line, original_line in zip(legend.get_lines(), handles):
-            legend_line.set_picker(5)
-            self.line_map[legend_line] = original_line
-
-        # If the controls window has not been created yet, create it and leave it hidden
-        if not self.controls:
-            self.controls = Controls(self, self.plots[self.page])
-            self.controls.withdraw()
-
-        # ====================
-        # AXES LIMITS CONTROLS
-        # ====================
-
-        # Set each axis limit to the user-specified value
-        if current.x_lower: self.primary.set_xlim(left=current.x_lower)
-        if current.x_upper: self.primary.set_xlim(right=current.x_upper)
-        if current.y1_lower: self.primary.set_ylim(bottom=current.y1_lower)
-        if current.y1_upper: self.primary.set_ylim(top=current.y1_upper)
-        if current.y2_lower: self.secondary.set_ylim(bottom=current.y2_lower)
-        if current.y2_upper: self.secondary.set_ylim(top=current.y2_upper)
-
-        # ===================
-        # AXES TICKS CONTROLS
-        # ===================
-
-        # Set a standard number of axis ticks to make it easier to line up the gridlines
-        if current.primary_ticks:
-            PRIMARY = self.primary.get_ylim()
-            self.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1],
-                                    int(current.primary_ticks)))
-        if current.secondary_ticks:
-            SECONDARY = self.secondary.get_ylim()
-            self.secondary.set_yticks(np.linspace(SECONDARY[0], SECONDARY[1],
-                                      int(current.secondary_ticks)))
-
-        # =============================
-        # BACKGROUND SELECTION CONTROLS
-        # =============================
-
-        def set_background(choice):
-            """Set whatever image the user selected as the plot background."""
-
-            # If 'None' is selected, no background is drawn
-            if choice == 'None': return
-            # Otherwise, load a background preset
-            elif choice == 'Tactair': path = 'Assets\\tactair.bmp'
-            elif choice == 'Young & Franklin': path = 'Assets\\yf.bmp'
-            # 'Custom' loads the background from a preset file
-            elif choice == 'Custom': path = current.background_path
-            # Load the image and display it on the plot
-            image = plt.imread(gui.ResourcePath(path))
-            x_low, x_high = self.primary.get_xlim()
-            y_low, y_high = self.primary.get_ylim()
-            self.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
-
-        # Set the background of the plot
-        set_background(current.background.get())
-
-        # =======================
-        # TOLERANCE BAND CONTROLS
-        # =======================
-
-        # Iterate through the plus bands of the current plot
-        for p, plus in enumerate(current.plus_bands):
-            # If there are no plus bands, skip to next iteration
-            if not plus: continue
-            # Plot the plus band on the appropriate axis
-            elif plus[0] == 'primary':
-                self.primary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
-                                  linestyle=current.linestyle[p])
-            elif plus[0] == 'secondary':
-                self.secondary.plot(current.x, plus[1], app.plot_colors[current.color[p]],
-                                  linestyle=current.linestyle[p])
-        # Iterate through the minus bands of the current plot
-        for m, minus in enumerate(current.minus_bands):
-            # If there are no minus bands, skip to next iteration
-            if not minus: continue
-            # Plot the minus band on the appropriate axis
-            elif minus[0] == 'primary':
-                self.primary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
-                                  linestyle=current.linestyle[m])
-            elif minus[0] == 'secondary':
-                self.secondary.plot(current.x, minus[1], app.plot_colors[current.color[m]],
-                                  linestyle=current.linestyle[m])
-
-        # ===================
-        # LIMIT LINE CONTROLS
-        # ===================
-
-        # Iterate through the values list of the limit lines
-        for v, value in enumerate(current.line_value):
-            # If there are no values, skip to next iteration (e.g. blank rows)
-            if not value: continue
-            # Determine the axis to plot the limit line on
-            axis = self.primary if current.line_axis[v] == 'primary' else \
-                   ( self.secondary if current.line_axis[v] == 'secondary' and \
-                     current.secondary_axis else None )
-            # Plot the limit line after determining its orientation
-            if current.line_orientation[v] == 'vertical':
-                axis.axvline(x=float(current.line_value[v]),
-                             linestyle=current.line_style[v],
-                             color=app.plot_colors[current.line_color[v]],
-                             alpha=float(current.line_alpha[v]))
-            elif current.line_orientation[v] == 'horizontal':
-                axis.axhline(y=float(current.line_value[v]),
-                             linestyle=current.line_style[v],
-                             color=app.plot_colors[current.line_color[v]],
-                             alpha=float(current.line_alpha[v]))
+        current.update_plot(self, file, number)
 
         # Update the canvas
         self.canvas.draw()
