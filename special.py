@@ -370,15 +370,15 @@ class PeakValleyFile(gui.ScrollableTab):
 			def determine_failures(self, lower, upper):
 				print(lower, upper)
 				self.total = len(self.y1)
-				# self.passed = len(self.y1[(lower > self.y1) & (self.y1 < upper)])
-				# self.passed = len(self.y1[(lower > self.y1) & (self.y1 > upper)])
 				self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
+				self.fail_index = self.failed.index.values
 				self.fail_count = len(self.failed)
 				self.passed = self.y1[~self.y1.isin(self.failed)]
+				self.pass_index = self.passed.index.values
 				self.pass_count = len(self.passed)
-				print(f'passed: {self.pass_count}\n{self.passed}')
-				print(f'failed: {self.fail_count}\n{self.failed}')
-				# print(self.y1[(lower < self.y1) & (self.y1 < upper)])
+				# print(f'passed: {self.pass_count}\n{self.passed}')
+				# print(f'failed: {self.fail_count}\n{self.failed}')
+				print(self.fail_index, self.pass_index)
 
 			def split(self):
 				average = sum(self.y1) / len(self.y1)
@@ -449,6 +449,8 @@ class PeakValleyFile(gui.ScrollableTab):
 if __name__ == '__main__':
 
 	def plot():
+		tab.lower_entry.insert(0, '0.115')
+		tab.upper_entry.insert(0, '0.295')
 		tab.generate()
 		for p, plot in enumerate(tab.plots):
 			plt.plot(plot.x, plot.y1)
