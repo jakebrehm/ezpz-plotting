@@ -447,12 +447,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.y1 = self._y_data(self.y_column)
 				self.x_original = self.x.copy()
 				self.y1_original = self.y1.copy()
-				# self.x_original = self._x_data(x_column)
-				# self.y1_original = self._y_data(y_column)
-				# self.x = [self.x_original]
-				# self.y1 = [self.y1_original]
-				# self.x = [self._x_data(self.x_column)]
-				# self.y1 = [self._y_data(self.y_column)]
 
 				self.section.parse_labels(labels)
 				self.labels = self.section.labels
@@ -460,9 +454,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.units = self.section.units
 
 			def update_plot(self, flipbook, file_number, plot_number):
-				# =================
-				# MAIN UPDATE LOGIC
-				# =================
 
 				# Display the filename of the current plot
 				flipbook.filename.set(f'{flipbook.info[file_number].filename} - Plot {plot_number + 1}')
