@@ -742,9 +742,12 @@ class BasicControls(ttk.Notebook):
         analysis = gui.ScrollableTab(self, 'Analysis', cheight=400, cwidth=400)
         annotations = gui.ScrollableTab(self, 'Annotations', cheight=400, cwidth=400)
 
+        self.current = None
+        self.flipbook = None
+
         self.band_controls = None # Tolerance band controls object
         self.line_controls = None # Limit lines controls object
-        
+
         # ==========
         # FIGURE TAB
         # ==========
@@ -887,10 +890,251 @@ class BasicControls(ttk.Notebook):
         # # Refresh the controls with values for the current plot
         # self.refresh()
 
-        # Bind the enter key to the same function the update button calls
-        self.bind('<Return>', self.update)
+        # # Bind the enter key to the same function the update button calls
+        # self.bind('<Return>', self.update)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def refresh(self):
+        """Refresh the controls window fields with the currently stored values."""
+
+        # Get a reference to the current plot object
+        current = self.current
+
+        # ====================
+        # AXES LIMITS CONTROLS
+        # ====================
+
+        def fill_entry(entry, value, original):
+            """Clear the entry and insert the changed value if it exists, otherwise
+            insert the original value."""
+            entry.delete(0, 'end')
+            entry.insert(0, value if value else original)
+
+        # Fill in each field with their respective values
+        fill_entry(self.x_lower_entry, current.x_lower, current.x_lower_original)
+        fill_entry(self.x_upper_entry, current.x_upper, current.x_upper_original)
+        fill_entry(self.y1_lower_entry, current.y1_lower, current.y1_lower_original)
+        fill_entry(self.y1_upper_entry, current.y1_upper, current.y1_upper_original)
+        # Disable the secondary axis entry fields if there is no secondary axis,
+        # otherwise enable and fill the entry fields corresponding to the secondary axis.
+        if current.secondary_axis:
+            self.y2_lower_entry['state'] = 'normal'
+            fill_entry(self.y2_lower_entry, current.y2_lower, current.y2_lower_original)
+            self.y2_upper_entry['state'] = 'normal'
+            fill_entry(self.y2_upper_entry, current.y2_upper, current.y2_upper_original)
+        else:
+            self.y2_lower_entry.delete(0, 'end')
+            self.y2_lower_entry['state'] = 'disabled'
+            self.y2_upper_entry.delete(0, 'end')
+            self.y2_upper_entry['state'] = 'disabled'
+
+        # ===================
+        # AXIS TICKS CONTROLS
+        # ===================
+
+        # Fill the primary and secondary tick fields with the appropriate stored value
+        fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
+        fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+        # Disable the secondary axis entry field if there is no secondary axis,
+        # otherwise enable and fill the entry fields corresponding to the secondary axis.
+        if current.secondary_axis:
+            self.secondary_ticks_entry['state'] = 'normal'
+            fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+        else:
+            self.secondary_ticks_entry.delete(0, 'end')
+            self.secondary_ticks_entry['state'] = 'disabled'
+
+        # ========================
+        # STYLE SELECTION CONTROLS
+        # ========================
+
+        # Set the current style combobox selection to the stored style value
+        self.style_choice.set(current.style.get())
+
+        # =============================
+        # BACKGROUND SELECTION CONTROLS
+        # =============================
+
+        # Set the current background combobox selection to the stored background value
+        self.background_choice.set(current.background.get())
+
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
+
+        # If the band_controls widget already exists, remove it from view.
+        # Destroying it will cause the program to not be able to reference those fields.
+        if self.band_controls: self.band_controls.grid_forget()
+        # Re-grid the tolerance bands object of the current plot
+        self.band_controls = current.bands
+        self.band_controls.setup(self.tolerance_bands)
+        self.band_controls.grid(row=0, column=0, sticky='NSEW')
+
+        # If the attributes of the current plot object have been changed...
+        if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
+            # Determine which of those lists is the longest and recreate that many rows
+            longest = len(max(current.series, current.minus_tolerance,
+                                current.plus_tolerance, current.lag))
+            self.band_controls.recreate(rows=longest)
+
+        # Fill the newly create entries with the relevant values
+        self.band_controls.series = current.series
+        self.band_controls.color = current.color
+        self.band_controls.linestyle = current.linestyle
+        self.band_controls.plus_tolerance = current.plus_tolerance
+        self.band_controls.minus_tolerance = current.minus_tolerance
+        self.band_controls.lag = current.lag
+        self.band_controls.bands_plus = current.plus_bands
+        self.band_controls.bands_minus = current.minus_bands
+
+        # Every time the combobox is selected, update its options with the currently
+        # plotted columns.
+        values = []
+        for column in current.y1_columns:
+            values.append(current.labels[column-1])
+        for column in current.y2_columns:
+            values.append(current.labels[column-1])
+        self.band_controls.update_series(values)
+
+        # ===================
+        # LIMIT LINE CONTROLS
+        # ===================
+
+        # If the band_controls widget already exists, remove it from view.
+        # Destroying it will cause the program to not be able to reference those fields.
+        if self.line_controls: self.line_controls.grid_forget()
+        # Re-grid the tolerance bands object of the current plot
+        self.line_controls = current.lines
+        self.line_controls.setup(self.horizontal_lines)
+        self.line_controls.grid(row=0, column=0, sticky='NSEW')
+
+        # If the attributes of the current plot object have been changed...
+        if current.line_orientation and current.line_axis and current.line_value and \
+                current.line_color and current.line_alpha:
+            # Determine which of those lists is the longest and recreate that many rows
+            longest = len(max(current.line_orientation, current.line_axis, current.line_style,
+                                current.line_value, current.line_color, current.line_alpha))
+            self.line_controls.recreate(rows=longest)
+
+        # Fill the newly create entries with the relevant values
+        self.line_controls.axis = current.line_axis
+        self.line_controls.orientation = current.line_orientation
+        self.line_controls.value = current.line_value
+        self.line_controls.color = current.line_color
+        self.line_controls.linestyle = current.line_style
+        self.line_controls.alpha = current.line_alpha
+
+
+    def update(self):
+        """Update the current plot object with the user-entered values and refresh
+        both the plot and the controls window."""
+
+        # Get a reference to the current plot object
+        current = self.current
+
+        # ====================
+        # AXES LIMITS CONTROLS
+        # ====================
+
+        def update_axis(entry, original):
+            """If a value was changed, convert it from a string to a float. Otherwise,
+            use the original value."""
+
+            return float(entry.get()) if entry.get() else float(original)
+
+        # Store the axes limits values in the corresponding plot object attributes
+        current.x_lower = update_axis(self.x_lower_entry, current.x_lower_original)
+        current.x_upper = update_axis(self.x_upper_entry, current.x_upper_original)
+        current.y1_lower = update_axis(self.y1_lower_entry, current.y1_lower_original)
+        current.y1_upper = update_axis(self.y1_upper_entry, current.y1_upper_original)
+        if current.secondary_axis:
+            current.y2_lower = update_axis(self.y2_lower_entry, current.y2_lower_original)
+            current.y2_upper = update_axis(self.y2_upper_entry, current.y2_upper_original)
+
+        # ===================
+        # AXIS TICKS CONTROLS
+        # ===================
+
+        # Store the values in the primary and secondary tick fields
+        current.primary_ticks = self.primary_ticks_entry.get()
+        current.secondary_ticks = self.secondary_ticks_entry.get()
+
+        # ========================
+        # STYLE SELECTION CONTROLS
+        # ========================
+
+        # Store the currently selected value from the style combobox
+        current.style.set(self.style_choice.get())
+
+        # =============================
+        # BACKGROUND SELECTION CONTROLS
+        # =============================
+
+        # Store the currently selected value from the background combobox
+        current.background.set(self.background_choice.get())
+
+        # =======================
+        # TOLERANCE BAND CONTROLS
+        # =======================
+
+        # Store the current band controls values in the corresponding plot attributes
+        current.series = self.band_controls.series
+        current.linestyle = self.band_controls.linestyle
+        current.color = self.band_controls.color
+        current.plus_tolerance = self.band_controls.plus_tolerance
+        current.minus_tolerance = self.band_controls.minus_tolerance
+        current.lag = self.band_controls.lag
+        current.plus_bands = self.band_controls.bands_plus
+        current.minus_bands = self.band_controls.bands_minus
+
+        # Pass the current plot object to the calculate method to create the bands
+        self.band_controls.calculate(current)
+
+        # ===================
+        # LIMIT LINE CONTROLS
+        # ===================
+
+        # Store the current limit line values in the corresponding plot attributes
+        current.line_axis = self.line_controls.axis
+        current.line_orientation = self.line_controls.orientation
+        current.line_value = self.line_controls.value
+        current.line_color = self.line_controls.color
+        current.line_style = self.line_controls.linestyle
+        current.line_alpha = self.line_controls.alpha
+
+        # Update the plot and refresh the controls window
+        self.flipbook.update_plot()
+        self.refresh()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     def _custom_background(self, event=None):
         """Allow the user to navigate to and select a custom background.
 
