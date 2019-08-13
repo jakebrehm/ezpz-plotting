@@ -957,6 +957,7 @@ class Controls(tk.Toplevel):
         update_button = ttk.Button(secondary, text='Update', takefocus=0,
                                    command=self.update)
         update_button.grid(row=0, column=0, sticky='E')
+        self.bind('<Return>', self.update)
 
 
     def flip_page(self, page):
@@ -966,13 +967,8 @@ class Controls(tk.Toplevel):
         self.current = self.flipbook.plots[page]
 
         if self.notebook is not None:
-            # self.notebook.destroy()
             self.notebook.grid_forget()
             self.notebook = None
-
-        # if isinstance(self.file, BasicFile):
-        #     self.notebook = BasicControls(self.primary, takefocus=0)
-        # self.notebook.grid(row=0, column=0, sticky='NSEW')
 
         self.notebook = self.notebooks[file_index]
         self.notebook.grid(row=0, column=0, sticky='NSEW')
@@ -994,7 +990,6 @@ class Controls(tk.Toplevel):
         def fill_entry(entry, value, original):
             """Clear the entry and insert the changed value if it exists, otherwise
             insert the original value."""
-            print(original, end='\n\n')
             entry.delete(0, 'end')
             entry.insert(0, value if value else original)
 
@@ -1120,6 +1115,10 @@ class Controls(tk.Toplevel):
         # Get a reference to the current plot object
         current = self.current
 
+        nb = self.notebook
+
+        print('it is here yo')
+
         # ====================
         # AXES LIMITS CONTROLS
         # ====================
@@ -1131,64 +1130,64 @@ class Controls(tk.Toplevel):
             return float(entry.get()) if entry.get() else float(original)
 
         # Store the axes limits values in the corresponding plot object attributes
-        current.x_lower = update_axis(self.x_lower_entry, current.x_lower_original)
-        current.x_upper = update_axis(self.x_upper_entry, current.x_upper_original)
-        current.y1_lower = update_axis(self.y1_lower_entry, current.y1_lower_original)
-        current.y1_upper = update_axis(self.y1_upper_entry, current.y1_upper_original)
+        current.x_lower = update_axis(nb.x_lower_entry, current.x_lower_original)
+        current.x_upper = update_axis(nb.x_upper_entry, current.x_upper_original)
+        current.y1_lower = update_axis(nb.y1_lower_entry, current.y1_lower_original)
+        current.y1_upper = update_axis(nb.y1_upper_entry, current.y1_upper_original)
         if current.secondary_axis:
-            current.y2_lower = update_axis(self.y2_lower_entry, current.y2_lower_original)
-            current.y2_upper = update_axis(self.y2_upper_entry, current.y2_upper_original)
+            current.y2_lower = update_axis(nb.y2_lower_entry, current.y2_lower_original)
+            current.y2_upper = update_axis(nb.y2_upper_entry, current.y2_upper_original)
 
         # ===================
         # AXIS TICKS CONTROLS
         # ===================
 
         # Store the values in the primary and secondary tick fields
-        current.primary_ticks = self.primary_ticks_entry.get()
-        current.secondary_ticks = self.secondary_ticks_entry.get()
+        current.primary_ticks = nb.primary_ticks_entry.get()
+        current.secondary_ticks = nb.secondary_ticks_entry.get()
 
         # ========================
         # STYLE SELECTION CONTROLS
         # ========================
 
         # Store the currently selected value from the style combobox
-        current.style.set(self.style_choice.get())
+        current.style.set(nb.style_choice.get())
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
         # =============================
 
         # Store the currently selected value from the background combobox
-        current.background.set(self.background_choice.get())
+        current.background.set(nb.background_choice.get())
 
         # =======================
         # TOLERANCE BAND CONTROLS
         # =======================
 
         # Store the current band controls values in the corresponding plot attributes
-        current.series = self.band_controls.series
-        current.linestyle = self.band_controls.linestyle
-        current.color = self.band_controls.color
-        current.plus_tolerance = self.band_controls.plus_tolerance
-        current.minus_tolerance = self.band_controls.minus_tolerance
-        current.lag = self.band_controls.lag
-        current.plus_bands = self.band_controls.bands_plus
-        current.minus_bands = self.band_controls.bands_minus
+        current.series = nb.band_controls.series
+        current.linestyle = nb.band_controls.linestyle
+        current.color = nb.band_controls.color
+        current.plus_tolerance = nb.band_controls.plus_tolerance
+        current.minus_tolerance = nb.band_controls.minus_tolerance
+        current.lag = nb.band_controls.lag
+        current.plus_bands = nb.band_controls.bands_plus
+        current.minus_bands = nb.band_controls.bands_minus
 
         # Pass the current plot object to the calculate method to create the bands
-        self.band_controls.calculate(current)
+        nb.band_controls.calculate(current)
 
         # ===================
         # LIMIT LINE CONTROLS
         # ===================
 
         # Store the current limit line values in the corresponding plot attributes
-        current.line_axis = self.line_controls.axis
-        current.line_orientation = self.line_controls.orientation
-        current.line_value = self.line_controls.value
-        current.line_color = self.line_controls.color
-        current.line_style = self.line_controls.linestyle
-        current.line_alpha = self.line_controls.alpha
+        current.line_axis = nb.line_controls.axis
+        current.line_orientation = nb.line_controls.orientation
+        current.line_value = nb.line_controls.value
+        current.line_color = nb.line_controls.color
+        current.line_style = nb.line_controls.linestyle
+        current.line_alpha = nb.line_controls.alpha
 
         # Update the plot and refresh the controls window
         self.flipbook.update_plot()
