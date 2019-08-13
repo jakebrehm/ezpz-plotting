@@ -27,7 +27,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._units = []
 
 		self.plots = []
-		
+
 		self.READ_COMPLETE = False
 
 		controls = tk.Frame(self)
@@ -372,6 +372,9 @@ class PeakValleyFile(gui.ScrollableTab):
 				return self.section.data.iloc[:, y_column-1]
 
 			def determine_failures(self, lower, upper):
+
+
+
 				# self.total = len(self.y1)
 				# self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
 				# self.fail_index = self.failed.index.values
@@ -379,7 +382,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				# self.passed = self.y1[~self.y1.isin(self.failed)]
 				# self.pass_index = self.passed.index.values
 				# self.pass_count = len(self.passed)
-
 
 				self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
 				self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
@@ -503,6 +505,11 @@ class PeakValleyFile(gui.ScrollableTab):
 				if self.secondary_axis:
 				    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
 				    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
+
+                # # If the controls window has not been created yet, create it and leave it hidden
+				# if not flipbook.controls:
+				# 	flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
+				# 	flipbook.controls.withdraw()
 
 		# Create a new plot object and hold a reference to it
 		plot = Plot()
