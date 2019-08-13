@@ -7,7 +7,7 @@ from tkinter import ttk
 import re
 
 import matplotlib.pyplot as plt
-
+from tkinter import filedialog as fd
 import os
 from controls import LimitLines, ToleranceBands
 from settings import plot_colors
@@ -849,7 +849,7 @@ class BasicControls(ttk.Notebook):
                                         textvariable=self.background_choice)
         background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
         background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
-        # background_combo.bind('<<ComboboxSelected>>', self._custom_background)
+        background_combo.bind('<<ComboboxSelected>>', self._custom_background)
 
         # Create a padded frame for the style controls
         style = tk.Frame(general)
@@ -882,29 +882,6 @@ class BasicControls(ttk.Notebook):
         self.horizontal_lines = gui.PaddedFrame(annotations)
         self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
         self.horizontal_lines.columnconfigure(0, weight=1)
-
-        # ===============
-        # END OF CONTROLS
-        # ===============
-
-        # # Refresh the controls with values for the current plot
-        # self.refresh()
-
-        # # Bind the enter key to the same function the update button calls
-        # self.bind('<Return>', self.update)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     def refresh(self):
@@ -1120,21 +1097,6 @@ class BasicControls(ttk.Notebook):
         self.refresh()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
     def _custom_background(self, event=None):
         """Allow the user to navigate to and select a custom background.
 
@@ -1159,4 +1121,3 @@ class BasicControls(ttk.Notebook):
         else:
             # Otherwise, set the current plot's background_path attribute to None
             current.background_path = None
-
