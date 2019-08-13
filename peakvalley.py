@@ -11,12 +11,14 @@ import matplotlib.pyplot as plt
 
 class PeakValleyFile(gui.ScrollableTab):
 
-	def __init__(self, notebook, filepath):
+	def __init__(self, notebook, filepath, app):
 
 		self.filepath = filepath
 		self.filename = self.filepath.split('/')[-1]
 		gui.ScrollableTab.__init__(self, notebook, self.filename, cwidth=571, cheight=252)
 		self.columnconfigure(0, weight=1)
+
+		self.app = app
 
 		self._count = 0
 		self._rows = []

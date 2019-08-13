@@ -17,7 +17,7 @@ class BasicFile(gui.ScrollableTab):
     """A scrollable notebook tab that supports dynamically creating and deleting basic
     rows (plots), and stores all of the user-specified information about each plot."""
 
-    def __init__(self, notebook, filepath):
+    def __init__(self, notebook, filepath, app):
         """Initialize the scrollable notebook tab as well as the lists that will hold
         references to each field in each row. Creates the data start row, label row,
         and unit row entry fields for the file and adds a single row by default."""
@@ -25,6 +25,11 @@ class BasicFile(gui.ScrollableTab):
         self.filepath = filepath
         self.filename = self.filepath.split('/')[-1]
         gui.ScrollableTab.__init__(self, notebook, self.filename, cwidth=571, cheight=252)
+
+        # Store a reference to the root/main application
+        self.app = app
+        # self.app = self.nametowidget(self.winfo_toplevel())
+        # print(self.nametowidget(self.app))
 
         # Initialize internal variables and field-reference storage lists
         self._count = 0
@@ -236,25 +241,25 @@ class BasicFile(gui.ScrollableTab):
     def copy(self, ID):
         """Copies the contents of the selected row to the clipboard."""
 
-        app.clipboard['title'] = self._titles[ID].get()
-        app.clipboard['x column'] = self._x_columns[ID].get()
-        app.clipboard['y1 columns'] = self._y1_columns[ID].get()
-        app.clipboard['y2 columns'] = self._y2_columns[ID].get()
-        app.clipboard['x label'] = self._x_labels[ID].get()
-        app.clipboard['y1 label'] = self._y1_labels[ID].get()
-        app.clipboard['y2 label'] = self._y2_labels[ID].get()
+        self.app.clipboard['title'] = self._titles[ID].get()
+        self.app.clipboard['x column'] = self._x_columns[ID].get()
+        self.app.clipboard['y1 columns'] = self._y1_columns[ID].get()
+        self.app.clipboard['y2 columns'] = self._y2_columns[ID].get()
+        self.app.clipboard['x label'] = self._x_labels[ID].get()
+        self.app.clipboard['y1 label'] = self._y1_labels[ID].get()
+        self.app.clipboard['y2 label'] = self._y2_labels[ID].get()
 
     def paste(self, ID):
-        """Pastest the contents of the clipboards into the selected row."""
+        """Pastes the contents of the clipboards into the selected row."""
 
         self.clear(ID)
-        self._titles[ID].insert(0, app.clipboard['title'])
-        self._x_columns[ID].insert(0, app.clipboard['x column'])
-        self._y1_columns[ID].insert(0, app.clipboard['y1 columns'])
-        self._y2_columns[ID].insert(0, app.clipboard['y2 columns'])
-        self._x_labels[ID].insert(0, app.clipboard['x label'])
-        self._y1_labels[ID].insert(0, app.clipboard['y1 label'])
-        self._y2_labels[ID].insert(0, app.clipboard['y2 label'])
+        self._titles[ID].insert(0, self.app.clipboard['title'])
+        self._x_columns[ID].insert(0, self.app.clipboard['x column'])
+        self._y1_columns[ID].insert(0, self.app.clipboard['y1 columns'])
+        self._y2_columns[ID].insert(0, self.app.clipboard['y2 columns'])
+        self._x_labels[ID].insert(0, self.app.clipboard['x label'])
+        self._y1_labels[ID].insert(0, self.app.clipboard['y1 label'])
+        self._y2_labels[ID].insert(0, self.app.clipboard['y2 label'])
 
     def clear(self, ID):
         """Clears the contents of the selected row."""
