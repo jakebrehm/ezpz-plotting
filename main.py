@@ -33,7 +33,7 @@ import random
 
 # Import custom classes for special types of files
 from basic import BasicFile, BasicControls
-from peakvalley import PeakValleyFile
+from peakvalley import PeakValleyFile, PeakValleyControls
 
 
 class Application(gui.Application):
@@ -940,6 +940,8 @@ class Controls(tk.Toplevel):
         for file in self.flipbook.info:
             if isinstance(file, BasicFile):
                 notebook = BasicControls(self.primary, takefocus=0)
+            elif isinstance(file, PeakValleyFile):
+                notebook = PeakValleyControls(self.primary, takefocus=0)
             self.notebooks.append(notebook)
 
         # self.page = page

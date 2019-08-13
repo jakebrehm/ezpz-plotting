@@ -550,6 +550,46 @@ class PeakValleyFile(gui.ScrollableTab):
 			if split: plot.split()
 
 
+
+class PeakValleyControls(ttk.Notebook):
+
+	def __init__(self, *args, **kwargs):
+
+		ttk.Notebook.__init__(self, *args, **kwargs)
+		
+		# Add scrollable tabs to the notebook
+		figure = gui.ScrollableTab(self, 'Figure', cheight=400, cwidth=400)
+		appearance = gui.ScrollableTab(self, 'Appearance', cheight=400, cwidth=400)
+		analysis = gui.ScrollableTab(self, 'Analysis', cheight=400, cwidth=400)
+		annotations = gui.ScrollableTab(self, 'Annotations', cheight=400, cwidth=400)
+
+		self.current = None
+		self.flipbook = None
+
+
+	def refresh(self):
+		"""Refresh the controls window fields with the currently stored values."""
+
+		# # Get a reference to the current plot object
+		# current = self.current
+
+		pass
+
+	def update(self):
+		"""Update the current plot object with the user-entered values and refresh
+		both the plot and the controls window."""
+
+		# # Get a reference to the current plot object
+		# current = self.current
+
+		pass
+
+		# # Update the plot and refresh the controls window
+		# self.flipbook.update_plot()
+		# self.refresh()
+
+
+
 if __name__ == '__main__':
 
 	def plot():
