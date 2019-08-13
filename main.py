@@ -31,7 +31,7 @@ import re
 import configobj
 import random
 
-# Import custom classes for special types of files
+# Import custom classes for each type of file
 from basic import BasicFile, BasicControls
 from peakvalley import PeakValleyFile, PeakValleyControls
 
@@ -1334,7 +1334,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-app.after(100, app.test)
+# # # Run a test function
+# app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()

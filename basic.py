@@ -534,11 +534,6 @@ class BasicFile(gui.ScrollableTab):
                     legend_line.set_picker(5)
                     flipbook.line_map[legend_line] = original_line
 
-                # # If the controls window has not been created yet, create it and leave it hidden
-                # if not flipbook.controls:
-                #     flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
-                #     flipbook.controls.withdraw()
-
                 # ====================
                 # AXES LIMITS CONTROLS
                 # ====================
@@ -639,7 +634,6 @@ class BasicFile(gui.ScrollableTab):
                                     color=plot_colors[self.line_color[v]],
                                     alpha=float(self.line_alpha[v]))
 
-                # flipbook.controls.refresh()
 
         # Create a new plot object and hold a reference to it
         plot = Plot()
@@ -883,6 +877,32 @@ class BasicControls(ttk.Notebook):
         self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
         self.horizontal_lines.columnconfigure(0, weight=1)
 
+        
+    def _custom_background(self, event=None):
+        """Allow the user to navigate to and select a custom background.
+
+        This function is called whenever an option in the appropriate combobox is
+        selected. However, its purposes is to only execute when the 'Custom'
+        option is selected."""
+
+        # Get a reference to the current plot
+        current = self.current
+        # If the user chooses to use a custom background...
+        if self.background_choice.get() == 'Custom':
+            # Get the filepath of the selected file
+            path = fd.askopenfilename(title='Select the background image')
+            if path:
+                # If the user follows through, save the filepath
+                current.background_path = path
+            else:
+                # If the user cancels, set the plot's background_path attribute to None
+                # as well as the combobox value.
+                current.background_path = None
+                self.background_choice.set('None')
+        else:
+            # Otherwise, set the current plot's background_path attribute to None
+            current.background_path = None
+
 
     def refresh(self):
         """Refresh the controls window fields with the currently stored values."""
@@ -1095,29 +1115,3 @@ class BasicControls(ttk.Notebook):
         # Update the plot and refresh the controls window
         self.flipbook.update_plot()
         self.refresh()
-
-
-    def _custom_background(self, event=None):
-        """Allow the user to navigate to and select a custom background.
-
-        This function is called whenever an option in the appropriate combobox is
-        selected. However, its purposes is to only execute when the 'Custom'
-        option is selected."""
-
-        # Get a reference to the current plot
-        current = self.current
-        # If the user chooses to use a custom background...
-        if self.background_choice.get() == 'Custom':
-            # Get the filepath of the selected file
-            path = fd.askopenfilename(title='Select the background image')
-            if path:
-                # If the user follows through, save the filepath
-                current.background_path = path
-            else:
-                # If the user cancels, set the plot's background_path attribute to None
-                # as well as the combobox value.
-                current.background_path = None
-                self.background_choice.set('None')
-        else:
-            # Otherwise, set the current plot's background_path attribute to None
-            current.background_path = None

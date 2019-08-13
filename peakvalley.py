@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 import re
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
@@ -357,9 +358,11 @@ class PeakValleyFile(gui.ScrollableTab):
 		class Plot:
 			"""Object that holds information about a singular plot."""
 
-			# def __init__(self):
-			# 	self.FAILURES_DETERMINED = False
-			# 	self.DATA_SPLIT = False
+			def __init__(self):
+				# self.FAILURES_DETERMINED = False
+				# self.DATA_SPLIT = False
+				self.lower = None
+				self.upper = None
 
 			def _x_data(self, x_column):
 				"""Pull the appropriate x-information from the data."""
@@ -401,6 +404,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.y1 = [self.y_failed, self.y_passed]
 
 				self.FAILURES_DETERMINED = True
+				self.lower = lower
+				self.upper = upper
 
 			def split(self):
 				# average = sum(self.y1) / len(self.y1)
@@ -411,8 +416,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				# self.x = [x_valleys, x_peaks]
 				# self.y1 = [y_valleys, y_peaks]
 
+				average = sum(self.y1_original) / len(self.y1_original)
 				if not self.FAILURES_DETERMINED:
-					average = sum(self.y1) / len(self.y1)
 					x_valleys = self.x[self.y1 < average]
 					x_peaks = self.x[self.y1 > average]
 					y_valleys = self.y1[self.y1 < average]
@@ -420,7 +425,6 @@ class PeakValleyFile(gui.ScrollableTab):
 					self.x = [x_valleys, x_peaks]
 					self.y1 = [y_valleys, y_peaks]
 				else:
-					average = sum(self.y1[1]) / len(self.y1[1])
 					x_valleys = self.x[1][self.y1[1] < average]
 					x_peaks = self.x[1][self.y1[1] > average]
 					y_valleys = self.y1[1][self.y1[1] < average]
@@ -479,9 +483,10 @@ class PeakValleyFile(gui.ScrollableTab):
 				flipbook.primary.set_zorder(1000)
 				flipbook.primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
 
-				colors = {'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'k'}
+				# Plot the data as a scatterplot
+				colors = {'general': 'k', 'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'b'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					flipbook.primary.scatter(self.x, self.y1, color='k')
+					flipbook.primary.scatter(self.x, self.y1, color=colors['general'])
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
 					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
 					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['valley'])
@@ -492,6 +497,11 @@ class PeakValleyFile(gui.ScrollableTab):
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
 					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
 					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
+
+				# Plot horizontal lines showing pass/fail criteria
+				if self.FAILURES_DETERMINED:
+					flipbook.primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.5)
+					flipbook.primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.5)
 
 				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
 				# Store the original x-axis limits to allow the user to revert to them if desired.
@@ -508,10 +518,19 @@ class PeakValleyFile(gui.ScrollableTab):
 				    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
 				    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
 
-                # # If the controls window has not been created yet, create it and leave it hidden
-				# if not flipbook.controls:
-				# 	flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
-				# 	flipbook.controls.withdraw()
+				# Turn the grid on, with both major and minor gridlines
+				flipbook.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
+				flipbook.primary.minorticks_on()
+				flipbook.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+
+				# Use the seaborn plot style
+				plt.style.use('seaborn')
+
+				# Load the Tactair image and display it on the plot
+				image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
+				x_low, x_high = flipbook.primary.get_xlim()
+				y_low, y_high = flipbook.primary.get_ylim()
+				flipbook.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
 		# Create a new plot object and hold a reference to it
 		plot = Plot()
@@ -548,7 +567,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				plot.determine_failures(lower, upper)
 
 			if split: plot.split()
-
 
 
 class PeakValleyControls(ttk.Notebook):
@@ -589,7 +607,6 @@ class PeakValleyControls(ttk.Notebook):
 		# self.refresh()
 
 
-
 if __name__ == '__main__':
 
 	def plot():
@@ -600,11 +617,11 @@ if __name__ == '__main__':
 			plt.plot(plot.x, plot.y1)
 			plt.show()
 
-	filepath = 'testdata.dat'
+	filepath = 'Data\\peakvalley.dat'
 	app = gui.Application(padding=20)
 	notebook = ttk.Notebook(app)
 	notebook.grid(row=0, column=0, sticky='NSEW')
-	tab = PeakValleyFile(notebook, filepath)
+	tab = PeakValleyFile(notebook, filepath, app)
 	buttons = tk.Frame(app)
 	buttons.grid(row=1, column=0, sticky='NSEW')
 	add_button = ttk.Button(buttons, text='+')

@@ -6,5 +6,4 @@ Assets/*.psd
 build/
 dist/
 __pycache__/
-testdata.*
 *.code-workspace
