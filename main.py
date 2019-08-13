@@ -671,22 +671,6 @@ class Flipbook(tk.Toplevel):
         self.resizable(width=False, height=False)
         self.protocol("WM_DELETE_WINDOW", on_close)
 
-
-
-
-
-
-        # # If the controls window has not been created yet, create it and leave it hidden
-        # if not self.controls:
-        #     # self.controls = Controls(self, self.plots[self.page])
-        #     self.controls = Controls(self, self.page)
-        #     self.controls.withdraw()
-
-
-
-
-
-
         # Create a padded frame to keep all of the widgets in
         flipbook = gui.PaddedFrame(self)
         flipbook.grid(row=0, column=0, sticky='NSEW')
@@ -772,26 +756,11 @@ class Flipbook(tk.Toplevel):
         self.update_arrows()
         self.update_plot()
 
-
-
-
-
         # If the controls window has not been created yet, create it and leave it hidden
         if not self.controls:
             # self.controls = Controls(self, self.plots[self.page])
             self.controls = Controls(self, self.page)
             self.controls.withdraw()
-
-
-
-
-
-
-
-
-
-
-
 
         # Make the flipbook visible again and center it on the screen
         self.deiconify()
@@ -916,9 +885,6 @@ class Controls(tk.Toplevel):
 
         # Initialize miscellaneous instance variables
         self.flipbook = master
-        # self.current = current
-        # self.band_controls = None # Tolerance band controls object
-        # self.line_controls = None # Limit lines controls object
 
         # Create the primary frame, which will hold the notebook and provide padding
         self.primary = gui.PaddedFrame(self)
@@ -926,16 +892,10 @@ class Controls(tk.Toplevel):
         self.primary.columnconfigure(0, weight=1)
         self.primary.rowconfigure(0, weight=1)
 
-        # # Create the notebook which will contain tabs for all controls
-        # current_file = self.flipbook.info[self.flipbook.page]
-        # if isinstance(current_file, BasicFile):
-        #     notebook = BasicControls(primary, takefocus=0)
-        # # elif isinstance(current_file, PeakValleyFile):
-        # #     notebook = PeakValleyControls(primary, takefocus=0)
-        # notebook.grid(row=0, column=0, sticky='NSEW')
-
+        # Initialize the notebook variable, which is the current page's controls
         self.notebook = None
-
+        # Make a list of notebooks (one for each file) so that they can be
+        # switched between instead of deleted and recreated upon a page change
         self.notebooks = []
         for file in self.flipbook.info:
             if isinstance(file, BasicFile):
@@ -963,15 +923,23 @@ class Controls(tk.Toplevel):
 
 
     def flip_page(self, page):
+        """Upon changing this page of the flipbook, update instance attributes,
+        remove the old controls from view, and show the controls of the current
+        page.
+        """
+
+        # Set relevant attributes according to the page number
         self.page = page
         file_index = self.flipbook.files[page]
         self.file = self.flipbook.info[file_index]
         self.current = self.flipbook.plots[page]
 
+        # If a notebook is already shown, remove it from view
         if self.notebook is not None:
             self.notebook.grid_forget()
             self.notebook = None
 
+        # Show the new controls and update its attributes
         self.notebook = self.notebooks[file_index]
         self.notebook.grid(row=0, column=0, sticky='NSEW')
         self.notebook.current = self.current
@@ -979,10 +947,14 @@ class Controls(tk.Toplevel):
 
 
     def refresh(self):
+        """Refresh the current page's controls/notebook."""
+
         self.notebook.refresh()
 
 
     def update(self, event=None):
+        """Update the current page's controls/notebook."""
+
         self.notebook.update()
 
 
