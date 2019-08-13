@@ -6,6 +6,10 @@ import tkinter as tk
 from tkinter import ttk
 import re
 
+import random
+
+from settings import plot_colors
+
 import matplotlib.pyplot as plt
 
 
@@ -139,10 +143,10 @@ class ToleranceBands(tk.Frame):
 
         # Add a combobox to select which color the bands should be
         color_choice = tk.StringVar()
-        color_choice.set(random.choice(list(app.plot_colors.keys())))
+        color_choice.set(random.choice(list(plot_colors.keys())))
         color_combo = ttk.Combobox(container, textvariable=color_choice,
                                    width=COMBO_WIDTH, state='readonly')
-        color_combo['values'] = list(app.plot_colors.keys())
+        color_combo['values'] = list(plot_colors.keys())
         color_combo.grid(row=1, column=1, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)
@@ -538,10 +542,10 @@ class LimitLines(tk.Frame):
 
         # Add a combobox to select which color the line should be
         color_choice = tk.StringVar()
-        color_choice.set(random.choice(list(app.plot_colors.keys())))
+        color_choice.set(random.choice(list(plot_colors.keys())))
         color_combo = ttk.Combobox(container, textvariable=color_choice,
                                    width=COMBO_WIDTH, state='readonly')
-        color_combo['values'] = list(app.plot_colors.keys())
+        color_combo['values'] = list(plot_colors.keys())
         color_combo.grid(row=3, column=0, padx=PADDING)
         self.color_choices.append(color_choice)
         self.color_combos.append(color_combo)

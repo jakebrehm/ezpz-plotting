@@ -534,10 +534,10 @@ class BasicFile(gui.ScrollableTab):
                     legend_line.set_picker(5)
                     flipbook.line_map[legend_line] = original_line
 
-                # If the controls window has not been created yet, create it and leave it hidden
-                if not flipbook.controls:
-                    flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
-                    flipbook.controls.withdraw()
+                # # If the controls window has not been created yet, create it and leave it hidden
+                # if not flipbook.controls:
+                #     flipbook.controls = Controls(flipbook, flipbook.plots[flipbook.page])
+                #     flipbook.controls.withdraw()
 
                 # ====================
                 # AXES LIMITS CONTROLS
@@ -639,7 +639,7 @@ class BasicFile(gui.ScrollableTab):
                                     color=plot_colors[self.line_color[v]],
                                     alpha=float(self.line_alpha[v]))
 
-                flipbook.controls.refresh()
+                # flipbook.controls.refresh()
 
         # Create a new plot object and hold a reference to it
         plot = Plot()
@@ -728,4 +728,191 @@ class BasicFile(gui.ScrollableTab):
             plot._generate(self.data, self.labels, x_column, self.y1_columns,
                            self.y2_columns, self.units)
             plot._labels(title, x_label, y1_label, y2_label)
+
+
+class BasicControls(ttk.Notebook):
+
+    def __init__(self, *args, **kwargs):
+
+        ttk.Notebook.__init__(self, *args, **kwargs)
+        
+        # Add scrollable tabs to the notebook
+        figure = gui.ScrollableTab(self, 'Figure', cheight=400, cwidth=400)
+        appearance = gui.ScrollableTab(self, 'Appearance', cheight=400, cwidth=400)
+        analysis = gui.ScrollableTab(self, 'Analysis', cheight=400, cwidth=400)
+        annotations = gui.ScrollableTab(self, 'Annotations', cheight=400, cwidth=400)
+
+        self.band_controls = None # Tolerance band controls object
+        self.line_controls = None # Limit lines controls object
+        
+        # ==========
+        # FIGURE TAB
+        # ==========
+
+        # Create the limits frame which will hold fields for each axis limit
+        limits = gui.PaddedFrame(figure)
+        limits.grid(row=0, column=0, sticky='NSEW')
+        limits.columnconfigure(0, weight=1)
+        limits.columnconfigure(1, weight=1)
+        # Define amount of padding to use around widgets
+        LIMITS_PADDING = 10
+        # Add the title of the section
+        limits_title = tk.Label(limits, text='Axis Limits',
+                         font=('TkDefaultFont', 10, 'bold'))
+        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a lower x-axis label and entry
+        x_lower_label = tk.Label(limits, text='x-lower:')
+        x_lower_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_lower_entry = ttk.Entry(limits, width=20)
+        self.x_lower_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create an upper x-axis label and entry
+        x_upper_label = tk.Label(limits, text='x-upper:')
+        x_upper_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.x_upper_entry = ttk.Entry(limits, width=20)
+        self.x_upper_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(limits, row=3, column=0, columnspan=2)
+        # Create a lower y1-axis label and entry
+        y1_lower_label = tk.Label(limits, text='y1-lower:')
+        y1_lower_label.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_lower_entry = ttk.Entry(limits, width=20)
+        self.y1_lower_entry.grid(row=5, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create an upper y1-axis label and entry
+        y1_upper_label = tk.Label(limits, text='y1-upper:')
+        y1_upper_label.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y1_upper_entry = ttk.Entry(limits, width=20)
+        self.y1_upper_entry.grid(row=5, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(limits, row=6, column=0, columnspan=2)
+        # Create a lower y2-axis label and entry
+        y2_lower_label = tk.Label(limits, text='y2_lower:')
+        y2_lower_label.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_lower_entry = ttk.Entry(limits, width=20)
+        self.y2_lower_entry.grid(row=8, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create an upper y2-axis label and entry
+        y2_upper_label = tk.Label(limits, text='y2_upper:')
+        y2_upper_label.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.y2_upper_entry = ttk.Entry(limits, width=20)
+        self.y2_upper_entry.grid(row=8, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+
+        # Add a separator
+        separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
+        separator.grid(row=1, column=0, sticky='NSEW')
+
+        # Create the ticks frame which will hold fields for each axis tick field
+        ticks = gui.PaddedFrame(figure)
+        ticks.grid(row=2, column=0, sticky='NSEW')
+        ticks.columnconfigure(0, weight=1)
+        ticks.columnconfigure(1, weight=1)
+        # Add the title of the section
+        ticks_title = tk.Label(ticks, text='Axis Ticks',
+                         font=('TkDefaultFont', 10, 'bold'))
+        ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a label and an entry for the primary ticks
+        primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
+        primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        self.primary_ticks_entry = ttk.Entry(ticks)
+        self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create a label and an entry for the secondary ticks
+        secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
+        secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.secondary_ticks_entry = ttk.Entry(ticks)
+        self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+
+        # ==============
+        # APPEARANCE TAB
+        # ==============
+
+        general = gui.PaddedFrame(appearance)
+        general.grid(row=0, column=0, sticky='NSEW')
+        general.columnconfigure(0, weight=1)
+        general.columnconfigure(1, weight=1)
+
+        # Add the title of the section
+        general_title = tk.Label(general, text='General Appearance',
+                         font=('TkDefaultFont', 10, 'bold'))
+        general_title.grid(row=0, column=0, pady=(0, 10), columnspan=2, sticky='W')
+
+        # Create a padded frame for the background controls
+        background = tk.Frame(general)
+        background.grid(row=1, column=0, sticky='NSEW')
+        background.columnconfigure(0, weight=1)
+        # Add a label for the background combobox
+        background_label = tk.Label(background, text='Background:')
+        background_label.grid(row=0, column=0, padx=10, sticky='NSEW')
+        # Add a combobox to control the background of the plot
+        self.background_choice = tk.StringVar()
+        background_combo = ttk.Combobox(background, width=20, state='readonly',
+                                        textvariable=self.background_choice)
+        background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
+        background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
+        # background_combo.bind('<<ComboboxSelected>>', self._custom_background)
+
+        # Create a padded frame for the style controls
+        style = tk.Frame(general)
+        style.grid(row=1, column=1, sticky='NSEW')
+        style.columnconfigure(0, weight=1)
+        # Add a label for the style combobox
+        style_label = tk.Label(style, text='Style:')
+        style_label.grid(row=0, column=0, padx=10, sticky='NSEW')
+        # Add a combobox to control the style of the plot
+        self.style_choice = tk.StringVar()
+        style_combo = ttk.Combobox(style, width=20, state='readonly',
+                                        textvariable=self.style_choice)
+        style_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
+        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
+
+        # ============
+        # ANALYSIS TAB
+        # ============
+
+        # Create a frame that will hold the dynamic tolerance bands controls
+        self.tolerance_bands = gui.PaddedFrame(analysis)
+        self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
+        self.tolerance_bands.columnconfigure(0, weight=1)
+
+        # ===============
+        # ANNOTATIONS TAB
+        # ===============
+
+        # Create a frame that will hold the dynamic limit lines controls
+        self.horizontal_lines = gui.PaddedFrame(annotations)
+        self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
+        self.horizontal_lines.columnconfigure(0, weight=1)
+
+        # ===============
+        # END OF CONTROLS
+        # ===============
+
+        # # Refresh the controls with values for the current plot
+        # self.refresh()
+
+        # Bind the enter key to the same function the update button calls
+        self.bind('<Return>', self.update)
+
+
+    def _custom_background(self, event=None):
+        """Allow the user to navigate to and select a custom background.
+
+        This function is called whenever an option in the appropriate combobox is
+        selected. However, its purposes is to only execute when the 'Custom'
+        option is selected."""
+
+        # Get a reference to the current plot
+        current = self.current
+        # If the user chooses to use a custom background...
+        if self.background_choice.get() == 'Custom':
+            # Get the filepath of the selected file
+            path = fd.askopenfilename(title='Select the background image')
+            if path:
+                # If the user follows through, save the filepath
+                current.background_path = path
+            else:
+                # If the user cancels, set the plot's background_path attribute to None
+                # as well as the combobox value.
+                current.background_path = None
+                self.background_choice.set('None')
+        else:
+            # Otherwise, set the current plot's background_path attribute to None
+            current.background_path = None
 

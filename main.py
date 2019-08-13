@@ -32,7 +32,7 @@ import configobj
 import random
 
 # Import custom classes for special types of files
-from basic import BasicFile
+from basic import BasicFile, BasicControls
 from peakvalley import PeakValleyFile
 
 
@@ -642,7 +642,7 @@ class Flipbook(tk.Toplevel):
         def show_controls():
             """Refresh the controls window and make it visible."""
 
-            # self.controls.refresh()
+            self.controls.refresh()
             self.controls.deiconify()
 
 
@@ -676,10 +676,11 @@ class Flipbook(tk.Toplevel):
 
 
 
-        # If the controls window has not been created yet, create it and leave it hidden
-        if not self.controls:
-            self.controls = Controls(self, self.plots[self.page])
-            self.controls.withdraw()
+        # # If the controls window has not been created yet, create it and leave it hidden
+        # if not self.controls:
+        #     # self.controls = Controls(self, self.plots[self.page])
+        #     self.controls = Controls(self, self.page)
+        #     self.controls.withdraw()
 
 
 
@@ -771,6 +772,27 @@ class Flipbook(tk.Toplevel):
         self.update_arrows()
         self.update_plot()
 
+
+
+
+
+        # If the controls window has not been created yet, create it and leave it hidden
+        if not self.controls:
+            # self.controls = Controls(self, self.plots[self.page])
+            self.controls = Controls(self, self.page)
+            self.controls.withdraw()
+
+
+
+
+
+
+
+
+
+
+
+
         # Make the flipbook visible again and center it on the screen
         self.deiconify()
         gui.CenterWindow(self)
@@ -782,14 +804,6 @@ class Flipbook(tk.Toplevel):
         current = self.plots[self.page] # Current plot object
         file_number = self.files[self.page] # File index
         plot_number = self.numbers[self.page] # Plot number in file
-
-        # fileclass = self.info[self.page].__class__.__name__
-        # if self.controls and fileclass != 'BasicFile':
-        #     # self.controls.disable()
-        #     print('the controls window would be disabled right now')
-        #     return
-
-        # self.controls.disable()
 
         # Update the plot using the plot object's update_plot method
         current.update_plot(self, file_number, plot_number)
@@ -822,11 +836,12 @@ class Flipbook(tk.Toplevel):
         if destination in range(self.pages + 1):
             # Set the new page number; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
-            self.controls.current = self.plots[self.page]
+            # self.controls.current = self.plots[self.page]
+            self.controls.flip_page(self.page)
             self.update_plot()
             self.update_arrows()
-            # # Refresh the controls window
-            # self.controls.refresh()
+            # Refresh the controls window
+            self.controls.refresh()
 
         # Return 'break' to bypass event propagation
         return ('break')
@@ -887,33 +902,8 @@ class Flipbook(tk.Toplevel):
 
 class Controls(tk.Toplevel):
 
-    def __init__(self, master, current):
+    def __init__(self, master, page):
         """Create a controls window where the user can adjust the plot."""
-
-        def custom_background(event=None):
-            """Allow the user to navigate to and select a custom background.
-
-            This function is called whenever an option in the appropriate combobox is
-            selected. However, its purposes is to only execute when the 'Custom'
-            option is selected."""
-
-            # Get a reference to the current plot
-            current = self.current
-            # If the user chooses to use a custom background...
-            if self.background_choice.get() == 'Custom':
-                # Get the filepath of the selected file
-                path = fd.askopenfilename(title='Select the background image')
-                if path:
-                    # If the user follows through, save the filepath
-                    current.background_path = path
-                else:
-                    # If the user cancels, set the plot's background_path attribute to None
-                    # as well as the combobox value.
-                    current.background_path = None
-                    self.background_choice.set('None')
-            else:
-                # Otherwise, set the current plot's background_path attribute to None
-                current.background_path = None
 
         # Create the top-level controls window
         tk.Toplevel.__init__(self, master)
@@ -922,28 +912,38 @@ class Controls(tk.Toplevel):
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         # When the user closes the controls window, just hide it instead
-        self.protocol("WM_DELETE_WINDOW", lambda: self.withdraw())
+        self.protocol("WM_DELETE_WINDOW", self.withdraw)
 
         # Initialize miscellaneous instance variables
         self.flipbook = master
-        self.current = current
-        self.band_controls = None # Tolerance band controls object
-        self.line_controls = None # Limit lines controls object
+        # self.current = current
+        # self.band_controls = None # Tolerance band controls object
+        # self.line_controls = None # Limit lines controls object
 
         # Create the primary frame, which will hold the notebook and provide padding
-        primary = gui.PaddedFrame(self)
-        primary.grid(row=0, column=0, sticky='NSEW')
-        primary.columnconfigure(0, weight=1)
-        primary.rowconfigure(0, weight=1)
+        self.primary = gui.PaddedFrame(self)
+        self.primary.grid(row=0, column=0, sticky='NSEW')
+        self.primary.columnconfigure(0, weight=1)
+        self.primary.rowconfigure(0, weight=1)
 
-        # Create the notebook which will contain tabs for all controls
-        notebook = ttk.Notebook(primary, takefocus=0)
-        notebook.grid(row=0, column=0, sticky='NSEW')
-        # Add scrollable tabs to the notebook
-        figure = gui.ScrollableTab(notebook, 'Figure', cheight=400, cwidth=400)
-        appearance = gui.ScrollableTab(notebook, 'Appearance', cheight=400, cwidth=400)
-        analysis = gui.ScrollableTab(notebook, 'Analysis', cheight=400, cwidth=400)
-        annotations = gui.ScrollableTab(notebook, 'Annotations', cheight=400, cwidth=400)
+        # # Create the notebook which will contain tabs for all controls
+        # current_file = self.flipbook.info[self.flipbook.page]
+        # if isinstance(current_file, BasicFile):
+        #     notebook = BasicControls(primary, takefocus=0)
+        # # elif isinstance(current_file, PeakValleyFile):
+        # #     notebook = PeakValleyControls(primary, takefocus=0)
+        # notebook.grid(row=0, column=0, sticky='NSEW')
+
+        self.notebook = None
+
+        self.notebooks = []
+        for file in self.flipbook.info:
+            if isinstance(file, BasicFile):
+                notebook = BasicControls(self.primary, takefocus=0)
+            self.notebooks.append(notebook)
+
+        # self.page = page
+        self.flip_page(page)
 
         # Separate the primary and secondary frames
         gui.Separator(self).grid(row=1, column=0, sticky='NSEW')
@@ -958,150 +958,24 @@ class Controls(tk.Toplevel):
                                    command=self.update)
         update_button.grid(row=0, column=0, sticky='E')
 
-        # ==========
-        # FIGURE TAB
-        # ==========
 
-        # Create the limits frame which will hold fields for each axis limit
-        limits = gui.PaddedFrame(figure)
-        limits.grid(row=0, column=0, sticky='NSEW')
-        limits.columnconfigure(0, weight=1)
-        limits.columnconfigure(1, weight=1)
-        # Define amount of padding to use around widgets
-        LIMITS_PADDING = 10
-        # Add the title of the section
-        limits_title = tk.Label(limits, text='Axis Limits',
-                         font=('TkDefaultFont', 10, 'bold'))
-        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
-        # Create a lower x-axis label and entry
-        x_lower_label = tk.Label(limits, text='x-lower:')
-        x_lower_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.x_lower_entry = ttk.Entry(limits, width=20)
-        self.x_lower_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper x-axis label and entry
-        x_upper_label = tk.Label(limits, text='x-upper:')
-        x_upper_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.x_upper_entry = ttk.Entry(limits, width=20)
-        self.x_upper_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        # Add some vertical spacing between widgets
-        gui.Space(limits, row=3, column=0, columnspan=2)
-        # Create a lower y1-axis label and entry
-        y1_lower_label = tk.Label(limits, text='y1-lower:')
-        y1_lower_label.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y1_lower_entry = ttk.Entry(limits, width=20)
-        self.y1_lower_entry.grid(row=5, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper y1-axis label and entry
-        y1_upper_label = tk.Label(limits, text='y1-upper:')
-        y1_upper_label.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y1_upper_entry = ttk.Entry(limits, width=20)
-        self.y1_upper_entry.grid(row=5, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        # Add some vertical spacing between widgets
-        gui.Space(limits, row=6, column=0, columnspan=2)
-        # Create a lower y2-axis label and entry
-        y2_lower_label = tk.Label(limits, text='y2_lower:')
-        y2_lower_label.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y2_lower_entry = ttk.Entry(limits, width=20)
-        self.y2_lower_entry.grid(row=8, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper y2-axis label and entry
-        y2_upper_label = tk.Label(limits, text='y2_upper:')
-        y2_upper_label.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y2_upper_entry = ttk.Entry(limits, width=20)
-        self.y2_upper_entry.grid(row=8, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+    def flip_page(self, page):
+        self.page = page
+        file_index = self.flipbook.files[page]
+        self.file = self.flipbook.info[file_index]
+        self.current = self.flipbook.plots[page]
 
-        # Add a separator
-        separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
-        separator.grid(row=1, column=0, sticky='NSEW')
+        if self.notebook is not None:
+            # self.notebook.destroy()
+            self.notebook.grid_forget()
+            self.notebook = None
 
-        # Create the ticks frame which will hold fields for each axis tick field
-        ticks = gui.PaddedFrame(figure)
-        ticks.grid(row=2, column=0, sticky='NSEW')
-        ticks.columnconfigure(0, weight=1)
-        ticks.columnconfigure(1, weight=1)
-        # Add the title of the section
-        ticks_title = tk.Label(ticks, text='Axis Ticks',
-                         font=('TkDefaultFont', 10, 'bold'))
-        ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
-        # Create a label and an entry for the primary ticks
-        primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
-        primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.primary_ticks_entry = ttk.Entry(ticks)
-        self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create a label and an entry for the secondary ticks
-        secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
-        secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.secondary_ticks_entry = ttk.Entry(ticks)
-        self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        # if isinstance(self.file, BasicFile):
+        #     self.notebook = BasicControls(self.primary, takefocus=0)
+        # self.notebook.grid(row=0, column=0, sticky='NSEW')
 
-        # ==============
-        # APPEARANCE TAB
-        # ==============
-
-        general = gui.PaddedFrame(appearance)
-        general.grid(row=0, column=0, sticky='NSEW')
-        general.columnconfigure(0, weight=1)
-        general.columnconfigure(1, weight=1)
-
-        # Add the title of the section
-        general_title = tk.Label(general, text='General Appearance',
-                         font=('TkDefaultFont', 10, 'bold'))
-        general_title.grid(row=0, column=0, pady=(0, 10), columnspan=2, sticky='W')
-
-        # Create a padded frame for the background controls
-        background = tk.Frame(general)
-        background.grid(row=1, column=0, sticky='NSEW')
-        background.columnconfigure(0, weight=1)
-        # Add a label for the background combobox
-        background_label = tk.Label(background, text='Background:')
-        background_label.grid(row=0, column=0, padx=10, sticky='NSEW')
-        # Add a combobox to control the background of the plot
-        self.background_choice = tk.StringVar()
-        background_combo = ttk.Combobox(background, width=20, state='readonly',
-                                        textvariable=self.background_choice)
-        background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
-        background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
-        background_combo.bind('<<ComboboxSelected>>', custom_background)
-
-        # Create a padded frame for the style controls
-        style = tk.Frame(general)
-        style.grid(row=1, column=1, sticky='NSEW')
-        style.columnconfigure(0, weight=1)
-        # Add a label for the style combobox
-        style_label = tk.Label(style, text='Style:')
-        style_label.grid(row=0, column=0, padx=10, sticky='NSEW')
-        # Add a combobox to control the style of the plot
-        self.style_choice = tk.StringVar()
-        style_combo = ttk.Combobox(style, width=20, state='readonly',
-                                        textvariable=self.style_choice)
-        style_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
-        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
-
-        # ============
-        # ANALYSIS TAB
-        # ============
-
-        # Create a frame that will hold the dynamic tolerance bands controls
-        self.tolerance_bands = gui.PaddedFrame(analysis)
-        self.tolerance_bands.grid(row=0, column=0, sticky='NSEW')
-        self.tolerance_bands.columnconfigure(0, weight=1)
-
-        # ===============
-        # ANNOTATIONS TAB
-        # ===============
-
-        # Create a frame that will hold the dynamic limit lines controls
-        self.horizontal_lines = gui.PaddedFrame(annotations)
-        self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
-        self.horizontal_lines.columnconfigure(0, weight=1)
-
-        # ===============
-        # END OF CONTROLS
-        # ===============
-
-        # # Refresh the controls with values for the current plot
-        # self.refresh()
-
-        # Bind the enter key to the same function the update button calls
-        self.bind('<Return>', self.update)
+        self.notebook = self.notebooks[file_index]
+        self.notebook.grid(row=0, column=0, sticky='NSEW')
 
 
     def refresh(self):
@@ -1109,6 +983,9 @@ class Controls(tk.Toplevel):
 
         # Get a reference to the current plot object
         current = self.current
+
+        # Create a reference to the notebook as shorthand
+        nb = self.notebook
 
         # ====================
         # AXES LIMITS CONTROLS
@@ -1122,52 +999,52 @@ class Controls(tk.Toplevel):
             entry.insert(0, value if value else original)
 
         # Fill in each field with their respective values
-        fill_entry(self.x_lower_entry, current.x_lower, current.x_lower_original)
-        fill_entry(self.x_upper_entry, current.x_upper, current.x_upper_original)
-        fill_entry(self.y1_lower_entry, current.y1_lower, current.y1_lower_original)
-        fill_entry(self.y1_upper_entry, current.y1_upper, current.y1_upper_original)
+        fill_entry(nb.x_lower_entry, current.x_lower, current.x_lower_original)
+        fill_entry(nb.x_upper_entry, current.x_upper, current.x_upper_original)
+        fill_entry(nb.y1_lower_entry, current.y1_lower, current.y1_lower_original)
+        fill_entry(nb.y1_upper_entry, current.y1_upper, current.y1_upper_original)
         # Disable the secondary axis entry fields if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
         if current.secondary_axis:
-            self.y2_lower_entry['state'] = 'normal'
-            fill_entry(self.y2_lower_entry, current.y2_lower, current.y2_lower_original)
-            self.y2_upper_entry['state'] = 'normal'
-            fill_entry(self.y2_upper_entry, current.y2_upper, current.y2_upper_original)
+            nb.y2_lower_entry['state'] = 'normal'
+            fill_entry(nb.y2_lower_entry, current.y2_lower, current.y2_lower_original)
+            nb.y2_upper_entry['state'] = 'normal'
+            fill_entry(nb.y2_upper_entry, current.y2_upper, current.y2_upper_original)
         else:
-            self.y2_lower_entry.delete(0, 'end')
-            self.y2_lower_entry['state'] = 'disabled'
-            self.y2_upper_entry.delete(0, 'end')
-            self.y2_upper_entry['state'] = 'disabled'
+            nb.y2_lower_entry.delete(0, 'end')
+            nb.y2_lower_entry['state'] = 'disabled'
+            nb.y2_upper_entry.delete(0, 'end')
+            nb.y2_upper_entry['state'] = 'disabled'
 
         # ===================
         # AXIS TICKS CONTROLS
         # ===================
 
         # Fill the primary and secondary tick fields with the appropriate stored value
-        fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
-        fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+        fill_entry(nb.primary_ticks_entry, current.primary_ticks, '')
+        fill_entry(nb.secondary_ticks_entry, current.secondary_ticks, '')
         # Disable the secondary axis entry field if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
         if current.secondary_axis:
-            self.secondary_ticks_entry['state'] = 'normal'
-            fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+            nb.secondary_ticks_entry['state'] = 'normal'
+            fill_entry(nb.secondary_ticks_entry, current.secondary_ticks, '')
         else:
-            self.secondary_ticks_entry.delete(0, 'end')
-            self.secondary_ticks_entry['state'] = 'disabled'
+            nb.secondary_ticks_entry.delete(0, 'end')
+            nb.secondary_ticks_entry['state'] = 'disabled'
 
         # ========================
         # STYLE SELECTION CONTROLS
         # ========================
 
         # Set the current style combobox selection to the stored style value
-        self.style_choice.set(current.style.get())
+        nb.style_choice.set(current.style.get())
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
         # =============================
 
         # Set the current background combobox selection to the stored background value
-        self.background_choice.set(current.background.get())
+        nb.background_choice.set(current.background.get())
 
         # =======================
         # TOLERANCE BAND CONTROLS
@@ -1175,28 +1052,28 @@ class Controls(tk.Toplevel):
 
         # If the band_controls widget already exists, remove it from view.
         # Destroying it will cause the program to not be able to reference those fields.
-        if self.band_controls: self.band_controls.grid_forget()
+        if nb.band_controls: nb.band_controls.grid_forget()
         # Re-grid the tolerance bands object of the current plot
-        self.band_controls = current.bands
-        self.band_controls.setup(self.tolerance_bands)
-        self.band_controls.grid(row=0, column=0, sticky='NSEW')
+        nb.band_controls = current.bands
+        nb.band_controls.setup(nb.tolerance_bands)
+        nb.band_controls.grid(row=0, column=0, sticky='NSEW')
 
         # If the attributes of the current plot object have been changed...
         if current.series and current.minus_tolerance and current.plus_tolerance and current.lag:
             # Determine which of those lists is the longest and recreate that many rows
             longest = len(max(current.series, current.minus_tolerance,
                               current.plus_tolerance, current.lag))
-            self.band_controls.recreate(rows=longest)
+            nb.band_controls.recreate(rows=longest)
 
         # Fill the newly create entries with the relevant values
-        self.band_controls.series = current.series
-        self.band_controls.color = current.color
-        self.band_controls.linestyle = current.linestyle
-        self.band_controls.plus_tolerance = current.plus_tolerance
-        self.band_controls.minus_tolerance = current.minus_tolerance
-        self.band_controls.lag = current.lag
-        self.band_controls.bands_plus = current.plus_bands
-        self.band_controls.bands_minus = current.minus_bands
+        nb.band_controls.series = current.series
+        nb.band_controls.color = current.color
+        nb.band_controls.linestyle = current.linestyle
+        nb.band_controls.plus_tolerance = current.plus_tolerance
+        nb.band_controls.minus_tolerance = current.minus_tolerance
+        nb.band_controls.lag = current.lag
+        nb.band_controls.bands_plus = current.plus_bands
+        nb.band_controls.bands_minus = current.minus_bands
 
         # Every time the combobox is selected, update its options with the currently
         # plotted columns.
@@ -1205,7 +1082,7 @@ class Controls(tk.Toplevel):
             values.append(current.labels[column-1])
         for column in current.y2_columns:
             values.append(current.labels[column-1])
-        self.band_controls.update_series(values)
+        nb.band_controls.update_series(values)
 
         # ===================
         # LIMIT LINE CONTROLS
@@ -1213,11 +1090,11 @@ class Controls(tk.Toplevel):
 
         # If the band_controls widget already exists, remove it from view.
         # Destroying it will cause the program to not be able to reference those fields.
-        if self.line_controls: self.line_controls.grid_forget()
+        if nb.line_controls: nb.line_controls.grid_forget()
         # Re-grid the tolerance bands object of the current plot
-        self.line_controls = current.lines
-        self.line_controls.setup(self.horizontal_lines)
-        self.line_controls.grid(row=0, column=0, sticky='NSEW')
+        nb.line_controls = current.lines
+        nb.line_controls.setup(nb.horizontal_lines)
+        nb.line_controls.grid(row=0, column=0, sticky='NSEW')
 
         # If the attributes of the current plot object have been changed...
         if current.line_orientation and current.line_axis and current.line_value and \
@@ -1225,15 +1102,15 @@ class Controls(tk.Toplevel):
             # Determine which of those lists is the longest and recreate that many rows
             longest = len(max(current.line_orientation, current.line_axis, current.line_style,
                               current.line_value, current.line_color, current.line_alpha))
-            self.line_controls.recreate(rows=longest)
+            nb.line_controls.recreate(rows=longest)
 
         # Fill the newly create entries with the relevant values
-        self.line_controls.axis = current.line_axis
-        self.line_controls.orientation = current.line_orientation
-        self.line_controls.value = current.line_value
-        self.line_controls.color = current.line_color
-        self.line_controls.linestyle = current.line_style
-        self.line_controls.alpha = current.line_alpha
+        nb.line_controls.axis = current.line_axis
+        nb.line_controls.orientation = current.line_orientation
+        nb.line_controls.value = current.line_value
+        nb.line_controls.color = current.line_color
+        nb.line_controls.linestyle = current.line_style
+        nb.line_controls.alpha = current.line_alpha
 
 
     def update(self, event=None):
