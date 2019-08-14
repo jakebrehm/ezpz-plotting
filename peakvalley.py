@@ -50,21 +50,25 @@ class PeakValleyFile(gui.ScrollableTab):
 		# label_entry = ttk.Entry(info, width=10)
 		# label_entry.grid(row=0, column=1, sticky='EW')
 
-		count_label = tk.Label(info, text='count:')
-		count_label.grid(row=0, column=0, padx=5, sticky='E')
-
-		self.count_combo = ttk.Combobox(info, width=7, state='readonly')
-		self.count_combo['values'] = ['cycles', 'segments']
-		self.count_combo.grid(row=0, column=1, sticky='EW')
-		self.count_combo.set('cycles')
-
 		delimiter_label = tk.Label(info, text='delimiter:')
-		delimiter_label.grid(row=1, column=0, padx=5, sticky='E')
+		delimiter_label.grid(row=0, column=0, padx=5, sticky='E')
 
 		self.delimiter_combo = ttk.Combobox(info, width=7, state='readonly')
 		self.delimiter_combo['values'] = ['comma', 'tab']
-		self.delimiter_combo.grid(row=1, column=1, sticky='EW')
+		self.delimiter_combo.grid(row=0, column=1, sticky='EW')
 		self.delimiter_combo.set('tab')
+
+		self.read_button = ttk.Button(info, text='Read File', width=15)
+		self.read_button['command'] = self.read
+		self.read_button.grid(row=1, column=0, columnspan=2)
+
+		# count_label = tk.Label(info, text='count:')
+		# count_label.grid(row=0, column=0, padx=5, sticky='E')
+
+		# self.count_combo = ttk.Combobox(info, width=7, state='readonly')
+		# self.count_combo['values'] = ['cycles', 'segments']
+		# self.count_combo.grid(row=1, column=1, sticky='EW')
+		# self.count_combo.set('cycles')
 
 		criteria = tk.Frame(controls)
 		criteria.grid(row=0, column=1, padx=20, sticky='NSEW')
@@ -91,23 +95,29 @@ class PeakValleyFile(gui.ScrollableTab):
 		checkboxes.columnconfigure(0, weight=1)
 
 		self.convert = tk.IntVar()
-		self.convert_checkbox = ttk.Checkbutton(checkboxes, text='Convert to cycles', takefocus=0, variable=self.convert)
+		self.convert_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
+												variable=self.convert)
+		self.convert_checkbox['text'] = 'Convert to cycles'
 		self.convert_checkbox.grid(row=0, column=0, sticky='EW')
 		self.convert_checkbox.state(['!alternate', 'selected'])
 
 		self.zero = tk.IntVar()
-		self.zero_checkbox = ttk.Checkbutton(checkboxes, text='Zero-out counter column', takefocus=0, variable=self.zero)
+		self.zero_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
+											 variable=self.zero)
+		self.zero_checkbox['text'] = 'Zero-out counter column'
 		self.zero_checkbox.grid(row=1, column=0, sticky='EW')
 		self.zero_checkbox.state(['!alternate', 'selected'])
 
 		self.split = tk.IntVar()
-		self.split_checkbox = ttk.Checkbutton(checkboxes, text='Split peaks and valleys', takefocus=0, variable=self.split)
+		self.split_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
+											  variable=self.split)
+		self.split_checkbox['text'] = 'Split peaks and valleys'
 		self.split_checkbox.grid(row=2, column=0, sticky='EW')
 		self.split_checkbox.state(['!alternate', 'selected'])
 
-		self.read_button = ttk.Button(controls, text='Read', width=10)
-		self.read_button['command'] = self.read
-		self.read_button.grid(row=1, column=0, columnspan=3, pady=(80, 0))
+		# self.read_button = ttk.Button(controls, text='Read', width=10)
+		# self.read_button['command'] = self.read
+		# self.read_button.grid(row=1, column=0, columnspan=3, pady=(80, 0))
 		# self.app.root.bind('<Return>', self.read)
 
 		self._disable_header()
@@ -136,7 +146,7 @@ class PeakValleyFile(gui.ScrollableTab):
 
 
 	def _disable_header(self):
-		self.count_combo['state'] = 'disabled'
+		# self.count_combo['state'] = 'disabled'
 		self.lower_entry['state'] = 'disabled'
 		self.upper_entry['state'] = 'disabled'
 		self.convert_checkbox.state(['disabled'])
@@ -145,12 +155,13 @@ class PeakValleyFile(gui.ScrollableTab):
 
 
 	def _enable_header(self):
-		self.count_combo['state'] = 'normal'
+		# self.count_combo['state'] = 'normal'
 		self.lower_entry['state'] = 'normal'
 		self.upper_entry['state'] = 'normal'
 		self.convert_checkbox.state(['!disabled', 'selected'])
 		self.zero_checkbox.state(['!disabled', 'selected'])
 		self.split_checkbox.state(['!disabled', 'selected'])
+		self.set_default_focus()
 
 
 	def add_row(self):
@@ -163,7 +174,10 @@ class PeakValleyFile(gui.ScrollableTab):
 		WIDTH = 7
 
 		# Destroy the read button
-		if self._count == 0: self.read_button.destroy()
+		# if self._count == 0: self.read_button.destroy()
+		if self._count == 0:
+			self.read_button['text'] = 'Read Successful'
+			self.read_button['state'] = 'disabled'
 
 		frame = tk.LabelFrame(self, text=f'Plot {self._count + 1}')
 		frame.grid(row=self._count + 1, column=0,
