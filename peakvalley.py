@@ -24,6 +24,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._count = 0
 		self._rows = []
 		self._sections = []
+		self._counters = []
 		self._x_columns = []
 		self._y_columns = []
 		self._labels = []
@@ -44,12 +45,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		info.rowconfigure(0, weight=1)
 		info.rowconfigure(1, weight=1)
 
-		# label_label = tk.Label(info, text='Label row:')
-		# label_label.grid(row=0, column=0, padx=5)
-
-		# label_entry = ttk.Entry(info, width=10)
-		# label_entry.grid(row=0, column=1, sticky='EW')
-
 		delimiter_label = tk.Label(info, text='delimiter:')
 		delimiter_label.grid(row=0, column=0, padx=5, sticky='E')
 
@@ -62,28 +57,18 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.read_button['command'] = self.read
 		self.read_button.grid(row=1, column=0, columnspan=2)
 
-		# count_label = tk.Label(info, text='count:')
-		# count_label.grid(row=0, column=0, padx=5, sticky='E')
-
-		# self.count_combo = ttk.Combobox(info, width=7, state='readonly')
-		# self.count_combo['values'] = ['cycles', 'segments']
-		# self.count_combo.grid(row=1, column=1, sticky='EW')
-		# self.count_combo.set('cycles')
-
 		criteria = tk.Frame(controls)
 		criteria.grid(row=0, column=1, padx=20, sticky='NSEW')
 		criteria.columnconfigure(1, weight=1)
 		criteria.rowconfigure(0, weight=1)
 		criteria.rowconfigure(1, weight=1)
 
-		# lower_label = tk.Label(criteria, text='Lower fail range:')
 		lower_label = tk.Label(criteria, text='Valley Maximum:')
 		lower_label.grid(row=0, column=0, sticky='E')
 
 		self.lower_entry = ttk.Entry(criteria, width=10)
 		self.lower_entry.grid(row=0, column=1, padx=5, sticky='EW')
 
-		# upper_label = tk.Label(criteria, text='Upper fail range:')
 		upper_label = tk.Label(criteria, text='Peak Minimum:')
 		upper_label.grid(row=1, column=0, sticky='E')
 
@@ -115,11 +100,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.split_checkbox.grid(row=2, column=0, sticky='EW')
 		self.split_checkbox.state(['!alternate', 'selected'])
 
-		# self.read_button = ttk.Button(controls, text='Read', width=10)
-		# self.read_button['command'] = self.read
-		# self.read_button.grid(row=1, column=0, columnspan=3, pady=(80, 0))
-		# self.app.root.bind('<Return>', self.read)
-
 		self._disable_header()
 
 
@@ -146,7 +126,6 @@ class PeakValleyFile(gui.ScrollableTab):
 
 
 	def _disable_header(self):
-		# self.count_combo['state'] = 'disabled'
 		self.lower_entry['state'] = 'disabled'
 		self.upper_entry['state'] = 'disabled'
 		self.convert_checkbox.state(['disabled'])
@@ -155,7 +134,6 @@ class PeakValleyFile(gui.ScrollableTab):
 
 
 	def _enable_header(self):
-		# self.count_combo['state'] = 'normal'
 		self.lower_entry['state'] = 'normal'
 		self.upper_entry['state'] = 'normal'
 		self.convert_checkbox.state(['!disabled', 'selected'])
@@ -164,14 +142,23 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.set_default_focus()
 
 
+	def _section_changed(self, event):
+		if event.widget in self._sections:
+			index = self._sections.index(event.widget)
+			counter_combo = self._counters[index]
+			section = int(event.widget.get())
+			counter_type = self.sections[section - 1].counter
+			counter_combo.set(counter_type)
+
+
 	def add_row(self):
 
 		# Don't allow for rows to be added until the read has been completed
 		if not self.READ_COMPLETE: return
 		
 		MARGIN = 8
-		PADDING = 10
-		WIDTH = 7
+		PADDING = 6
+		WIDTH = 6
 
 		# Destroy the read button
 		# if self._count == 0: self.read_button.destroy()
@@ -199,34 +186,43 @@ class PeakValleyFile(gui.ScrollableTab):
 		controls.columnconfigure(3, weight=1)
 		controls.grid(row=0, column=1, sticky="EW")
 
-		sections_label = ttk.Label(controls, text='section:')
-		sections_label.grid(row=0, column=0, padx=PADDING)
-		sections_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
-		sections_entry.grid(row=1, column=0, padx=PADDING, sticky="EW")
-		self._sections.append(sections_entry)
+		section_label = ttk.Label(controls, text='section:')
+		section_label.grid(row=0, column=0, padx=PADDING)
+		section_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
+		section_entry.grid(row=1, column=0, padx=PADDING, sticky="EW")
+		section_entry.bind('<<ComboboxSelected>>', self._section_changed)
+		self._sections.append(section_entry)
+
+		counter_label = ttk.Label(controls, text='counter:')
+		counter_label.grid(row=0, column=1, padx=PADDING)
+		counter_entry = ttk.Combobox(controls, state='readonly', width=WIDTH+3)
+		counter_entry['values'] = ['segments', 'cycles', 'other']
+		counter_entry.grid(row=1, column=1, padx=PADDING, sticky="EW")
+		counter_entry.set(self.sections[0].counter)
+		self._counters.append(counter_entry)
 
 		x_column_label = ttk.Label(controls, text='x-column:')
-		x_column_label.grid(row=0, column=1, padx=PADDING)
+		x_column_label.grid(row=0, column=2, padx=PADDING)
 		x_column_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
-		x_column_entry.grid(row=1, column=1, padx=PADDING, sticky="EW")
+		x_column_entry.grid(row=1, column=2, padx=PADDING, sticky="EW")
 		self._x_columns.append(x_column_entry)
 
 		y_column_label = ttk.Label(controls, text='y-column:')
-		y_column_label.grid(row=0, column=2, padx=PADDING)
+		y_column_label.grid(row=0, column=3, padx=PADDING)
 		y_column_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
-		y_column_entry.grid(row=1, column=2, padx=PADDING, sticky="EW")
+		y_column_entry.grid(row=1, column=3, padx=PADDING, sticky="EW")
 		self._y_columns.append(y_column_entry)
 
 		label_label = tk.Label(controls, text='label row:')
-		label_label.grid(row=0, column=3, padx=PADDING)
+		label_label.grid(row=0, column=4, padx=PADDING)
 		label_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
-		label_entry.grid(row=1, column=3, padx=PADDING, sticky="EW")
+		label_entry.grid(row=1, column=4, padx=PADDING, sticky="EW")
 		self._labels.append(label_entry)
 
 		unit_label = tk.Label(controls, text='unit row:')
-		unit_label.grid(row=0, column=4, padx=PADDING)
+		unit_label.grid(row=0, column=5, padx=PADDING)
 		unit_entry = ttk.Combobox(controls, state='readonly', width=WIDTH)
-		unit_entry.grid(row=1, column=4, padx=PADDING, sticky="EW")
+		unit_entry.grid(row=1, column=5, padx=PADDING, sticky="EW")
 		self._units.append(unit_entry)
 
 		edit_controls = tk.Frame(inner)
@@ -296,10 +292,13 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.header_length = None
 				self.columns = None
 
+				self.counter = None
+
 			def parse_header(self, start, end):
 				self.header = pd.DataFrame(self.raw_data[start:end+1])
 				self.header_length = len(self.header.index)
 				self.parse_datetime()
+				self.parse_counter()
 
 			def parse_data(self, start, end):
 				self.data = pd.DataFrame(self.raw_data[start:end+1])
@@ -325,6 +324,15 @@ class PeakValleyFile(gui.ScrollableTab):
 							self.time = re.findall(time, item)[0][0]
 							return
 							
+			def parse_counter(self):
+				header = list(self.header.values.tolist())
+				for row in header:
+					if 'segments' in row:
+						self.counter = 'segments'
+					elif 'cycles' in row:
+						self.counter = 'cycles'
+					else:
+						self.counter = 'other'
 
 		# Pull the delimiter from the appropriate combobox
 		delimiter = self.delimiter_combo.get()
@@ -436,6 +444,9 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.lower = lower
 				self.upper = upper
 
+			def count_failures(self):
+				pass
+
 			def split(self):
 				# average = sum(self.y1) / len(self.y1)
 				# x_valleys = self.x[self.y1 < average]
@@ -466,8 +477,6 @@ class PeakValleyFile(gui.ScrollableTab):
 			def zero(self):
 
 				first = self.x_original.iloc[0]
-				# self.x = [x-first for x in self.x]
-				# self.x = self.x - first
 				for i in range(len(self.x)):
 					self.x[i] = self.x[i] - first
 
@@ -626,7 +635,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				plot.determine_failures(lower, upper)
 
 			if split: plot.split()
-
 			if zero: plot.zero()
 
 
