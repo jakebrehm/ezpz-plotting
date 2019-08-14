@@ -463,6 +463,14 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				self.DATA_SPLIT = True
 
+			def zero(self):
+
+				first = self.x_original.iloc[0]
+				# self.x = [x-first for x in self.x]
+				# self.x = self.x - first
+				for i in range(len(self.x)):
+					self.x[i] = self.x[i] - first
+
 			def _generate(self, section, labels, x_column, y_column, units=None):
 				"""The main function for the object which stores the inputs and calls
 				other relevant functions."""
@@ -471,6 +479,7 @@ class PeakValleyFile(gui.ScrollableTab):
 				# (typically when the plot button is pressed)
 				self.FAILURES_DETERMINED = False
 				self.DATA_SPLIT = False
+				self.DATA_ZEROED = False
 
 				# Store the inputs as instance variables
 				self.section = section
@@ -618,6 +627,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			if split: plot.split()
 
+			if zero: plot.zero()
+
 
 class PeakValleyControls(ttk.Notebook):
 
@@ -672,8 +683,9 @@ if __name__ == '__main__':
 		# for p, plot in enumerate(tab.plots):
 		# 	plt.plot(plot.x, plot.y1)
 		# 	plt.show()
-		print(tab.plots[0].x_original, end='\n\n')
-		print(tab.plots[0].y1_original, end='\n\n')
+		print(tab.plots[0].x, end='\n\n')
+		# print(tab.plots[0].x_original, end='\n\n')
+		# print(tab.plots[0].y1_original, end='\n\n')
 
 	def both():
 		read()
