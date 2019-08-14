@@ -82,7 +82,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.convert = tk.IntVar()
 		self.convert_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
 												variable=self.convert)
-		self.convert_checkbox['text'] = 'Convert to cycles'
+		self.convert_checkbox['text'] = 'Convert segments to cycles'
 		self.convert_checkbox.grid(row=0, column=0, sticky='EW')
 		self.convert_checkbox.state(['!alternate', 'selected'])
 
@@ -413,9 +413,60 @@ class PeakValleyFile(gui.ScrollableTab):
 				# return [self.data[self.labels[column-1]] for column in y_column]
 				return self.section.data.iloc[:, y_column-1]
 
+			def get_pairings(self):
+
+				average = self.y1_original.mean().item()
+				data = self.y1_original.values.flatten().tolist()
+
+				self.pairs = []
+				temporary = []
+				for i in range(len(data)):
+					if len(temporary) == 0:
+						temporary.append(data[i])
+						if data[i] > average:
+							self.pairs.append(temporary)
+							temporary = []
+					elif len(temporary) == 1:
+						if temporary[0] > average or data[i] <= average:
+							self.pairs.append(temporary)
+							temporary = []
+						temporary.append(data[i])
+					elif len(temporary) == 2:
+						self.pairs.append(temporary)
+						temporary = [data[i]]
+				else:
+					self.pairs.append(temporary)
+
+			def convert(self, zero=False):
+				
+				# pairs = self.get_pairings(self.y1_original)
+
+				# pass
+
+				# x = []
+				# for p, pair in enumerate(self.pairs, start=1):
+				# 	for _ in pair:
+				# 		x.append(p)
+
+				# x = []
+				# for p, pair in enumerate(self.pairs, start=1):
+				# 	for _ in pair:
+				# 		x.append(p)
+				# self.x = pd.DataFrame(x)
+
+				# self.x = x
+
+				self.x = self.x / 2
+
+				for i in range(len(self.x)):
+					self.x.iloc[i] = math.floor(self.x.iloc[i])
+
+				# if not zero:
+				# 	self.x = self.x + self.x_original.iloc[0]/2
+
+				self.DATA_CONVERTED = True
+
 			def determine_failures(self, lower, upper):
-
-
 
 				# self.total = len(self.y1)
 				# self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
@@ -443,9 +494,58 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.FAILURES_DETERMINED = True
 				self.lower = lower
 				self.upper = upper
+				self.count_failures()
 
 			def count_failures(self):
-				pass
+
+				# average = self.y1_original.mean().item()
+				data = self.y1_original.values.flatten().tolist()
+
+				# pairs = []
+				# temporary = []
+				# for i in range(len(data)):
+				# 	if len(temporary) == 0:
+				# 		temporary.append(data[i])
+				# 		if data[i] > average:
+				# 			pairs.append(temporary)
+				# 			temporary = []
+				# 	elif len(temporary) == 1:
+				# 		if temporary[0] > average or data[i] <= average:
+				# 			pairs.append(temporary)
+				# 			temporary = []
+				# 		temporary.append(data[i])
+				# 	elif len(temporary) == 2:
+				# 		pairs.append(temporary)
+				# 		temporary = [data[i]]
+				# else:
+				# 	pairs.append(temporary)
+
+				LOWER = self.lower
+				UPPER = self.upper
+				booleans = []
+				for pair in self.pairs:
+					if len(pair) == 1:
+						if LOWER <= pair[0] <= UPPER:
+							booleans.append(False)
+						else:
+							booleans.append(True)
+					elif len(pair) == 2:
+						temporary = []
+						for item in pair:
+							temporary.append(False if LOWER <= item <= UPPER else True)
+						if all(item is True for item in temporary):
+							booleans.append(True)
+						else:
+							booleans.append(False)
+
+				self.total_segments = len(data)
+				self.total_cycles = len(self.pairs)
+
+				self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
+				self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
+
+				self.passed_cycles = booleans.count(True)
+				self.failed_cycles = booleans.count(False)
 
 			def split(self):
 				# average = sum(self.y1) / len(self.y1)
@@ -476,22 +576,36 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def zero(self):
 
-				first = self.x_original.iloc[0]
-				for i in range(len(self.x)):
-					self.x[i] = self.x[i] - first
+				first = None
+				for item in self.x:
+					minimum = min(item)
+					if first is None:
+						first = minimum
+					else:
+						if minimum < first:
+							first = minimum
 
-			def _generate(self, section, labels, x_column, y_column, units=None):
+				# first = self.x_original.iloc[0]
+				for i in range(len(self.x)):
+					self.x[i] = self.x[i] - first + 1
+
+				self.DATA_ZEROED = True
+
+			def _generate(self, section, counter, labels,
+						  x_column, y_column, units=None):
 				"""The main function for the object which stores the inputs and calls
 				other relevant functions."""
 
 				# Reset certain variables each time this function runs
 				# (typically when the plot button is pressed)
 				self.FAILURES_DETERMINED = False
+				self.DATA_CONVERTED = False
 				self.DATA_SPLIT = False
 				self.DATA_ZEROED = False
 
 				# Store the inputs as instance variables
 				self.section = section
+				self.counter = counter
 				self.labels = labels
 				self.units = units
 				self.x_column = x_column
@@ -535,19 +649,20 @@ class PeakValleyFile(gui.ScrollableTab):
 				primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
 
 				# Plot the data as a scatterplot
+				MARKER_SIZE = 1.5 ** 2
 				colors = {'general': 'k', 'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'b'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x, self.y1, color=colors['general'])
+					primary.scatter(self.x, self.y1, color=colors['general'], s=MARKER_SIZE)
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['valley'])
-					primary.scatter(self.x[2], self.y1[2], color=colors['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE)
+					primary.scatter(self.x[1], self.y1[1], color=colors['valley'], s=MARKER_SIZE)
+					primary.scatter(self.x[2], self.y1[2], color=colors['peak'], s=MARKER_SIZE)
 				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['pass'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE)
+					primary.scatter(self.x[1], self.y1[1], color=colors['pass'], s=MARKER_SIZE)
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE)
+					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE)
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
@@ -556,8 +671,17 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
 				# Store the original x-axis limits to allow the user to revert to them if desired.
-				min_x = min(self.x_original.dropna())
-				max_x = max(self.x_original.dropna())
+
+				min_x = None
+				max_x = None
+				for item in self.x:
+					minimum = min(item.dropna())
+					if min_x is None or minimum < min_x:
+						min_x = minimum
+					maximum = max(item.dropna())
+					if max_x is None or maximum > max_x:
+						max_x = maximum
+
 				padding = (max_x - min_x) * (100/90) * (0.05)
 				self.x_lower_original = min_x - padding
 				self.x_upper_original = max_x + padding
@@ -576,17 +700,34 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				# Add text boxes describing the limit lines
 				props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-				# text = 
-				# primary.text(0.80, 1.05, text, transform=primary.transAxes, fontsize=12, bbox=props)
+
+				if self.counter != 'other':
+					if self.counter == 'cycles' or self.DATA_CONVERTED:
+						counter_type = 'Cycles'
+						failed = self.failed_cycles
+						passed = self.passed_cycles
+					elif self.counter == 'segments':
+						counter_type = 'Segments'
+						failed = self.failed_segments
+						passed = self.passed_segments
+					elif self.counter == 'other':
+						counter_type = ''
+						failed = self.failed_segments
+						passed = self.passed_segments
+					text = f'{failed} Failed {counter_type}' + '\n' \
+						   f'{passed} Passed {counter_type}'
+					primary.text(0.80, 1.05, text, transform=primary.transAxes,
+								 fontsize=12, bbox=props)
+
 				upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
 				x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
 				primary.text(x_position, upper_y,
-							 f'Minimum Peak: ({self.upper})',
-							 fontsize=8, bbox=props, ha='center', va='top')
+							 f'Minimum Peak: {self.upper}',
+							 fontsize=10, bbox=props, ha='center', va='top')
 				lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
 				primary.text(x_position, lower_y,
-							 f'Maximum Valley: ({self.lower})',
-							 fontsize=8, bbox=props, ha='center', va='bottom')
+							 f'Maximum Valley: {self.lower}',
+							 fontsize=10, bbox=props, ha='center', va='bottom')
 
 				# Use the seaborn plot style
 				plt.style.use('seaborn')
@@ -622,15 +763,23 @@ class PeakValleyFile(gui.ScrollableTab):
 			section_number = int(self._sections[p].get())
 			section = self.sections[section_number-1]
 
+			counter = self._counters[p].get()
 			label_row = int(self._labels[p].get())
 			unit_row = int(self._units[p].get()) if self._units[p].get() else None
 			x_column = int(self._x_columns[p].get())
 			y_column = int(self._y_columns[p].get())
 
-			plot._generate(section, label_row, x_column, y_column, unit_row)
+			plot._generate(section, counter, label_row, x_column, y_column, unit_row)
 
 			# Determine how many failures there are before modifying plot.x
 			# and plot.y any further
+
+			# if (lower is not None and upper is not None) or convert:
+			plot.get_pairings()
+
+			print(zero)
+			if convert and counter == 'segments': plot.convert(zero)
+
 			if lower is not None and upper is not None:
 				plot.determine_failures(lower, upper)
 
@@ -680,8 +829,10 @@ if __name__ == '__main__':
 
 	def read():
 		tab.read()
-		tab.lower_entry.insert(0, '0.115')
-		tab.upper_entry.insert(0, '0.295')
+		# tab.lower_entry.insert(0, '0.115')
+		# tab.upper_entry.insert(0, '0.295')
+		tab.lower_entry.insert(0, '100')
+		tab.upper_entry.insert(0, '9310')
 
 	def plot():
 		tab._sections[0].set('4')
@@ -694,12 +845,18 @@ if __name__ == '__main__':
 		print(tab.plots[0].x, end='\n\n')
 		# print(tab.plots[0].x_original, end='\n\n')
 		# print(tab.plots[0].y1_original, end='\n\n')
+		# print(tab.plots[0].total_segments)
+		# print(tab.plots[0].total_cycles)
+		# print(tab.plots[0].passed_segments)
+		# print(tab.plots[0].failed_segments)
+		# print(tab.plots[0].passed_cycles)
+		# print(tab.plots[0].failed_cycles)
 
-	def both():
+	def both(event=None):
 		read()
 		plot()
 
-	filepath = 'Data\\peakvalley.dat'
+	filepath = 'Data\\peakvalley2.dat'
 	app = gui.Application(padding=20)
 	notebook = ttk.Notebook(app)
 	notebook.grid(row=0, column=0, sticky='NSEW')
