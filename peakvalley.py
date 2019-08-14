@@ -72,13 +72,15 @@ class PeakValleyFile(gui.ScrollableTab):
 		criteria.rowconfigure(0, weight=1)
 		criteria.rowconfigure(1, weight=1)
 
-		lower_label = tk.Label(criteria, text='Lower fail range:')
+		# lower_label = tk.Label(criteria, text='Lower fail range:')
+		lower_label = tk.Label(criteria, text='Valley Maximum:')
 		lower_label.grid(row=0, column=0, sticky='E')
 
 		self.lower_entry = ttk.Entry(criteria, width=10)
 		self.lower_entry.grid(row=0, column=1, padx=5, sticky='EW')
 
-		upper_label = tk.Label(criteria, text='Upper fail range:')
+		# upper_label = tk.Label(criteria, text='Upper fail range:')
+		upper_label = tk.Label(criteria, text='Peak Minimum:')
 		upper_label.grid(row=1, column=0, sticky='E')
 
 		self.upper_entry = ttk.Entry(criteria, width=10)
@@ -106,6 +108,49 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.read_button = ttk.Button(controls, text='Read', width=10)
 		self.read_button['command'] = self.read
 		self.read_button.grid(row=1, column=0, columnspan=3, pady=(80, 0))
+		# self.app.root.bind('<Return>', self.read)
+
+		self._disable_header()
+
+
+	def _update_combobox(self, plot, sections):
+
+		p = plot - 1
+
+		self._sections[p]['values'] = list(range(1, sections + 1))
+		self._sections[p].set(1)
+
+		columns = self.sections[p].columns
+		self._x_columns[p]['values'] = list(range(1, columns + 1))
+		self._x_columns[p].set(1)
+
+		columns = self.sections[p].columns
+		self._y_columns[p]['values'] = list(range(1, columns + 1))
+		self._y_columns[p].set(2)
+
+		rows = self.sections[p].header_length
+		self._units[p]['values'] = list(range(1, rows + 1))
+		self._units[p].set(rows)
+		self._labels[p]['values'] = list(range(1, rows + 1))
+		self._labels[p].set(1)
+
+
+	def _disable_header(self):
+		self.count_combo['state'] = 'disabled'
+		self.lower_entry['state'] = 'disabled'
+		self.upper_entry['state'] = 'disabled'
+		self.convert_checkbox.state(['disabled'])
+		self.zero_checkbox.state(['disabled'])
+		self.split_checkbox.state(['disabled'])
+
+
+	def _enable_header(self):
+		self.count_combo['state'] = 'normal'
+		self.lower_entry['state'] = 'normal'
+		self.upper_entry['state'] = 'normal'
+		self.convert_checkbox.state(['!disabled', 'selected'])
+		self.zero_checkbox.state(['!disabled', 'selected'])
+		self.split_checkbox.state(['!disabled', 'selected'])
 
 
 	def add_row(self):
@@ -216,29 +261,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.lower_entry.focus_set()
 
 
-	def _update_combobox(self, plot, sections):
-
-		p = plot - 1
-
-		self._sections[p]['values'] = list(range(1, sections + 1))
-		self._sections[p].set(1)
-
-		columns = self.sections[p].columns
-		self._x_columns[p]['values'] = list(range(1, columns + 1))
-		self._x_columns[p].set(1)
-
-		columns = self.sections[p].columns
-		self._y_columns[p]['values'] = list(range(1, columns + 1))
-		self._y_columns[p].set(2)
-
-		rows = self.sections[p].header_length
-		self._units[p]['values'] = list(range(1, rows + 1))
-		self._units[p].set(rows)
-		self._labels[p]['values'] = list(range(1, rows + 1))
-		self._labels[p].set(1)
-
-
-	def read(self):
+	def read(self, event=None):
 		
 		class Section:
 
@@ -342,14 +365,6 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		self.READ_COMPLETE = True
 		self.add_row()
-
-
-	# def calculate(self):
-	# 	with open(self.filepath, 'rb') as file:
-	# 		raw = [line.rstrip().decode('latin-1').split('\t') for line in file]
-	# 		data = pd.DataFrame(raw)
-	# 		print(data)
-	# 		print(data.iloc[:, [0]])
 
 
 	def add_plot(self):
@@ -463,8 +478,12 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def update_plot(self, flipbook, file_number, plot_number):
 
+				# Create a reference to the flipbook's primary axis for shorthand
+				primary = flipbook.primary
+
 				# Display the filename of the current plot
-				flipbook.filename.set(f'{flipbook.info[file_number].filename} - Plot {plot_number + 1}')
+				filename = flipbook.info[file_number].filename
+				flipbook.filename.set(f'{filename} - Plot {plot_number + 1}')
 
 				# Essentially reset the secondary axis by clearing and turning it off if it exists,
 				# then setting the self.secondary variable to None
@@ -477,31 +496,31 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.secondary_axis = False
 
 				# Clear the primary axis as well
-				flipbook.primary.clear()
+				primary.clear()
 
 				# Set the appropriate coordinates format to display on the flipbook
-				flipbook.primary.set_zorder(1000)
-				flipbook.primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
+				primary.set_zorder(1000)
+				primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
 
 				# Plot the data as a scatterplot
 				colors = {'general': 'k', 'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'b'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					flipbook.primary.scatter(self.x, self.y1, color=colors['general'])
+					primary.scatter(self.x, self.y1, color=colors['general'])
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
-					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['valley'])
-					flipbook.primary.scatter(self.x[2], self.y1[2], color=colors['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['valley'])
+					primary.scatter(self.x[2], self.y1[2], color=colors['peak'])
 				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
-					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['pass'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['pass'])
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					flipbook.primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
-					flipbook.primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=colors['valley'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['peak'])
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
-					flipbook.primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.5)
-					flipbook.primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.5)
+					primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.5)
+					primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.5)
 
 				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
 				# Store the original x-axis limits to allow the user to revert to them if desired.
@@ -510,27 +529,44 @@ class PeakValleyFile(gui.ScrollableTab):
 				padding = (max_x - min_x) * (100/90) * (0.05)
 				self.x_lower_original = min_x - padding
 				self.x_upper_original = max_x + padding
-				flipbook.primary.set_xlim(self.x_lower_original, self.x_upper_original)
+				primary.set_xlim(self.x_lower_original, self.x_upper_original)
 				# Store the original y-axis limits to allow the user to revert to them if desired.
-				self.y1_lower_original = flipbook.primary.get_ylim()[0]
-				self.y1_upper_original = flipbook.primary.get_ylim()[1]
+				self.y1_lower_original = primary.get_ylim()[0]
+				self.y1_upper_original = primary.get_ylim()[1]
 				if self.secondary_axis:
 				    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
 				    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
 
 				# Turn the grid on, with both major and minor gridlines
-				flipbook.primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
-				flipbook.primary.minorticks_on()
-				flipbook.primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+				primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
+				primary.minorticks_on()
+				primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+
+				# Add text boxes describing the limit lines
+				props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+				# text = 
+				# primary.text(0.80, 1.05, text, transform=primary.transAxes, fontsize=12, bbox=props)
+				upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+				x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
+				primary.text(x_position, upper_y,
+							 f'Minimum Peak: ({self.upper})',
+							 fontsize=8, bbox=props, ha='center', va='top')
+				lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+				primary.text(x_position, lower_y,
+							 f'Maximum Valley: ({self.lower})',
+							 fontsize=8, bbox=props, ha='center', va='bottom')
 
 				# Use the seaborn plot style
 				plt.style.use('seaborn')
 
 				# Load the Tactair image and display it on the plot
 				image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
-				x_low, x_high = flipbook.primary.get_xlim()
-				y_low, y_high = flipbook.primary.get_ylim()
-				flipbook.primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+				x_low, x_high = primary.get_xlim()
+				y_low, y_high = primary.get_ylim()
+				primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+		# Enable the header
+		self._enable_header()
 
 		# Create a new plot object and hold a reference to it
 		plot = Plot()
@@ -609,13 +645,25 @@ class PeakValleyControls(ttk.Notebook):
 
 if __name__ == '__main__':
 
-	def plot():
+	def read():
+		tab.read()
 		tab.lower_entry.insert(0, '0.115')
 		tab.upper_entry.insert(0, '0.295')
+
+	def plot():
+		tab._sections[0].set('4')
+		tab._y_columns[0].set('3')
+		tab._labels[0].set('2')
 		tab.generate()
-		for p, plot in enumerate(tab.plots):
-			plt.plot(plot.x, plot.y1)
-			plt.show()
+		# for p, plot in enumerate(tab.plots):
+		# 	plt.plot(plot.x, plot.y1)
+		# 	plt.show()
+		print(tab.plots[0].x_original, end='\n\n')
+		print(tab.plots[0].y1_original, end='\n\n')
+
+	def both():
+		read()
+		plot()
 
 	filepath = 'Data\\peakvalley.dat'
 	app = gui.Application(padding=20)
@@ -630,7 +678,14 @@ if __name__ == '__main__':
 	delete_button = ttk.Button(buttons, text='-')
 	delete_button['command'] = tab.delete_row
 	delete_button.grid(row=0, column=1, sticky='W')
+	read_button = ttk.Button(buttons, text='Read')
+	read_button['command'] = read
+	read_button.grid(row=0, column=2, sticky='W')
 	plot_button = ttk.Button(buttons, text='Plot')
 	plot_button['command'] = plot
-	plot_button.grid(row=0, column=2, sticky='W')
+	plot_button.grid(row=0, column=3, sticky='W')
+	both_button = ttk.Button(buttons, text='Both')
+	both_button['command'] = both
+	both_button.grid(row=0, column=4, sticky='W')
+	app.bind('<Return>', both)
 	app.mainloop()

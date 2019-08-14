@@ -149,6 +149,7 @@ class Application(gui.Application):
 
         # Create keyboard shortcut that will function the same as clicking the 'Plot' button
         self.root.bind('<Return>', self.open_flipbook)
+        # default_binding = self.root.bind('<Return>', self.open_flipbook)
 
         # Create keyboard shortcuts for creating and deleting rows
         self.root.bind('<Control-minus>', self.minus_row)
@@ -231,9 +232,9 @@ class Application(gui.Application):
         # If the user presses cancel or if the preset file is empty (possibly corrupt),
         # display a message and exit the function.
         if len(preset) == 0:
-            message = 'It looks like the preset file you chose is either empty or not ' \
-                      'formatted correctly. Please double check the file and try again.'
-            mb.showinfo('Oops!', message)
+            # message = 'It looks like the preset file you chose is either empty or not ' \
+            #           'formatted correctly. Please double check the file and try again.'
+            # mb.showinfo('Oops!', message)
             return
 
         # Grab the filepath for each file in the preset
