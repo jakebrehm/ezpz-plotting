@@ -577,13 +577,16 @@ class PeakValleyFile(gui.ScrollableTab):
 			def zero(self):
 
 				first = None
-				for item in self.x:
-					minimum = min(item)
-					if first is None:
-						first = minimum
-					else:
-						if minimum < first:
+				if isinstance(self.x, list):
+					for item in self.x:
+						minimum = min(item)
+						if first is None:
 							first = minimum
+						else:
+							if minimum < first:
+								first = minimum
+				elif isinstance(self.x, pd.Series):
+					first = min(self.x)
 
 				# first = self.x_original.iloc[0]
 				for i in range(len(self.x)):
@@ -674,13 +677,20 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				min_x = None
 				max_x = None
-				for item in self.x:
-					minimum = min(item.dropna())
-					if min_x is None or minimum < min_x:
-						min_x = minimum
-					maximum = max(item.dropna())
-					if max_x is None or maximum > max_x:
-						max_x = maximum
+				# print(type(self.x))
+				# print()
+				# print()
+				if isinstance(self.x, list):
+					for item in self.x:
+						minimum = min(item.dropna())
+						if min_x is None or minimum < min_x:
+							min_x = minimum
+						maximum = max(item.dropna())
+						if max_x is None or maximum > max_x:
+							max_x = maximum
+				elif isinstance(self.x, pd.Series):
+					min_x = min(self.x.dropna())
+					max_x = max(self.x.dropna())
 
 				padding = (max_x - min_x) * (100/90) * (0.05)
 				self.x_lower_original = min_x - padding
@@ -699,35 +709,36 @@ class PeakValleyFile(gui.ScrollableTab):
 				primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
 
 				# Add text boxes describing the limit lines
-				props = dict(boxstyle='round', facecolor='white', alpha=0.5)
 
-				if self.counter != 'other':
-					if self.counter == 'cycles' or self.DATA_CONVERTED:
-						counter_type = 'Cycles'
-						failed = self.failed_cycles
-						passed = self.passed_cycles
-					elif self.counter == 'segments':
-						counter_type = 'Segments'
-						failed = self.failed_segments
-						passed = self.passed_segments
-					elif self.counter == 'other':
-						counter_type = ''
-						failed = self.failed_segments
-						passed = self.passed_segments
-					text = f'{failed} Failed {counter_type}' + '\n' \
-						   f'{passed} Passed {counter_type}'
-					primary.text(0.80, 1.05, text, transform=primary.transAxes,
-								 fontsize=12, bbox=props)
+				if self.FAILURES_DETERMINED:
+					if self.counter != 'other':
+						props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+						if self.counter == 'cycles' or self.DATA_CONVERTED:
+							counter_type = 'Cycles'
+							failed = self.failed_cycles
+							passed = self.passed_cycles
+						elif self.counter == 'segments':
+							counter_type = 'Segments'
+							failed = self.failed_segments
+							passed = self.passed_segments
+						elif self.counter == 'other':
+							counter_type = ''
+							failed = self.failed_segments
+							passed = self.passed_segments
+						text = f'{failed} Failed {counter_type}' + '\n' \
+							f'{passed} Passed {counter_type}'
+						primary.text(0.80, 1.05, text, transform=primary.transAxes,
+									fontsize=12, bbox=props)
 
-				upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
-				x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
-				primary.text(x_position, upper_y,
-							 f'Minimum Peak: {self.upper}',
-							 fontsize=10, bbox=props, ha='center', va='top')
-				lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
-				primary.text(x_position, lower_y,
-							 f'Maximum Valley: {self.lower}',
-							 fontsize=10, bbox=props, ha='center', va='bottom')
+					upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+					x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
+					primary.text(x_position, upper_y,
+								f'Minimum Peak: {self.upper}',
+								fontsize=10, bbox=props, ha='center', va='top')
+					lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+					primary.text(x_position, lower_y,
+								f'Maximum Valley: {self.lower}',
+								fontsize=10, bbox=props, ha='center', va='bottom')
 
 				# Use the seaborn plot style
 				plt.style.use('seaborn')
@@ -777,7 +788,6 @@ class PeakValleyFile(gui.ScrollableTab):
 			# if (lower is not None and upper is not None) or convert:
 			plot.get_pairings()
 
-			print(zero)
 			if convert and counter == 'segments': plot.convert(zero)
 
 			if lower is not None and upper is not None:
