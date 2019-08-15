@@ -437,9 +437,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				return pairs
 
 			def convert(self):
-				
-				print('convert')
-				print(self.x)
 
 				self.x = self.x / 2
 
@@ -449,16 +446,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.DATA_CONVERTED = True
 
 			def determine_failures(self, lower, upper):
-
-				print('determine failures')
-
-				# self.total = len(self.y1)
-				# self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
-				# self.fail_index = self.failed.index.values
-				# self.fail_count = len(self.failed)
-				# self.passed = self.y1[~self.y1.isin(self.failed)]
-				# self.pass_index = self.passed.index.values
-				# self.pass_count = len(self.passed)
 
 				self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
 				self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
@@ -482,31 +469,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def count_failures(self):
 
-				print('count failures')
-
 				pairs = self._get_pairings()
-
-				# average = self.y1_original.mean().item()
 				data = self.y1_original.values.flatten().tolist()
-
-				# pairs = []
-				# temporary = []
-				# for i in range(len(data)):
-				# 	if len(temporary) == 0:
-				# 		temporary.append(data[i])
-				# 		if data[i] > average:
-				# 			pairs.append(temporary)
-				# 			temporary = []
-				# 	elif len(temporary) == 1:
-				# 		if temporary[0] > average or data[i] <= average:
-				# 			pairs.append(temporary)
-				# 			temporary = []
-				# 		temporary.append(data[i])
-				# 	elif len(temporary) == 2:
-				# 		pairs.append(temporary)
-				# 		temporary = [data[i]]
-				# else:
-				# 	pairs.append(temporary)
 
 				LOWER = self.lower
 				UPPER = self.upper
@@ -536,15 +500,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.failed_cycles = booleans.count(False)
 
 			def split(self):
-				# average = sum(self.y1) / len(self.y1)
-				# x_valleys = self.x[self.y1 < average]
-				# x_peaks = self.x[self.y1 > average]
-				# y_valleys = self.y1[self.y1 < average]
-				# y_peaks = self.y1[self.y1 > average]
-				# self.x = [x_valleys, x_peaks]
-				# self.y1 = [y_valleys, y_peaks]
-
-				print('split')
 
 				average = sum(self.y1_original) / len(self.y1_original)
 				if not self.FAILURES_DETERMINED:
@@ -565,8 +520,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.DATA_SPLIT = True
 
 			def zero(self):
-
-				print('zero')
 
 				first = None
 				if isinstance(self.x, list):
@@ -605,8 +558,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.x_column = x_column
 				self.y_column = y_column
 
-				print(self.section.data.iloc[:, x_column-1], end='\n')
-
 				# Grab the relevant data and store as instance variables
 				self.x = self._x_data(self.x_column)
 				self.y1 = self._y_data(self.y_column)
@@ -617,8 +568,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.labels = self.section.labels
 				self.section.parse_units(units)
 				self.units = self.section.units
-
-				print(self.section.data.iloc[:, x_column-1], end='\n'*10)
 
 			def update_plot(self, flipbook, file_number, plot_number):
 
@@ -662,8 +611,6 @@ class PeakValleyFile(gui.ScrollableTab):
 					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE)
 					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE)
 
-				# print(self.x)
-
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
 					primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.5)
@@ -674,9 +621,6 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				min_x = None
 				max_x = None
-				# print(type(self.x))
-				# print()
-				# print()
 				if isinstance(self.x, list):
 					for item in self.x:
 						minimum = min(item.dropna())
@@ -745,8 +689,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				x_low, x_high = primary.get_xlim()
 				y_low, y_high = primary.get_ylim()
 				primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
-
-				print('\n')
 
 		# Enable the header
 		self._enable_header()
