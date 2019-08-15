@@ -9,6 +9,7 @@ import re
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from settings import pv_labels
 
 class PeakValleyFile(gui.ScrollableTab):
 
@@ -599,17 +600,17 @@ class PeakValleyFile(gui.ScrollableTab):
 				MARKER_SIZE = 1.5 ** 2
 				colors = {'general': 'k', 'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'b'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x, self.y1, color=colors['general'], s=MARKER_SIZE)
+					primary.scatter(self.x, self.y1, color=colors['general'], s=MARKER_SIZE, label=pv_labels['general'])
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE)
-					primary.scatter(self.x[1], self.y1[1], color=colors['valley'], s=MARKER_SIZE)
-					primary.scatter(self.x[2], self.y1[2], color=colors['peak'], s=MARKER_SIZE)
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
+					primary.scatter(self.x[2], self.y1[2], color=colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
 				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE)
-					primary.scatter(self.x[1], self.y1[1], color=colors['pass'], s=MARKER_SIZE)
+					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['pass'], s=MARKER_SIZE, label=pv_labels['pass'])
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE)
-					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE)
+					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
+					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
@@ -680,6 +681,20 @@ class PeakValleyFile(gui.ScrollableTab):
 					primary.text(x_position, lower_y,
 								f'Maximum Valley: {self.lower}',
 								fontsize=10, bbox=props, ha='center', va='bottom')
+
+				# Determine the maximum number of columns in the legend
+				columns = len(self.x) if isinstance(self.x, list) else 1
+				# Create the legend
+				legend = flipbook.primary.legend(
+								loc = 'lower left',
+								fancybox = True,
+								shadow = True,
+								ncol = columns,
+								mode = 'expand',
+								bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
+					)
+				# Make the legend draggable (possibly a control in the future)
+				legend.set_draggable(state=True)
 
 				# Use the seaborn plot style
 				plt.style.use('seaborn')
