@@ -595,10 +595,18 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				date = self.section.date
 				time = self.section.time
+
+				if self.counter == 'cycles' or self.DATA_CONVERTED:
+					counter_type = 'Cycles'
+				elif self.counter == 'segments':
+					counter_type = 'Segments'
+				elif self.counter == 'other':
+					counter_type = 'Count'
+					
 				# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
 				total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
 				self.title = f'{date} {time}' + '\n' \
-							 f'Cycles 1 to {total}' + '\n' \
+							 f'{counter_type} 1 to {total}' + '\n' \
 							 f'{y1_label} vs. {x_label}'
 
 			def update_plot(self, flipbook, file_number, plot_number):
