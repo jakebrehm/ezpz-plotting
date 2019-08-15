@@ -161,7 +161,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		WIDTH = 6
 
 		# Destroy the read button
-		# if self._count == 0: self.read_button.destroy()
 		if self._count == 0:
 			self.read_button['text'] = 'Read Successful'
 			self.read_button['state'] = 'disabled'
@@ -404,69 +403,54 @@ class PeakValleyFile(gui.ScrollableTab):
 			def _x_data(self, x_column):
 				"""Pull the appropriate x-information from the data."""
 
-				# return self.data[self.labels[x_column-1]]
-				return self.section.data.iloc[:, x_column-1]
+				return self.section.data.iloc[:, x_column-1].copy(deep=True)
 				
 			def _y_data(self, y_column):
 				"""Pull the appropriate y-information from the data."""
 
-				# return [self.data[self.labels[column-1]] for column in y_column]
-				return self.section.data.iloc[:, y_column-1]
+				return self.section.data.iloc[:, y_column-1].copy(deep=True)
 
-			def get_pairings(self):
+			def _get_pairings(self):
 
 				average = self.y1_original.mean().item()
 				data = self.y1_original.values.flatten().tolist()
 
-				self.pairs = []
+				pairs = []
 				temporary = []
 				for i in range(len(data)):
 					if len(temporary) == 0:
 						temporary.append(data[i])
 						if data[i] > average:
-							self.pairs.append(temporary)
+							pairs.append(temporary)
 							temporary = []
 					elif len(temporary) == 1:
 						if temporary[0] > average or data[i] <= average:
-							self.pairs.append(temporary)
+							pairs.append(temporary)
 							temporary = []
 						temporary.append(data[i])
 					elif len(temporary) == 2:
-						self.pairs.append(temporary)
+						pairs.append(temporary)
 						temporary = [data[i]]
 				else:
-					self.pairs.append(temporary)
+					pairs.append(temporary)
 
-			def convert(self, zero=False):
+				return pairs
+
+			def convert(self):
 				
-				# pairs = self.get_pairings(self.y1_original)
-
-				# pass
-
-				# x = []
-				# for p, pair in enumerate(self.pairs, start=1):
-				# 	for _ in pair:
-				# 		x.append(p)
-
-				# x = []
-				# for p, pair in enumerate(self.pairs, start=1):
-				# 	for _ in pair:
-				# 		x.append(p)
-				# self.x = pd.DataFrame(x)
-
-				# self.x = x
+				print('convert')
+				print(self.x)
 
 				self.x = self.x / 2
 
 				for i in range(len(self.x)):
 					self.x.iloc[i] = math.floor(self.x.iloc[i])
 
-				# if not zero:
-				# 	self.x = self.x + self.x_original.iloc[0]/2
-
 				self.DATA_CONVERTED = True
 
 			def determine_failures(self, lower, upper):
+
+				print('determine failures')
 
 				# self.total = len(self.y1)
 				# self.failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
@@ -498,6 +482,10 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def count_failures(self):
 
+				print('count failures')
+
+				pairs = self._get_pairings()
+
 				# average = self.y1_original.mean().item()
 				data = self.y1_original.values.flatten().tolist()
 
@@ -523,7 +511,7 @@ class PeakValleyFile(gui.ScrollableTab):
 				LOWER = self.lower
 				UPPER = self.upper
 				booleans = []
-				for pair in self.pairs:
+				for pair in pairs:
 					if len(pair) == 1:
 						if LOWER <= pair[0] <= UPPER:
 							booleans.append(False)
@@ -539,7 +527,7 @@ class PeakValleyFile(gui.ScrollableTab):
 							booleans.append(False)
 
 				self.total_segments = len(data)
-				self.total_cycles = len(self.pairs)
+				self.total_cycles = len(pairs)
 
 				self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
 				self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
@@ -555,6 +543,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				# y_peaks = self.y1[self.y1 > average]
 				# self.x = [x_valleys, x_peaks]
 				# self.y1 = [y_valleys, y_peaks]
+
+				print('split')
 
 				average = sum(self.y1_original) / len(self.y1_original)
 				if not self.FAILURES_DETERMINED:
@@ -576,6 +566,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			def zero(self):
 
+				print('zero')
+
 				first = None
 				if isinstance(self.x, list):
 					for item in self.x:
@@ -588,7 +580,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				elif isinstance(self.x, pd.Series):
 					first = min(self.x)
 
-				# first = self.x_original.iloc[0]
 				for i in range(len(self.x)):
 					self.x[i] = self.x[i] - first + 1
 
@@ -614,6 +605,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.x_column = x_column
 				self.y_column = y_column
 
+				print(self.section.data.iloc[:, x_column-1], end='\n')
+
 				# Grab the relevant data and store as instance variables
 				self.x = self._x_data(self.x_column)
 				self.y1 = self._y_data(self.y_column)
@@ -624,6 +617,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.labels = self.section.labels
 				self.section.parse_units(units)
 				self.units = self.section.units
+
+				print(self.section.data.iloc[:, x_column-1], end='\n'*10)
 
 			def update_plot(self, flipbook, file_number, plot_number):
 
@@ -666,6 +661,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
 					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE)
 					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE)
+
+				# print(self.x)
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
@@ -749,6 +746,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				y_low, y_high = primary.get_ylim()
 				primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
 
+				print('\n')
+
 		# Enable the header
 		self._enable_header()
 
@@ -786,9 +785,9 @@ class PeakValleyFile(gui.ScrollableTab):
 			# and plot.y any further
 
 			# if (lower is not None and upper is not None) or convert:
-			plot.get_pairings()
+			# plot.get_pairings()
 
-			if convert and counter == 'segments': plot.convert(zero)
+			if convert and counter == 'segments': plot.convert()
 
 			if lower is not None and upper is not None:
 				plot.determine_failures(lower, upper)
