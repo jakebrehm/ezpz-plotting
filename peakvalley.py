@@ -471,6 +471,14 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.upper = upper
 				self.count_failures()
 
+			def count_counter(self):
+
+				pairs = self._get_pairings()
+				data = self.y1_original.values.flatten().tolist()
+
+				self.total_segments = len(data)
+				self.total_cycles = len(pairs)
+
 			def count_failures(self):
 
 				pairs = self._get_pairings()
@@ -494,8 +502,8 @@ class PeakValleyFile(gui.ScrollableTab):
 						else:
 							booleans.append(False)
 
-				self.total_segments = len(data)
-				self.total_cycles = len(pairs)
+				# self.total_segments = len(data)
+				# self.total_cycles = len(pairs)
 
 				self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
 				self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
@@ -528,6 +536,7 @@ class PeakValleyFile(gui.ScrollableTab):
 				first = None
 				if isinstance(self.x, list):
 					for item in self.x:
+						if item.empty: continue
 						minimum = min(item)
 						if first is None:
 							first = minimum
@@ -573,6 +582,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.section.parse_units(units)
 				self.units = self.section.units
 
+				self.count_counter()
+
 			def construct_labels(self):
 				x_label = self.labels.iloc[self.x_column - 1]
 				x_unit = self.units.iloc[self.x_column - 1]
@@ -584,7 +595,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				date = self.section.date
 				time = self.section.time
-				total = self.total_cycles if self.DATA_CONVERTED else self.total_segments
+				# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
+				total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
 				self.title = f'{date} {time}' + '\n' \
 							 f'Cycles 1 to {total}' + '\n' \
 							 f'{y1_label} vs. {x_label}'
@@ -640,6 +652,7 @@ class PeakValleyFile(gui.ScrollableTab):
 				max_x = None
 				if isinstance(self.x, list):
 					for item in self.x:
+						if item.empty: continue
 						minimum = min(item.dropna())
 						if min_x is None or minimum < min_x:
 							min_x = minimum

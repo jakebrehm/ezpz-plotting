@@ -408,6 +408,9 @@ class Application(gui.Application):
             self.input_controls(special)
             self.listbox.clear()
         else:
+            # # Place a notebook in the primary frame
+            # self.notebook = ttk.Notebook(self.primary, takefocus=0)
+            # self.notebook.grid(row=0, column=0, sticky='NSEW')
             # Create a basic file object by default
             if not special:
                 file = BasicFile(self.notebook, filepath, self)
@@ -417,6 +420,8 @@ class Application(gui.Application):
                 file = PeakValleyFile(self.notebook, filepath, self)
             # Append it to the list of file objects
             self.files.append(file)
+            # # Set cursor focus on the default field of the first tab for ease of use
+            # self.files[0].set_default_focus()
 
         # Add the filepath to the listbox
         self.listbox.field['state'] = 'normal'
