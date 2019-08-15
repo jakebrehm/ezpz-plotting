@@ -9,7 +9,7 @@ import re
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from settings import pv_labels
+from settings import pv_colors, pv_labels
 
 class PeakValleyFile(gui.ScrollableTab):
 
@@ -120,8 +120,11 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._y_columns[p].set(2)
 
 		rows = self.sections[p].header_length
-		self._units[p]['values'] = list(range(1, rows + 1))
-		self._units[p].set(rows)
+		# self._units[p]['values'] = list(range(1, rows + 1))
+		# self._units[p].set(rows)
+		self._units[p]['values'] = ['None'] + list(range(1, rows + 1))
+		# self._units[p].set(rows)
+		self._units[p].set('None')
 		self._labels[p]['values'] = list(range(1, rows + 1))
 		self._labels[p].set(1)
 
@@ -570,6 +573,22 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.section.parse_units(units)
 				self.units = self.section.units
 
+			def construct_labels(self):
+				x_label = self.labels.iloc[self.x_column - 1]
+				x_unit = self.units.iloc[self.x_column - 1]
+				self.x_label = f'{x_label} ({x_unit})'
+				
+				y1_label = self.labels.iloc[self.y_column - 1]
+				y1_unit = self.units.iloc[self.y_column - 1]
+				self.y1_label = f'{y1_label} ({y1_unit})'
+
+				date = self.section.date
+				time = self.section.time
+				total = self.total_cycles if self.DATA_CONVERTED else self.total_segments
+				self.title = f'{date} {time}' + '\n' \
+							 f'Cycles 1 to {total}' + '\n' \
+							 f'{y1_label} vs. {x_label}'
+
 			def update_plot(self, flipbook, file_number, plot_number):
 
 				# Create a reference to the flipbook's primary axis for shorthand
@@ -598,28 +617,25 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				# Plot the data as a scatterplot
 				MARKER_SIZE = 1.5 ** 2
-				colors = {'general': 'k', 'pass': 'g', 'fail': 'r', 'valley': 'c', 'peak': 'b'}
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x, self.y1, color=colors['general'], s=MARKER_SIZE, label=pv_labels['general'])
+					primary.scatter(self.x, self.y1, color=pv_colors['general'], s=MARKER_SIZE, label=pv_labels['general'])
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
-					primary.scatter(self.x[2], self.y1[2], color=colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=pv_colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=pv_colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
+					primary.scatter(self.x[2], self.y1[2], color=pv_colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
 				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['pass'], s=MARKER_SIZE, label=pv_labels['pass'])
+					primary.scatter(self.x[0], self.y1[0], color=pv_colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], color=pv_colors['pass'], s=MARKER_SIZE, label=pv_labels['pass'])
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
-					primary.scatter(self.x[1], self.y1[1], color=colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
+					primary.scatter(self.x[0], self.y1[0], color=pv_colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
+					primary.scatter(self.x[1], self.y1[1], color=pv_colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:
-					primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.5)
-					primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.5)
+					primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.3)
+					primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.3)
 
-				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
-				# Store the original x-axis limits to allow the user to revert to them if desired.
-
+				# Determine the minimum and maximum values of the x data
 				min_x = None
 				max_x = None
 				if isinstance(self.x, list):
@@ -633,8 +649,9 @@ class PeakValleyFile(gui.ScrollableTab):
 				elif isinstance(self.x, pd.Series):
 					min_x = min(self.x.dropna())
 					max_x = max(self.x.dropna())
-
+				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
 				padding = (max_x - min_x) * (100/90) * (0.05)
+				# Store the original x-axis limits to allow the user to revert to them if desired.
 				self.x_lower_original = min_x - padding
 				self.x_upper_original = max_x + padding
 				primary.set_xlim(self.x_lower_original, self.x_upper_original)
@@ -650,10 +667,19 @@ class PeakValleyFile(gui.ScrollableTab):
 				primary.minorticks_on()
 				primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
 
-				# Add text boxes describing the limit lines
+				# Set the title
+				flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=12)
+				# Construct the axis labels further if necessary
+				if self.counter == 'segments' and self.DATA_CONVERTED:
+					self.x_label = self.x_label.replace('segments', 'cycles')
+				# Set the axis labels
+				primary.set_xlabel(self.x_label)
+				primary.set_ylabel(self.y1_label)
 
+				# If pass/fail criteria were specified...
 				if self.FAILURES_DETERMINED:
 					if self.counter != 'other':
+						# Add a text box listing the number of passes and fails
 						props = dict(boxstyle='round', facecolor='white', alpha=0.5)
 						if self.counter == 'cycles' or self.DATA_CONVERTED:
 							counter_type = 'Cycles'
@@ -671,7 +697,7 @@ class PeakValleyFile(gui.ScrollableTab):
 							f'{passed} Passed {counter_type}'
 						primary.text(0.80, 1.05, text, transform=primary.transAxes,
 									fontsize=12, bbox=props)
-
+					# Add text boxes describing the limit lines
 					upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
 					x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
 					primary.text(x_position, upper_y,
@@ -751,6 +777,8 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			if split: plot.split()
 			if zero: plot.zero()
+
+			plot.construct_labels()
 
 
 class PeakValleyControls(ttk.Notebook):

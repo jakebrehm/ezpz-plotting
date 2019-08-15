@@ -17,6 +17,14 @@ plot_colors = {
     'lime':     '#00ff00',
 } # A list of all preset color options for plotting purposes
 
+pv_colors = {
+    'general': 'k',
+    'pass': 'g',
+    'fail': 'r',
+    'valley': 'm',
+    'peak': 'b',
+} # A list of colors to use for peak valley plots
+
 pv_labels = {
     'general': 'Data',
     'peak': 'Peak',
