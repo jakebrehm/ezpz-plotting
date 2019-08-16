@@ -313,11 +313,8 @@ class Application(gui.Application):
         self.minus_button['state'] = 'normal'
 
         # Enable the entries in the file menu
-        # self.file_menu.entryconfig(1, state='normal')
         self.file_menu.entryconfig(3, state='normal')
         self.file_menu.entryconfig(5, state='normal')
-        # self.file_menu.entryconfig(2, state='normal')
-        # self.file_menu.entryconfig(4, state='normal')
 
         # Enable the entries in the edit menu
         self.edit_menu.entryconfig(0, state='normal')
@@ -335,11 +332,8 @@ class Application(gui.Application):
         self.minus_button['state'] = 'disabled'
 
         # Disable the entries in the file menu
-        # self.file_menu.entryconfig(1, state='disabled')
         self.file_menu.entryconfig(3, state='disabled')
         self.file_menu.entryconfig(5, state='disabled')
-        # self.file_menu.entryconfig(2, state='disabled')
-        # self.file_menu.entryconfig(4, state='disabled')
 
         # Disable the entries in the edit menu
         self.edit_menu.entryconfig(0, state='disabled')
@@ -428,10 +422,7 @@ class Application(gui.Application):
         # Append the filepath to the list of inputs
         self.inputs.append(filepath)
 
-        print(self.inputs)
-
         if len(self.inputs) == 1:
-            print('it is going through here')
             # A length of one of the inputs list implies that the user is trying
             # to add a file to a freshly resetted program; handle differely
             self.enable()
@@ -659,7 +650,7 @@ class Application(gui.Application):
         self.load_preset('Presets\\preset.ini')
         # self.load_preset('Presets\\laptop.ini')
         # self.open_flipbook()
-        self.reset()
+        # self.reset()
 
 
 class Flipbook(tk.Toplevel):
@@ -1381,7 +1372,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# Run a test function
-app.after(100, app.test)
+# # Run a test function
+# app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()

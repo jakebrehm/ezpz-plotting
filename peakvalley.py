@@ -626,15 +626,12 @@ class PeakValleyFile(gui.ScrollableTab):
 				    flipbook.secondary.axis('off')
 				flipbook.secondary = None
 
-				# Create a variable that keeps track of if a secondary axis is necessary
-				self.secondary_axis = False
-
 				# Clear the primary axis as well
 				primary.clear()
 
 				# Set the appropriate coordinates format to display on the flipbook
 				primary.set_zorder(1000)
-				primary.format_coord = flipbook._coordinates(flipbook.primary, None, self.secondary_axis)
+				primary.format_coord = flipbook._coordinates(flipbook.primary, None, False)
 
 				# Plot the data as a scatterplot
 				MARKER_SIZE = 1.5 ** 2
@@ -680,9 +677,6 @@ class PeakValleyFile(gui.ScrollableTab):
 				# Store the original y-axis limits to allow the user to revert to them if desired.
 				self.y1_lower_original = primary.get_ylim()[0]
 				self.y1_upper_original = primary.get_ylim()[1]
-				if self.secondary_axis:
-				    self.y2_lower_original = flipbook.secondary.get_ylim()[0]
-				    self.y2_upper_original = flipbook.secondary.get_ylim()[1]
 
 				# Turn the grid on, with both major and minor gridlines
 				primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
