@@ -831,7 +831,6 @@ class Flipbook(tk.Toplevel):
 
         # Determine the destination page
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
-        print(self.pages)
         # If the destination page is within the range of the total number of pages...
         if destination in range(self.pages + 1):
             # Set the new page number; update arrows and the plot
