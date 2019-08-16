@@ -740,12 +740,15 @@ class PeakValleyFile(gui.ScrollableTab):
 
 				# Use the seaborn plot style
 				plt.style.use('seaborn')
-				
+
 				# Load the Tactair image and display it on the plot
 				image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
 				x_low, x_high = primary.get_xlim()
 				y_low, y_high = primary.get_ylim()
 				primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+			def on_click(self, event, flipbook):
+				pass
 
 		# Enable the header
 		self._enable_header()

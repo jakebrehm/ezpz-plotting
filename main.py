@@ -652,7 +652,7 @@ class Application(gui.Application):
 
         self.load_preset('Presets\\preset.ini')
         # self.load_preset('Presets\\laptop.ini')
-        # self.open_flipbook()
+        self.open_flipbook()
         # self.reset()
 
 
@@ -783,7 +783,8 @@ class Flipbook(tk.Toplevel):
                   lambda event, direction='right': self.flip_page(event, direction))
 
         # Add call the on_click method whenever the user clicks on a clickable object
-        self.canvas.mpl_connect('pick_event', self.on_click)
+        # self.canvas.mpl_connect('pick_event', self.on_click)
+        self.figure.canvas.mpl_connect('pick_event', self.on_click)
 
         # Update the arrows and the plot of the flipbook
         self.update_arrows()
@@ -856,23 +857,26 @@ class Flipbook(tk.Toplevel):
         # Return 'break' to bypass event propagation
         return ('break')
 
-
+# 
     def on_click(self, event):
         """Hide or show a line when the corresponding object in the legend is clicked."""
 
         # Reroute to plot object's on_click method
-        # ...
+        current = self.plots[self.page]
+        current.on_click(event, self)
 
-        # Get a reference to the legend line and the original line
-        legend_line = event.artist
-        original_line = self.line_map[legend_line]
-        # Determine whether to show or hide the original line
-        visible = not original_line.get_visible()
-        # Set the visibility accordingly
-        original_line.set_visible(visible)
-        legend_line.set_alpha(1.0 if visible else 0.2)
-        # Update the plot
-        self.canvas.draw()
+        # self.canvas.draw()
+
+        # # Get a reference to the legend line and the original line
+        # legend_line = event.artist
+        # original_line = self.line_map[legend_line]
+        # # Determine whether to show or hide the original line
+        # visible = not original_line.get_visible()
+        # # Set the visibility accordingly
+        # original_line.set_visible(visible)
+        # legend_line.set_alpha(1.0 if visible else 0.2)
+        # # Update the plot
+        # self.canvas.draw()
 
 
     def _coordinates(self, current, other, secondary_exists):
@@ -1378,7 +1382,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()

@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 import re
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from tkinter import filedialog as fd
 import os
@@ -381,6 +382,7 @@ class BasicFile(gui.ScrollableTab):
                 self.y2_label = y2_label if y2_label else None
 
             def update_plot(self, flipbook, file, number):
+
                 # ========================
                 # STYLE SELECTION CONTROLS
                 # ========================
@@ -528,11 +530,18 @@ class BasicFile(gui.ScrollableTab):
                 # Make the legend draggable (possibly a control in the future)
                 legend.set_draggable(state=True)
 
+                # # Map the items in the legend to its corresponding line
+                # flipbook.line_map = {}
+                # for legend_line, original_line in zip(legend.get_lines(), handles):
+                #     legend_line.set_picker(5)
+                #     flipbook.line_map[legend_line] = original_line
+
                 # Map the items in the legend to its corresponding line
-                flipbook.line_map = {}
+                self.line_map = {}
                 for legend_line, original_line in zip(legend.get_lines(), handles):
+                    # legend_line.set_picker(5)
                     legend_line.set_picker(5)
-                    flipbook.line_map[legend_line] = original_line
+                    self.line_map[legend_line] = original_line
 
                 # ====================
                 # AXES LIMITS CONTROLS
@@ -633,6 +642,22 @@ class BasicFile(gui.ScrollableTab):
                                     linestyle=self.line_style[v],
                                     color=plot_colors[self.line_color[v]],
                                     alpha=float(self.line_alpha[v]))
+
+            def on_click(self, event, flipbook):
+                # An event with a legend artist will be run through separately;
+                # do not execute code in this case
+                if not isinstance(event.artist, mpl.lines.Line2D): return
+                # Get a reference to the legend line and the original line
+                legend_line = event.artist
+                # print(self.line_map)
+                original_line = self.line_map[legend_line]
+                # Determine whether to show or hide the original line
+                visible = not original_line.get_visible()
+                # Set the visibility accordingly
+                original_line.set_visible(visible)
+                legend_line.set_alpha(1.0 if visible else 0.2)
+                # Update the plot
+                flipbook.canvas.draw()
 
 
         # Create a new plot object and hold a reference to it
