@@ -31,6 +31,15 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._labels = []
 		self._units = []
 
+		self.clipboard = {
+			'section': None,
+			'counter': None,
+			'x column': None,
+			'y column': None,
+			'label row': None,
+			'unit row': None,
+		}
+
 		self.plots = []
 
 		self.READ_COMPLETE = False
@@ -236,14 +245,14 @@ class PeakValleyFile(gui.ScrollableTab):
         # Create a copy button
 		copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
 		copy_button = ttk.Button(edit_controls, takefocus=0, width=3, image=copy_image, text='C')
-		# copy_button['command'] = lambda ID=self._count: self.copy(ID)
+		copy_button['command'] = lambda ID=self._count: self.copy(ID)
 		copy_button.image = copy_image
 		copy_button.grid(row=0, column=0, padx=PADDING/5, sticky='EW')
 
 		# Create a paste button
 		paste_image = gui.RenderImage('Assets\\paste.png', downscale=12)
 		paste_button = ttk.Button(edit_controls, takefocus=0, width=3, image=paste_image, text='C')
-		# paste_button['command'] = lambda ID=self._count: self.paste(ID)
+		paste_button['command'] = lambda ID=self._count: self.paste(ID)
 		paste_button.image = paste_image
 		paste_button.grid(row=0, column=1, padx=PADDING/5, sticky='EW')
 
@@ -272,6 +281,28 @@ class PeakValleyFile(gui.ScrollableTab):
 
 	def set_default_focus(self):
 		self.lower_entry.focus_set()
+
+
+	def copy(self, ID):
+		"""Copies the contents of the selected row to the clipboard."""
+
+		self.clipboard['section'] = self._sections[ID].get()
+		self.clipboard['counter'] = self._counters[ID].get()
+		self.clipboard['x column'] = self._x_columns[ID].get()
+		self.clipboard['y column'] = self._y_columns[ID].get()
+		self.clipboard['label row'] = self._labels[ID].get()
+		self.clipboard['unit row'] = self._units[ID].get()
+
+
+	def paste(self, ID):
+		"""Pastes the contents of the clipboards into the selected row."""
+
+		self._sections[ID].set(self.clipboard['section'])
+		self._counters[ID].set(self.clipboard['counter'])
+		self._x_columns[ID].set(self.clipboard['x column'])
+		self._y_columns[ID].set(self.clipboard['y column'])
+		self._labels[ID].set(self.clipboard['label row'])
+		self._units[ID].set(self.clipboard['unit row'])
 
 
 	def read(self, event=None):
