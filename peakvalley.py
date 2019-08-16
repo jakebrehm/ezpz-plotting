@@ -408,7 +408,7 @@ class PeakValleyFile(gui.ScrollableTab):
 				"""Pull the appropriate x-information from the data."""
 
 				return self.section.data.iloc[:, x_column-1].copy(deep=True)
-				
+
 			def _y_data(self, y_column):
 				"""Pull the appropriate y-information from the data."""
 
@@ -602,7 +602,7 @@ class PeakValleyFile(gui.ScrollableTab):
 					counter_type = 'Segments'
 				elif self.counter == 'other':
 					counter_type = 'Count'
-					
+
 				# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
 				total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
 				self.title = f'{date} {time}' + '\n' \
@@ -871,7 +871,7 @@ if __name__ == '__main__':
 		read()
 		plot()
 
-	filepath = 'Data\\peakvalley2.dat'
+	filepath = 'Data\\peakvalley.dat'
 	app = gui.Application(padding=20)
 	notebook = ttk.Notebook(app)
 	notebook.grid(row=0, column=0, sticky='NSEW')
