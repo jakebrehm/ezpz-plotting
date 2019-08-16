@@ -326,11 +326,8 @@ class Application(gui.Application):
         self.edit_menu.entryconfig(4, state='normal')
 
 
-    def reset(self):
-        """Revert the GUI back to its disabled state, before any inputs were loaded."""
-
-        # Clear the listbox
-        self.listbox.clear()
+    def disable(self):
+        """Change the GUI to its disabled state, which occurs when inputs are not loaded."""
 
         # Disable the buttons in the footer
         self.plot_button['state'] = 'disabled'
@@ -350,8 +347,22 @@ class Application(gui.Application):
         self.edit_menu.entryconfig(3, state='disabled')
         self.edit_menu.entryconfig(4, state='disabled')
 
+
+    def reset(self):
+        """Revert the GUI back to its disabled state, before any inputs were loaded."""
+
+        # Clear the listbox
+        self.listbox.clear()
+
+        # Disable the GUI
+        self.disable()
+
         # Destroy everything in the primary frame - namely, the notebook
         for child in self.primary.winfo_children(): child.destroy()
+
+        # Reset the inputs and files lists
+        self.inputs = []
+        self.files = []
 
         # Recreate the message that lets the user know there are no inputs loaded
         message = 'Please provide at least one input file.\n\nControls will appear here.'
@@ -417,7 +428,10 @@ class Application(gui.Application):
         # Append the filepath to the list of inputs
         self.inputs.append(filepath)
 
+        print(self.inputs)
+
         if len(self.inputs) == 1:
+            print('it is going through here')
             # A length of one of the inputs list implies that the user is trying
             # to add a file to a freshly resetted program; handle differely
             self.enable()
@@ -426,6 +440,8 @@ class Application(gui.Application):
         else:
             # # Place a notebook in the primary frame
             # self.notebook = ttk.Notebook(self.primary, takefocus=0)
+            # self.notebook.grid(row=0, column=0, sticky='NSEW')
+            # self.enable()
             # self.notebook.grid(row=0, column=0, sticky='NSEW')
             # Create a basic file object by default
             if not special:
@@ -642,7 +658,8 @@ class Application(gui.Application):
 
         self.load_preset('Presets\\preset.ini')
         # self.load_preset('Presets\\laptop.ini')
-        self.open_flipbook()
+        # self.open_flipbook()
+        self.reset()
 
 
 class Flipbook(tk.Toplevel):
@@ -1364,7 +1381,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
