@@ -567,7 +567,8 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.section = section
 				self.counter = counter
 				self.labels = labels
-				self.units = units
+				# self.units = units # Rename due to conflict? Necessary?
+				self.unit_row = units # Rename due to conflict? Necessary?
 				self.x_column = x_column
 				self.y_column = y_column
 
@@ -580,18 +581,18 @@ class PeakValleyFile(gui.ScrollableTab):
 				self.section.parse_labels(labels)
 				self.labels = self.section.labels
 				self.section.parse_units(units)
-				self.units = self.section.units
+				self.units = self.section.units if units is not None else None
 
 				self.count_counter()
 
 			def construct_labels(self):
 				x_label = self.labels.iloc[self.x_column - 1]
-				x_unit = self.units.iloc[self.x_column - 1]
-				self.x_label = f'{x_label} ({x_unit})'
+				x_unit = self.units.iloc[self.x_column - 1] if self.units is not None else None
+				self.x_label = f'{x_label} ({x_unit})' if x_unit else f'{x_label}'
 				
 				y1_label = self.labels.iloc[self.y_column - 1]
-				y1_unit = self.units.iloc[self.y_column - 1]
-				self.y1_label = f'{y1_label} ({y1_unit})'
+				y1_unit = self.units.iloc[self.y_column - 1] if self.units is not None else None
+				self.y1_label = f'{y1_label} ({y1_unit})' if y1_unit else f'{y1_label}'
 
 				date = self.section.date
 				time = self.section.time
@@ -779,7 +780,20 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			counter = self._counters[p].get()
 			label_row = int(self._labels[p].get())
-			unit_row = int(self._units[p].get()) if self._units[p].get() else None
+			# unit_row = int(self._units[p].get()) if self._units[p].get() else None
+
+			# if self._units[p].get() == 'None':
+			# 	unit_row = None
+			# elif self._units[p].get():
+			# 	unit_row = int(self._units[p].get())
+			# else:
+			# 	unit_row = None
+
+			if self._units[p].get() not in ['', 'None']:
+				unit_row = int(self._units[p].get())
+			else:
+				unit_row = None
+
 			x_column = int(self._x_columns[p].get())
 			y_column = int(self._y_columns[p].get())
 
