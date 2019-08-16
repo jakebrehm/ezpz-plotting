@@ -192,6 +192,10 @@ class Application(gui.Application):
 
         # Iterator through the file objects
         for f, file in enumerate(self.files):
+            
+            # Special files are currently unsupported, so skip them
+            if isinstance(file, PeakValleyFile): continue
+
             # For each plot in each file, filepath, data start row, label row, and unit row
             # will be the same. Record these under the main section for this file.
             preset[f'File {f+1}'] = {
@@ -238,12 +242,21 @@ class Application(gui.Application):
             return
 
         # Grab the filepath for each file in the preset
-        self.inputs = [info['filepath'] for file, info in preset.items()]
+        inputs = [(i, info['filepath']) for i, (_, info) in enumerate(preset.items()) \
+                  if os.path.isfile(info['filepath'])]
+        if not inputs:
+            message = 'There are no valid filepaths in this preset. Please verify that ' \
+                      'they are correct, and that the files still exist, and try again.'
+            mb.showinfo('Oops!', message)
+            return
+        indices = [index for index, _ in inputs]
+        self.inputs = [filepath for _, filepath in inputs]
 
         # Insert the filepaths into the listbox
         self.listbox.clear()
         self.listbox.field['state'] = 'normal'
-        for filepath in self.inputs: self.listbox.field.insert('end', ' ' + filepath)
+        for filepath in self.inputs:
+            self.listbox.field.insert('end', ' ' + filepath)
         self.listbox.field['state'] = 'disable'
         self.listbox.field['justify'] = 'left'
 
@@ -257,12 +270,15 @@ class Application(gui.Application):
             # If info has a length of greater than five, that means that rows need to be added.
             # The first five entries are filepath, data start row, label row, unit row, and
             # the first row that is already created by default for each file.
+            if not os.path.isfile(info['filepath']): continue
             if len(info) > 5:
                 rows_needed = len(info) - 5
                 for _ in range(rows_needed): self.plus_row(tab=f)
 
         # Iterate through the preset again and fill the GUI fields with the relevant data
-        for f, (_, info) in enumerate(preset.items()):
+        for f in range(len(self.inputs)):
+            corresponding_file = indices[f]
+            info = preset.values()[corresponding_file]
             self.files[f].data_row_entry.insert(0, info['data start'])
             self.files[f].label_row_entry.insert(0, info['label row'])
             self.files[f].unit_row_entry.insert(0, info['unit row'])
