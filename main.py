@@ -800,6 +800,14 @@ class Flipbook(tk.Toplevel):
         if 0 < self.page < self.pages:
             self.previous_button.config(state='normal')
             self.next_button.config(state='normal')
+        # Add extra logic for the case of there only being two plots
+        if self.pages == 1:
+            if self.page == 0:
+                self.previous_button.config(state='disabled')
+                self.next_button.config(state='normal')
+            elif self.page == 1:
+                self.previous_button.config(state='normal')
+                self.next_button.config(state='disabled')
 
 
     def flip_page(self, event, direction):
@@ -807,6 +815,7 @@ class Flipbook(tk.Toplevel):
 
         # Determine the destination page
         destination = (self.page + 1) if direction == 'right' else (self.page - 1)
+        print(self.pages)
         # If the destination page is within the range of the total number of pages...
         if destination in range(self.pages + 1):
             # Set the new page number; update arrows and the plot
