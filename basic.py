@@ -530,16 +530,9 @@ class BasicFile(gui.ScrollableTab):
                 # Make the legend draggable (possibly a control in the future)
                 legend.set_draggable(state=True)
 
-                # # Map the items in the legend to its corresponding line
-                # flipbook.line_map = {}
-                # for legend_line, original_line in zip(legend.get_lines(), handles):
-                #     legend_line.set_picker(5)
-                #     flipbook.line_map[legend_line] = original_line
-
                 # Map the items in the legend to its corresponding line
                 self.line_map = {}
                 for legend_line, original_line in zip(legend.get_lines(), handles):
-                    # legend_line.set_picker(5)
                     legend_line.set_picker(5)
                     self.line_map[legend_line] = original_line
 
