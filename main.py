@@ -12,12 +12,12 @@ import os
 import platform
 
 # Plotting packages
-import matplotlib
+import matplotlib as mpl
 if platform.system() == 'Darwin':
     matplotlib.use("TkAgg") # On Mac, this must come before the pyplot import
 import matplotlib.pyplot as plt
 if platform.system() == 'Windows':
-    matplotlib.use("TkAgg") # On Windows, this must come after the pyplot import
+    mpl.use("TkAgg") # On Windows, this must come after the pyplot import
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
@@ -543,6 +543,9 @@ class Application(gui.Application):
         # If the flipbook is already open, exit the function
         if self.FLIPBOOK: return
 
+        # Reset parameters to avoid problems associated with using styles
+        mpl.rcParams.update(mpl.rcParamsDefault)
+
         # Store all of the inputs in each tab
         for file in self.files: file.generate()
 
@@ -856,6 +859,9 @@ class Flipbook(tk.Toplevel):
 
     def on_click(self, event):
         """Hide or show a line when the corresponding object in the legend is clicked."""
+
+        # Reroute to plot object's on_click method
+        # ...
 
         # Get a reference to the legend line and the original line
         legend_line = event.artist
