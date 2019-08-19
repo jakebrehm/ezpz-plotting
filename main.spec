@@ -4,9 +4,13 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Offshoots\\EZPZ Baby Steps'],
+             pathex=['C:\\Users\\brehm\\OneDrive\\Python\\EZPZ Family\\EZPZ Plotting'],
              binaries=[],
-             datas=[('Assets\\browse.png', 'assets'),
+             datas=[('settings.py', '.'),
+                    ('controls.py', '.'),
+                    ('basic.py', '.'),
+                    ('peakvalley.py', '.'),
+                    ('Assets\\browse.png', 'assets'),
                     ('Assets\\checking.png', 'assets'),
                     ('Assets\\clear.png', 'assets'),
                     ('Assets\\controls.png', 'assets'),

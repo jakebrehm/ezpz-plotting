@@ -1382,7 +1382,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# Run a test function
-app.after(100, app.test)
+# # Run a test function
+# app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
