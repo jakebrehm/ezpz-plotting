@@ -1,8 +1,8 @@
-The following is a list of features that I want to add to **EZPZ Plotting**. Eventually, I want to add all features; however, since I am only one person, I can only add one things at once. Therefore, features that I feel are absolutely necessary before the first full release of the program (high), features that I would like to add eventually (medium), and features that may never be added or are unnecessary (low) are differentiated.
+The following is a list of features that I want to add to **EZPZ Plotting**. Eventually, I want to add all features; however, since I am only one person, I can only add one thing at a time. Therefore, features that I feel are absolutely necessary before the first full release of the program (high), features that I would like to add eventually (medium), and features that may never be added or are unnecessary (low) are differentiated.
 
 The list will be ordered from highest priority to lowest priority.
 
-# Primary features
+# Program features
 
 | Priority | Feature | Category | Subcategory | Description |
 |:--:|:--:|:--:|:--:|--|
@@ -21,4 +21,5 @@ The list will be ordered from highest priority to lowest priority.
 | Medium | Decimation | General |  | Apply decimation to a dataset. |
 | Medium | Zero X-Axis | Controls | Analysis | Zero the x-axis. |
 | Medium | Inset Axes | Controls |  | Add an inset axis to the plot. |
-| Low | Notebook Scrollbar |  |  | Add a [horizontal scrollbar](https://stackoverflow.com/questions/51105771/scrolling-notebook-tabs-tkinter) to the file notebook. |
+| Low | Listbox Scrollbar | General |  | Add a scrollbar to the inputs listbox. |
+| Low | Notebook Scrollbar | General |  | Add a [horizontal scrollbar](https://stackoverflow.com/questions/51105771/scrolling-notebook-tabs-tkinter) to the file notebook. |
