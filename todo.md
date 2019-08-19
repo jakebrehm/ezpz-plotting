@@ -14,7 +14,7 @@ The list will be ordered from highest priority to lowest priority.
 | Medium | Zoom Update | Controls | Figure | Change axis limit controls upon zooming. | 
 | Medium | Series Color | Controls | Appearance | Change a series' color. |
 | Medium | Series Marker | Controls | Appearance | Change a series' marker. |
-| Medium | Series Z-Order | Controls | Appearance | Change a series' z-order |
+| Medium | Series Z-Order | Controls | Appearance | Change a series' z-order. |
 | Medium | Annotations | Controls | Annotations | Dynamically add annotations to the plot. |
 | Medium | Change Labels | Controls | Figure | Change the label of a series. |
 | Medium | Legend Units | Controls | Figure | Toggle whether or not to have units appear in the legend. |
