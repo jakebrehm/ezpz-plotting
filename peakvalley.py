@@ -278,7 +278,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		# Decrement the row/plot count
 		self._count -= 1
 
-
 	def set_default_focus(self):
 		self.lower_entry.focus_set()
 
@@ -667,17 +666,17 @@ class PeakValleyFile(gui.ScrollableTab):
 				# Plot the data as a scatterplot
 				MARKER_SIZE = 1.5 ** 2
 				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x, self.y1, color=pv_colors['general'], s=MARKER_SIZE, label=pv_labels['general'])
+					primary.scatter(self.x, self.y1, c=pv_colors['general'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['general'])
 				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=pv_colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=pv_colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
-					primary.scatter(self.x[2], self.y1[2], color=pv_colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
+					primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+					primary.scatter(self.x[2], self.y1[2], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
 				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=pv_colors['fail'], s=MARKER_SIZE, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], color=pv_colors['pass'], s=MARKER_SIZE, label=pv_labels['pass'])
+					primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+					primary.scatter(self.x[1], self.y1[1], c=pv_colors['pass'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['pass'])
 				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], color=pv_colors['valley'], s=MARKER_SIZE, label=pv_labels['valley'])
-					primary.scatter(self.x[1], self.y1[1], color=pv_colors['peak'], s=MARKER_SIZE, label=pv_labels['peak'])
+					primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+					primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
 
 				# Plot horizontal lines showing pass/fail criteria
 				if self.FAILURES_DETERMINED:

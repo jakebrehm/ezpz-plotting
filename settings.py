@@ -21,7 +21,7 @@ pv_colors = {
     'general': 'k',
     'pass': 'g',
     'fail': 'r',
-    'valley': 'm',
+    'valley': 'c',
     'peak': 'b',
 } # A list of colors to use for peak valley plots
 
