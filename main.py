@@ -66,9 +66,15 @@ class Application(gui.Application):
         gui.Separator(self, padding=(0, padding)).grid(row=1, column=0, sticky='NSEW')
 
         # Add a listbox that will show the users the inputs that have been loaded
+        filetypes = [
+            ('Comma-Separated Values (*.csv)', '*.csv'),
+            ('Excel Spreadsheet (*.xls)', '*.xls'),
+            ('Excel Spreadsheet (*.xlsx)', '*.xlsx'),
+            ('Data File (*.dat)', '*.dat')
+        ]
         browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
         self.listbox = gui.InputField(self, quantity='multiple', appearance='list', width=80,
-                                 image=browse_image, command=self.browse)
+                                 image=browse_image, command=self.browse, filetypes=filetypes)
         self.listbox.grid(row=2, column=0, sticky='NSEW')
 
         # Create a separator between the listbox and the primary frame
@@ -228,7 +234,7 @@ class Application(gui.Application):
 
         # If no location was specified, have the user navigate to the preset file
         if not location:
-            filetypes = [('Configuration files (*.ini)', '*.ini')]
+            filetypes = [('Configuration Files (*.ini)', '*.ini')]
             location = fd.askopenfilename(title='Choose the preset file',
                                           filetypes=filetypes)
 
@@ -416,7 +422,20 @@ class Application(gui.Application):
         """Retroactively add a file to the current inputs."""
 
         # Ask the user to locate the file he/she wishes to add
-        filepath = fd.askopenfilename(title='Choose the file')
+        if special == 'Peak Valley':
+            filetypes = [
+                ('Data File (*.dat)', '*.dat'),
+                ('Comma-Separated Values (*.csv)', '*.csv')
+            ]
+        else:
+            filetypes = [
+                ('Comma-Separated values (*.csv)', '*.csv'),
+                ('Excel Spreadsheet (*.xls)', '*.xls'),
+                ('Excel Spreadsheet (*.xlsx)', '*.xlsx'),
+                ('Data File (*.dat)', '*.dat')
+            ]
+        filepath = fd.askopenfilename(title='Choose the file',
+                                      filetypes=filetypes)
 
         # Don't continue if no filepath was selected by the user
         if len(filepath) == 0: return
