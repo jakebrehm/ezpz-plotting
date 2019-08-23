@@ -540,29 +540,36 @@ class Application(gui.Application):
     def validate_inputs(self):
 
         blanks = False
-        columns = False
         length = False
         rows = False
+        columns = False
         for file in self.files:
-            file.set_all_valid()
+            status = file.validate_inputs()
+            if status is True: continue
+            elif status == 'blanks': blanks = True
+            elif status == 'length': length = True
+            elif status == 'rows': rows = True
+            elif status == 'columns': columns = True
 
-            if not file.check_blanks():
-                blanks = True
-                continue
+            # file.set_all_valid()
 
-            if not file.check_length():
-                length = True
-                continue
+            # if not file.check_blanks():
+            #     blanks = True
+            #     continue
 
-            if not file.check_rows():
-                rows = True
-                continue
+            # if not file.check_length():
+            #     length = True
+            #     continue
 
-            file.setup()
+            # if not file.check_rows():
+            #     rows = True
+            #     continue
 
-            if not file.check_columns():
-                columns = True
-                continue
+            # file.setup()
+
+            # if not file.check_columns():
+            #     columns = True
+            #     continue
 
         if any(item == True for item in [blanks, length, rows, columns]):
             for file in self.files:
@@ -584,7 +591,7 @@ class Application(gui.Application):
                     message += "It looks like you\'ve entered more than one " \
                                "row or column in a field that cannot accept it."
                 else:
-                    message += " - Invalid column selection(s)\n"
+                    message += " - Overloaded field(s)\n"
             if rows:
                 if count == 1:
                     message += "It looks like you\'ve entered a row number in" \

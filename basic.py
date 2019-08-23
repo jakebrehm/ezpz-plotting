@@ -802,6 +802,19 @@ class BasicFile(gui.ScrollableTab):
 
         return False if invalid else True
 
+    def validate_inputs(self):
+            self.set_all_valid()
+
+            if not self.check_blanks(): return 'blanks'
+            if not self.check_length(): return 'length'
+            if not self.check_rows(): return 'rows'
+
+            self.setup()
+
+            if not self.check_columns(): return 'columns'
+
+            return True
+
     def reset(self):
         """Reset certain instance variables to avoid pandas warnings about
         duplicate names."""
