@@ -460,7 +460,9 @@ class Application(gui.Application):
         """Retroactively remove a file from the current inputs."""
 
         # Don't continue if the currently selected file is the last remaining input
-        if not len(self.files) > 1: return
+        if not len(self.files) > 1:
+            self.reset()
+            return
 
         # Get the index of the currently selected tab
         current = self.notebook.index(self.notebook.select())
