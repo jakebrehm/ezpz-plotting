@@ -550,30 +550,9 @@ class Application(gui.Application):
             elif status == 'length': length = True
             elif status == 'rows': rows = True
             elif status == 'columns': columns = True
-
-            # file.set_all_valid()
-
-            # if not file.check_blanks():
-            #     blanks = True
-            #     continue
-
-            # if not file.check_length():
-            #     length = True
-            #     continue
-
-            # if not file.check_rows():
-            #     rows = True
-            #     continue
-
-            # file.setup()
-
-            # if not file.check_columns():
-            #     columns = True
-            #     continue
+            file.reset()
 
         if any(item == True for item in [blanks, length, rows, columns]):
-            for file in self.files:
-                file.reset()
 
             title = 'Invalid input'
             message = ""

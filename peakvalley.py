@@ -278,6 +278,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		# Decrement the row/plot count
 		self._count -= 1
 
+
 	def set_default_focus(self):
 		self.lower_entry.focus_set()
 
@@ -786,6 +787,10 @@ class PeakValleyFile(gui.ScrollableTab):
 		# Create a new plot object and hold a reference to it
 		plot = Plot()
 		self.plots.append(plot)
+
+
+	def validate_inputs(self):
+		return True
 
 
 	def generate(self):
