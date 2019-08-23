@@ -228,7 +228,9 @@ class Application(gui.Application):
 
         # If no location was specified, have the user navigate to the preset file
         if not location:
-            location = fd.askopenfilename(title='Choose the preset file')
+            filetypes = [('Configuration files (*.ini)', '*.ini')]
+            location = fd.askopenfilename(title='Choose the preset file',
+                                          filetypes=filetypes)
 
         # Initialize a ConfigObj object
         preset = configobj.ConfigObj(location)
