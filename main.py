@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import StringVar
 from tkinter import filedialog as fd
-from tkinter import messagebox as mb
+from tkinter import messagebox as msg
 from PIL import Image, ImageTk
 from lemons import gui
 
@@ -14,7 +14,7 @@ import platform
 # Plotting packages
 import matplotlib as mpl
 if platform.system() == 'Darwin':
-    matplotlib.use("TkAgg") # On Mac, this must come before the pyplot import
+    mpl.use("TkAgg") # On Mac, this must come before the pyplot import
 import matplotlib.pyplot as plt
 if platform.system() == 'Windows':
     mpl.use("TkAgg") # On Windows, this must come after the pyplot import
@@ -537,6 +537,54 @@ class Application(gui.Application):
         return ('break')
 
 
+    def validate_inputs(self):
+
+        blanks = False
+        columns = False
+        for file in self.files:
+            file.set_all_valid()
+
+            if not file.check_blanks():
+                blanks = True
+                continue
+
+            file.setup()
+
+            # file._type = file._filetype(file.filepath)
+            # file.labels = file._labels(file.label_row)
+            # data = file._data(int(file.data_row_entry.get()))
+            if not file.check_columns():
+                columns = True
+
+        if any(item == True for item in [blanks, columns]):
+            for file in self.files:
+                file.reset()
+
+            title = 'Invalid input'
+            message = ""
+            count = [blanks, columns].count(True)
+            if count > 1:
+                message += 'There were multiple problems with your input:\n'
+            if blanks:
+                if count == 1:
+                    message += "It looks like you've left required fields" \
+                                " blank."
+                else:
+                    message += " - Required field(s) left blank\n"
+            if columns:
+                if count == 1:
+                    message += "It looks like you've entered a column " \
+                                "number that is out of range in one or " \
+                                "more fields."
+                else:
+                    message += " - Invalid column slection(s)\n"
+            message += '\nPlease correct and try again.'
+            msg.showinfo(title, message)
+            return False
+        else:
+            return True
+
+
     def open_flipbook(self, event=None):
         """Open the flipbook."""
 
@@ -546,11 +594,15 @@ class Application(gui.Application):
         # Reset parameters to avoid problems associated with using styles
         mpl.rcParams.update(mpl.rcParamsDefault)
 
+        # Check that the user's inputs are okay
+        if not self.validate_inputs(): return
+
         # Store all of the inputs in each tab
-        for file in self.files:
+        for file in self.files: file.generate()
+        # for file in self.files:
             # test = file.generate()
             # print(test)
-            if not file.generate(): return
+            # if not file.generate(): return
 
         # Hide the main window and open the flipbook object
         app.root.withdraw()

@@ -708,13 +708,13 @@ class BasicFile(gui.ScrollableTab):
                                  names=self.labels, index_col=False,
                                  header=None, encoding='latin1')
 
-    def _set_all_valid(self):
+    def set_all_valid(self):
         self.data_row_entry.valid()
         self.label_row_entry.valid()
         for entry in self._x_columns + self._y1_columns + self._y2_columns:
             entry.valid()
 
-    def _check_blanks(self):
+    def check_blanks(self):
         invalid = False
 
         if not self.data_row_entry.get():
@@ -734,16 +734,18 @@ class BasicFile(gui.ScrollableTab):
             if not self._y1_columns[p].get():
                 invalid = True
                 self._y1_columns[p].invalid()
-                    
-        if invalid:
-            message = "It looks like you've left required fields blank." \
-                      "\n\nPlease correct and try again."
-            msg.showinfo('Required fields left blank', message)
-            return False
-        else:
-            return True
+        
+        return False if invalid else True
 
-    def _check_columns(self):
+        # if invalid:
+        #     # message = "It looks like you've left required fields blank." \
+        #     #           "\n\nPlease correct and try again."
+        #     # msg.showinfo('Required fields left blank', message)
+        #     return False
+        # else:
+        #     return True
+
+    def check_columns(self):
         valid = list(range(1, len(self.data.columns)+1))
 
         invalid = False
@@ -766,16 +768,18 @@ class BasicFile(gui.ScrollableTab):
                     invalid = True
                     self._y2_columns[p].invalid()
 
-        if invalid:
-            message = "It looks like you've entered a column number that is " \
-                      "out of range in one or more fields.\n\n" \
-                      "Please correct and try again."
-            msg.showinfo('Invalid column selection', message)
-            return False
-        else:
-            return True
+        return False if invalid else True
 
-    def _reset(self):
+        # if invalid:
+        #     # message = "It looks like you've entered a column number that is " \
+        #     #           "out of range in one or more fields.\n\n" \
+        #     #           "Please correct and try again."
+        #     # msg.showinfo('Invalid column selection', message)
+        #     return False
+        # else:
+        #     return True
+
+    def reset(self):
         """Reset certain instance variables to avoid pandas warnings about
         duplicate names."""
 
@@ -784,17 +788,7 @@ class BasicFile(gui.ScrollableTab):
         self.units = None
         self.data = None
 
-    def generate(self):
-        """The main function for the object which pulls all of the relevant data
-        from the file and adds the appropriate information to the plot objects."""
-
-        # Set all fields to their valid state
-        self._set_all_valid()
-
-        # Check inputs and show an error message if there are any problems
-        if not self._check_blanks():
-            self._reset()
-            return False
+    def setup(self):
 
         # Determine the file's type
         self._type = self._filetype(self.filepath)
@@ -811,10 +805,41 @@ class BasicFile(gui.ScrollableTab):
         self.data_start_row = int(self.data_row_entry.get())
         self.data = self._data(self.data_start_row)
 
-        # Check columns and show an error message if there are any problems
-        if not self._check_columns():
-            self._reset()
-            return False
+    def generate(self):
+        """The main function for the object which pulls all of the relevant data
+        from the file and adds the appropriate information to the plot objects."""
+
+        # # Set all fields to their valid state
+        # self.set_all_valid()
+
+        # # Check inputs and show an error message if there are any problems
+        # if not self.check_blanks():
+        #     self.reset()
+        #     return False
+
+        # Might not be necessary because it is already being setup in the
+        # validate_inputs method of the main application
+        self.setup()
+
+        # # Determine the file's type
+        # self._type = self._filetype(self.filepath)
+
+        # # Store the label row and corresponding labels as instance variables
+        # self.label_row = int(self.label_row_entry.get())
+        # self.labels = self._labels(self.label_row)
+
+        # # Store the unit row and corresponding units as instance variables
+        # self.unit_row = int(self.unit_row_entry.get()) if self.unit_row_entry.get() else None
+        # self.units = self._units(self.unit_row)
+
+        # # Store the data start row and corresponding data as instance variables
+        # self.data_start_row = int(self.data_row_entry.get())
+        # self.data = self._data(self.data_start_row)
+
+        # # Check columns and show an error message if there are any problems
+        # if not self.check_columns():
+        #     self.reset()
+        #     return False
 
         # Iterate through each plot
         for p, plot in enumerate(self.plots):
