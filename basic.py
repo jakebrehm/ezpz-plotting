@@ -775,6 +775,14 @@ class BasicFile(gui.ScrollableTab):
         else:
             return True
 
+    def _reset(self):
+        """Reset certain instance variables to avoid pandas warnings about
+        duplicate names."""
+
+        self._type = None
+        self.labels = None
+        self.units = None
+        self.data = None
 
     def generate(self):
         """The main function for the object which pulls all of the relevant data
@@ -784,7 +792,9 @@ class BasicFile(gui.ScrollableTab):
         self._set_all_valid()
 
         # Check inputs and show an error message if there are any problems
-        if not self._check_blanks(): return False
+        if not self._check_blanks():
+            self._reset()
+            return False
 
         # Determine the file's type
         self._type = self._filetype(self.filepath)
@@ -802,7 +812,9 @@ class BasicFile(gui.ScrollableTab):
         self.data = self._data(self.data_start_row)
 
         # Check columns and show an error message if there are any problems
-        if not self._check_columns(): return False
+        if not self._check_columns():
+            self._reset()
+            return False
 
         # Iterate through each plot
         for p, plot in enumerate(self.plots):
