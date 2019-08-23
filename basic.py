@@ -57,14 +57,14 @@ class BasicFile(gui.ScrollableTab):
         data_row_label = tk.Label(controls, text='Data start row:')
         data_row_label.grid(row=0, column=1, sticky='NSEW')
 
-        self.data_row_entry = ttk.Entry(controls, width=10)
+        self.data_row_entry = ValidatableEntry(controls, width=10)
         self.data_row_entry.grid(row=0, column=2, padx=5, sticky='NSEW')
 
         # Create label and entry fields where the user can enter the label row
         label_row_label = tk.Label(controls, text='Label row:')
         label_row_label.grid(row=0, column=4, sticky='NSEW')
 
-        self.label_row_entry = ttk.Entry(controls, width=10)
+        self.label_row_entry = ValidatableEntry(controls, width=10)
         self.label_row_entry.grid(row=0, column=5, padx=5, sticky='NSEW')
 
         # Create label and entry fields where the user can enter the unit row
@@ -708,49 +708,62 @@ class BasicFile(gui.ScrollableTab):
                                  names=self.labels, index_col=False,
                                  header=None, encoding='latin1')
 
+    def _set_all_valid(self):
+        self.data_row_entry.valid()
+        self.label_row_entry.valid()
+        for entry in self._x_columns + self._y1_columns + self._y2_columns:
+            entry.valid()
+
     def _check_blanks(self):
-        return True
+        invalid = False
 
-    # def _check_columns(self, columns):
-    #     valid = list(range(len(self.data.columns)))
+        if not self.data_row_entry.get():
+            invalid = True
+            self.data_row_entry.invalid()
 
-    #     invalid = []
-    #     for c, column in enumerate(columns):
-    #         if column not in valid:
-    #             invalid.append((c, column))
+        if not self.label_row_entry.get():
+            invalid = True
+            self.label_row_entry.invalid()
 
-    #     if not invalid:
-    #         return True
-    #     else:
-    #         message = 'Yikes!'
-    #         msg.showinfo('Oops!', message)
-    #         return False
+        for p in range(len(self.plots)):
 
+            if not self._x_columns[p].get():
+                invalid = True
+                self._x_columns[p].invalid()
+
+            if not self._y1_columns[p].get():
+                invalid = True
+                self._y1_columns[p].invalid()
+                    
+        if invalid:
+            message = "It looks like you've left required fields blank." \
+                      "\n\nPlease correct and try again."
+            msg.showinfo('Required fields left blank', message)
+            return False
+        else:
+            return True
 
     def _check_columns(self):
-        valid = list(range(len(self.data.columns)))
+        valid = list(range(1, len(self.data.columns)+1))
 
-        invalid = []
+        invalid = False
         for p in range(len(self.plots)):
             x = int(self._x_columns[p].get())
             y1 = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
             y2 = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
-            self._x_columns[p].valid()
-            self._y1_columns[p].valid()
-            self._y2_columns[p].valid()
 
             if x not in valid:
-                invalid.append('x')
+                invalid = True
                 self._x_columns[p].invalid()
 
-            for c, column in enumerate(y1):
+            for column in y1:
                 if column not in valid:
-                    invalid.append('y1')
+                    invalid = True
                     self._y1_columns[p].invalid()
 
-            for c, column in enumerate(y2):
+            for column in y2:
                 if column not in valid:
-                    invalid.append('y2')
+                    invalid = True
                     self._y2_columns[p].invalid()
 
         if invalid:
@@ -767,6 +780,12 @@ class BasicFile(gui.ScrollableTab):
         """The main function for the object which pulls all of the relevant data
         from the file and adds the appropriate information to the plot objects."""
 
+        # Set all fields to their valid state
+        self._set_all_valid()
+
+        # Check inputs and show an error message if there are any problems
+        if not self._check_blanks(): return False
+
         # Determine the file's type
         self._type = self._filetype(self.filepath)
 
@@ -782,8 +801,7 @@ class BasicFile(gui.ScrollableTab):
         self.data_start_row = int(self.data_row_entry.get())
         self.data = self._data(self.data_start_row)
 
-        # Check inputs and return an error message if there are any problems
-        # if not self._check_blanks(): return
+        # Check columns and show an error message if there are any problems
         if not self._check_columns(): return False
 
         # Iterate through each plot
