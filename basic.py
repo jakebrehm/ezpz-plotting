@@ -71,7 +71,7 @@ class BasicFile(gui.ScrollableTab):
         unit_row_label = tk.Label(controls, text='Unit row:')
         unit_row_label.grid(row=0, column=7, sticky='NSEW')
 
-        self.unit_row_entry = ttk.Entry(controls, width=10)
+        self.unit_row_entry = ValidatableEntry(controls, width=10)
         self.unit_row_entry.grid(row=0, column=8, padx=5, sticky='NSEW')
 
         # Make each field scroll into view upon a focus event
@@ -709,41 +709,51 @@ class BasicFile(gui.ScrollableTab):
                                  header=None, encoding='latin1')
 
     def set_all_valid(self):
-        self.data_row_entry.valid()
-        self.label_row_entry.valid()
+        self.data_row_entry.is_valid()
+        self.label_row_entry.is_valid()
         for entry in self._x_columns + self._y1_columns + self._y2_columns:
-            entry.valid()
+            entry.is_valid()
 
     def check_blanks(self):
         invalid = False
 
         if not self.data_row_entry.get():
             invalid = True
-            self.data_row_entry.invalid()
+            self.data_row_entry.is_invalid()
 
         if not self.label_row_entry.get():
             invalid = True
-            self.label_row_entry.invalid()
+            self.label_row_entry.is_invalid()
 
         for p in range(len(self.plots)):
 
             if not self._x_columns[p].get():
                 invalid = True
-                self._x_columns[p].invalid()
+                self._x_columns[p].is_invalid()
 
             if not self._y1_columns[p].get():
                 invalid = True
-                self._y1_columns[p].invalid()
+                self._y1_columns[p].is_invalid()
         
         return False if invalid else True
 
-        # if invalid:
-        #     # message = "It looks like you've left required fields blank." \
-        #     #           "\n\nPlease correct and try again."
-        #     # msg.showinfo('Required fields left blank', message)
-        #     return False
-        # else:
-        #     return True
+    def check_rows(self):
+
+        invalid = False
+
+        data = int(self.data_row_entry.get())
+        label = int(self.label_row_entry.get())
+
+        if label > data:
+            invalid = True
+            self.label_row_entry.is_invalid()
+
+        unit = self.unit_row_entry.get()
+        if unit and int(unit) > data:
+            invalid = True
+            self.unit_row_entry.is_invalid()
+
+        return False if invalid else True
 
     def check_columns(self):
         valid = list(range(1, len(self.data.columns)+1))
@@ -756,28 +766,41 @@ class BasicFile(gui.ScrollableTab):
 
             if x not in valid:
                 invalid = True
-                self._x_columns[p].invalid()
+                self._x_columns[p].is_invalid()
 
             for column in y1:
                 if column not in valid:
                     invalid = True
-                    self._y1_columns[p].invalid()
+                    self._y1_columns[p].is_invalid()
 
             for column in y2:
                 if column not in valid:
                     invalid = True
-                    self._y2_columns[p].invalid()
+                    self._y2_columns[p].is_invalid()
 
         return False if invalid else True
 
-        # if invalid:
-        #     # message = "It looks like you've entered a column number that is " \
-        #     #           "out of range in one or more fields.\n\n" \
-        #     #           "Please correct and try again."
-        #     # msg.showinfo('Invalid column selection', message)
-        #     return False
-        # else:
-        #     return True
+    def check_length(self):
+        invalid = False
+
+        data = [int(item) for item in re.findall(r'\d+', self.data_row_entry.get())]
+        if len(data) > 1:
+            invalid = True
+            self.data_row_entry.is_invalid()
+
+        label = [int(item) for item in re.findall(r'\d+', self.label_row_entry.get())]
+        if len(label) > 1:
+            invalid = True
+            self.label_row_entry.is_invalid()
+
+        for p in range(len(self.plots)):
+            x = [int(item) for item in re.findall(r'\d+', self._x_columns[p].get())]
+
+            if len(x) > 1:
+                invalid = True
+                self._x_columns[p].is_invalid()
+
+        return False if invalid else True
 
     def reset(self):
         """Reset certain instance variables to avoid pandas warnings about
@@ -809,37 +832,9 @@ class BasicFile(gui.ScrollableTab):
         """The main function for the object which pulls all of the relevant data
         from the file and adds the appropriate information to the plot objects."""
 
-        # # Set all fields to their valid state
-        # self.set_all_valid()
-
-        # # Check inputs and show an error message if there are any problems
-        # if not self.check_blanks():
-        #     self.reset()
-        #     return False
-
         # Might not be necessary because it is already being setup in the
         # validate_inputs method of the main application
         self.setup()
-
-        # # Determine the file's type
-        # self._type = self._filetype(self.filepath)
-
-        # # Store the label row and corresponding labels as instance variables
-        # self.label_row = int(self.label_row_entry.get())
-        # self.labels = self._labels(self.label_row)
-
-        # # Store the unit row and corresponding units as instance variables
-        # self.unit_row = int(self.unit_row_entry.get()) if self.unit_row_entry.get() else None
-        # self.units = self._units(self.unit_row)
-
-        # # Store the data start row and corresponding data as instance variables
-        # self.data_start_row = int(self.data_row_entry.get())
-        # self.data = self._data(self.data_start_row)
-
-        # # Check columns and show an error message if there are any problems
-        # if not self.check_columns():
-        #     self.reset()
-        #     return False
 
         # Iterate through each plot
         for p, plot in enumerate(self.plots):
@@ -884,10 +879,10 @@ class ValidatableEntry(ttk.Entry):
         except tk.TclError:
             pass
 
-    def valid(self):
+    def is_valid(self):
         self['style'] = 'TEntry'
 
-    def invalid(self):
+    def is_invalid(self):
         self['style'] = 'Invalid.TEntry'
 
 

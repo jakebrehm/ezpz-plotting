@@ -541,6 +541,8 @@ class Application(gui.Application):
 
         blanks = False
         columns = False
+        length = False
+        rows = False
         for file in self.files:
             file.set_all_valid()
 
@@ -548,21 +550,27 @@ class Application(gui.Application):
                 blanks = True
                 continue
 
+            if not file.check_length():
+                length = True
+                continue
+
+            if not file.check_rows():
+                rows = True
+                continue
+
             file.setup()
 
-            # file._type = file._filetype(file.filepath)
-            # file.labels = file._labels(file.label_row)
-            # data = file._data(int(file.data_row_entry.get()))
             if not file.check_columns():
                 columns = True
+                continue
 
-        if any(item == True for item in [blanks, columns]):
+        if any(item == True for item in [blanks, length, rows, columns]):
             for file in self.files:
                 file.reset()
 
             title = 'Invalid input'
             message = ""
-            count = [blanks, columns].count(True)
+            count = [blanks, length, rows, columns].count(True)
             if count > 1:
                 message += 'There were multiple problems with your input:\n'
             if blanks:
@@ -571,13 +579,27 @@ class Application(gui.Application):
                                 " blank."
                 else:
                     message += " - Required field(s) left blank\n"
+            if length:
+                if count == 1:
+                    message += "It looks like you\'ve entered more than one " \
+                               "row or column in a field that cannot accept it."
+                else:
+                    message += " - Invalid column selection(s)\n"
+            if rows:
+                if count == 1:
+                    message += "It looks like you\'ve entered a row number in" \
+                               " a field that is equal to or greater than the" \
+                               " row you've entered in the corresponding " \
+                               "'data start row' field."
+                else:
+                    message += " - Invalid row selection(s)\n"
             if columns:
                 if count == 1:
                     message += "It looks like you've entered a column " \
                                 "number that is out of range in one or " \
                                 "more fields."
                 else:
-                    message += " - Invalid column slection(s)\n"
+                    message += " - Invalid column selection(s)\n"
             message += '\nPlease correct and try again.'
             msg.showinfo(title, message)
             return False
@@ -599,10 +621,6 @@ class Application(gui.Application):
 
         # Store all of the inputs in each tab
         for file in self.files: file.generate()
-        # for file in self.files:
-            # test = file.generate()
-            # print(test)
-            # if not file.generate(): return
 
         # Hide the main window and open the flipbook object
         app.root.withdraw()
