@@ -547,7 +547,10 @@ class Application(gui.Application):
         mpl.rcParams.update(mpl.rcParamsDefault)
 
         # Store all of the inputs in each tab
-        for file in self.files: file.generate()
+        for file in self.files:
+            # test = file.generate()
+            # print(test)
+            if not file.generate(): return
 
         # Hide the main window and open the flipbook object
         app.root.withdraw()
@@ -857,7 +860,7 @@ class Flipbook(tk.Toplevel):
         # Return 'break' to bypass event propagation
         return ('break')
 
-# 
+
     def on_click(self, event):
         """Hide or show a line when the corresponding object in the legend is clicked."""
 

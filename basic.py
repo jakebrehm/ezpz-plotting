@@ -9,6 +9,7 @@ import re
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from tkinter import filedialog as fd
+from tkinter import messagebox as msg
 import os
 from controls import LimitLines, ToleranceBands
 from settings import plot_colors
@@ -143,7 +144,7 @@ class BasicFile(gui.ScrollableTab):
         x_column_label = tk.Label(inner, text='x column:')
         x_column_label.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
 
-        x_column_entry = ttk.Entry(inner, width=10)
+        x_column_entry = ValidatableEntry(inner, width=10)
         x_column_entry.grid(row=3, column=0, padx=PADDING, sticky='NSEW')
         self._x_columns.append(x_column_entry)
 
@@ -151,7 +152,7 @@ class BasicFile(gui.ScrollableTab):
         y1_column_label = tk.Label(inner, text='y1 columns:')
         y1_column_label.grid(row=2, column=1, padx=PADDING, sticky='NSEW')
 
-        y1_column_entry = ttk.Entry(inner, width=10)
+        y1_column_entry = ValidatableEntry(inner, width=10)
         y1_column_entry.grid(row=3, column=1, padx=PADDING, sticky='NSEW')
         self._y1_columns.append(y1_column_entry)
 
@@ -159,7 +160,7 @@ class BasicFile(gui.ScrollableTab):
         y2_column_label = tk.Label(inner, text='y2 columns:')
         y2_column_label.grid(row=2, column=2, padx=PADDING, sticky='NSEW')
 
-        y2_column_entry = ttk.Entry(inner, width=10)
+        y2_column_entry = ValidatableEntry(inner, width=10)
         y2_column_entry.grid(row=3, column=2, padx=PADDING, sticky='NSEW')
         self._y2_columns.append(y2_column_entry)
 
@@ -707,6 +708,61 @@ class BasicFile(gui.ScrollableTab):
                                  names=self.labels, index_col=False,
                                  header=None, encoding='latin1')
 
+    def _check_blanks(self):
+        return True
+
+    # def _check_columns(self, columns):
+    #     valid = list(range(len(self.data.columns)))
+
+    #     invalid = []
+    #     for c, column in enumerate(columns):
+    #         if column not in valid:
+    #             invalid.append((c, column))
+
+    #     if not invalid:
+    #         return True
+    #     else:
+    #         message = 'Yikes!'
+    #         msg.showinfo('Oops!', message)
+    #         return False
+
+
+    def _check_columns(self):
+        valid = list(range(len(self.data.columns)))
+
+        invalid = []
+        for p in range(len(self.plots)):
+            x = int(self._x_columns[p].get())
+            y1 = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
+            y2 = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
+            self._x_columns[p].valid()
+            self._y1_columns[p].valid()
+            self._y2_columns[p].valid()
+
+            if x not in valid:
+                invalid.append('x')
+                self._x_columns[p].invalid()
+
+            for c, column in enumerate(y1):
+                if column not in valid:
+                    invalid.append('y1')
+                    self._y1_columns[p].invalid()
+
+            for c, column in enumerate(y2):
+                if column not in valid:
+                    invalid.append('y2')
+                    self._y2_columns[p].invalid()
+
+        if invalid:
+            message = "It looks like you've entered a column number that is " \
+                      "out of range in one or more fields.\n\n" \
+                      "Please correct and try again."
+            msg.showinfo('Invalid column selection', message)
+            return False
+        else:
+            return True
+
+
     def generate(self):
         """The main function for the object which pulls all of the relevant data
         from the file and adds the appropriate information to the plot objects."""
@@ -726,6 +782,10 @@ class BasicFile(gui.ScrollableTab):
         self.data_start_row = int(self.data_row_entry.get())
         self.data = self._data(self.data_start_row)
 
+        # Check inputs and return an error message if there are any problems
+        # if not self._check_blanks(): return
+        if not self._check_columns(): return False
+
         # Iterate through each plot
         for p, plot in enumerate(self.plots):
             # Grab all entries in each field
@@ -740,6 +800,40 @@ class BasicFile(gui.ScrollableTab):
             plot._generate(self.data, self.labels, x_column, self.y1_columns,
                            self.y2_columns, self.units)
             plot._labels(title, x_label, y1_label, y2_label)
+
+        return True
+
+
+class ValidatableEntry(ttk.Entry):
+
+    def __init__(self, *args, **kwargs):
+        ttk.Entry.__init__(self, *args, **kwargs)
+
+        # Create a new style because ttk.Entry widgets do not allow you to
+        # change the fieldbackground attribute. Wrap it in a try/except block
+        # or else an error will occur saying that an element with the name
+        # invalid.field already exists (class variables throw another error)
+        try:
+            INVALID = ttk.Style()
+            INVALID.element_create("invalid.field", "from", "clam")
+            INVALID.layout("Invalid.TEntry",
+                            [('Entry.invalid.field', {'children': [(
+                                'Entry.background', {'children': [(
+                                    'Entry.padding', {'children': [(
+                                        'Entry.textarea', {'sticky': 'nswe'})],
+                                'sticky': 'nswe'})], 'sticky': 'nswe'})],
+                                'border':'2', 'sticky': 'nswe'})])
+            INVALID.configure("Invalid.TEntry",
+                            foreground="black",
+                            fieldbackground="yellow")
+        except tk.TclError:
+            pass
+
+    def valid(self):
+        self['style'] = 'TEntry'
+
+    def invalid(self):
+        self['style'] = 'Invalid.TEntry'
 
 
 class BasicControls(ttk.Notebook):
