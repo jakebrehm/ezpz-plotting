@@ -232,6 +232,9 @@ class Application(gui.Application):
         """Gets user input information from the specified preset file and pastes them
         into the GUI."""
 
+        # 
+        LOAD_ERROR = False
+
         # If no location was specified, have the user navigate to the preset file
         if not location:
             filetypes = [('Configuration Files (*.ini)', '*.ini')]
@@ -246,19 +249,23 @@ class Application(gui.Application):
         if len(preset) == 0:
             # message = 'It looks like the preset file you chose is either empty or not ' \
             #           'formatted correctly. Please double check the file and try again.'
-            # mb.showinfo('Oops!', message)
+            # msg.showinfo('Oops!', message)
             return
 
-        # Grab the filepath for each file in the preset
-        inputs = [(i, info['filepath']) for i, (_, info) in enumerate(preset.items()) \
+        # inputs = [(i, info['type'], info['filepath']) for i, info in enumerate(preset.values()) \
+        #           if os.path.isfile(info['filepath'])]
+        inputs = [(key, info['type'], info['filepath']) for key, info in preset.items() \
                   if os.path.isfile(info['filepath'])]
         if not inputs:
             message = 'There are no valid filepaths in this preset. Please verify that ' \
                       'they are correct, and that the files still exist, and try again.'
-            mb.showinfo('Oops!', message)
+            msg.showinfo('Oops!', message)
             return
-        indices = [index for index, _ in inputs]
-        self.inputs = [filepath for _, filepath in inputs]
+        if len(inputs) != len(preset.keys()):
+            LOAD_ERROR = True
+        keys = [key for key, _, _ in inputs]
+        types = [filetype for _, filetype, _ in inputs]
+        self.inputs = [filepath for _, _, filepath in inputs]
 
         # Insert the filepaths into the listbox
         self.listbox.clear()
@@ -271,35 +278,59 @@ class Application(gui.Application):
         # With the inputs variable initialized, it is safe to enable all fields and
         # create tabs/rows for each input
         self.enable()
-        self.input_controls()
 
-        # Iterate through the preset and create the necessary number of rows for each file
-        for f, (_, info) in enumerate(preset.items()):
-            # If info has a length of greater than five, that means that rows need to be added.
-            # The first five entries are filepath, data start row, label row, unit row, and
-            # the first row that is already created by default for each file.
-            if not os.path.isfile(info['filepath']): continue
-            if len(info) > 5:
-                rows_needed = len(info) - 5
-                for _ in range(rows_needed): self.plus_row(tab=f)
+        # Destroy everything in the primary frame
+        for child in self.primary.winfo_children(): child.destroy()
 
-        # Iterate through the preset again and fill the GUI fields with the relevant data
-        for f in range(len(self.inputs)):
-            corresponding_file = indices[f]
-            info = preset.values()[corresponding_file]
-            self.files[f].data_row_entry.insert(0, info['data start'])
-            self.files[f].label_row_entry.insert(0, info['label row'])
-            self.files[f].unit_row_entry.insert(0, info['unit row'])
-            plots = [key for key in info.keys()
-                     if key not in ['filepath', 'data start', 'label row', 'unit row']]
-            for p, plot in enumerate(plots):
-                self.files[f]._titles[p].insert(0, info[plot]['title'])
-                self.files[f]._x_columns[p].insert(0, info[plot]['x column'])
-                self.files[f]._y1_columns[p].insert(0, info[plot]['y1 columns'])
-                self.files[f]._y2_columns[p].insert(0, info[plot]['y2 columns'])
-                self.files[f]._x_labels[p].insert(0, info[plot]['x label'])
-                self.files[f]._y1_labels[p].insert(0, info[plot]['y1 label'])
-                self.files[f]._y2_labels[p].insert(0, info[plot]['y2 label'])
+        # Place a notebook in the primary frame
+        self.notebook = ttk.Notebook(self.primary, takefocus=0)
+        self.notebook.grid(row=0, column=0, sticky='NSEW')
+
+        #
+        # backup = self.files.copy() if hasattr(self, 'files') else []
+        self.files = []
+
+        #
+        for i, item in enumerate(types):
+            if item == 'Basic':
+                file = BasicFile(self.notebook, self.inputs[i], self)
+            elif item == 'Peak Valley':
+                file = PeakValleyFile(self.notebook, self.inputs[i], self)
+            else:
+                # self.files = backup.copy()
+                self.reset()
+                message = 'One or more of the files in the selected preset' \
+                          ' have an invalid type.\n\nValid types:\n - Basic\n' \
+                          ' - Peak Valley\n\nPlease check and try again.'
+                msg.showinfo('Invalid type', message)
+                return # requires a more thought-out approach
+            self.files.append(file)
+
+        # The number of items in each sections of the preset that are not plot subsections
+        header = {
+            'Basic': 5,
+            'Peak Valley': 3,
+        }
+
+        # Add the appropriate number of rows to each tab/file
+        for k, key in enumerate(keys):
+            number_of_plots = len(preset[key]) - header[types[k]]
+            if number_of_plots > 0:
+                rows_needed = number_of_plots - 1 # one row is already added by default
+                for _ in range(rows_needed): self.plus_row(tab=k)
+
+        # Grab the relevant info and pass it to the file's load_preset method
+        for i, file in enumerate(self.files):
+            info = preset[keys[i]]
+            file.load_preset(info)
+
+        # If a file could not be found, display a message
+        if LOAD_ERROR:
+            message = 'Unable to find one or more of the files in the preset.' \
+                      ' Please check that the filepaths are correct.' \
+                      ' Otherwise, the remaining files have been loaded' \
+                      ' successfully.'
+            msg.showinfo('Load preset error', message)
 
 
     def browse(self):
@@ -732,10 +763,8 @@ class Application(gui.Application):
     def test(self):
         """Function that loads a preset and opens the flipbook for testing purposes."""
 
-        self.load_preset('Presets\\preset.ini')
-        # self.load_preset('Presets\\laptop.ini')
-        self.open_flipbook()
-        # self.reset()
+        self.load_preset('Presets\\test.ini')
+        # self.open_flipbook()
 
 
 class Flipbook(tk.Toplevel):
@@ -1464,7 +1493,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()

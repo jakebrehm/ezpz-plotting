@@ -305,6 +305,10 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._units[ID].set(self.clipboard['unit row'])
 
 
+	def load_preset(self, info):
+		self.read()
+
+
 	def read(self, event=None):
 		
 		class Section:

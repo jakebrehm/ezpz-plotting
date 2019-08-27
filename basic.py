@@ -5,6 +5,7 @@ import lemons.gui as gui
 import tkinter as tk
 from tkinter import ttk
 import re
+import configobj
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -273,6 +274,21 @@ class BasicFile(gui.ScrollableTab):
         self._x_labels[ID].delete(0, 'end')
         self._y1_labels[ID].delete(0, 'end')
         self._y2_labels[ID].delete(0, 'end')
+
+    def load_preset(self, info):
+        self.data_row_entry.insert(0, info['data start'])
+        self.label_row_entry.insert(0, info['label row'])
+        self.unit_row_entry.insert(0, info['unit row'])
+        plots = [key for key, value in info.items()
+                    if isinstance(value, configobj.Section)]
+        for p, plot in enumerate(plots):
+            self._titles[p].insert(0, info[plot]['title'])
+            self._x_columns[p].insert(0, info[plot]['x column'])
+            self._y1_columns[p].insert(0, info[plot]['y1 columns'])
+            self._y2_columns[p].insert(0, info[plot]['y2 columns'])
+            self._x_labels[p].insert(0, info[plot]['x label'])
+            self._y1_labels[p].insert(0, info[plot]['y1 label'])
+            self._y2_labels[p].insert(0, info[plot]['y2 label'])
 
     def add_plot(self):
         """Create a new plot object and hold a reference to it."""
