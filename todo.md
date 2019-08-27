@@ -9,6 +9,8 @@ The list will be ordered from highest priority to lowest priority.
 | High     | Special Presets    | General  |             | Save special files to the preset file. |
 | High     | Controls Presets   | General  |             | Save custom controls to the preset file for loading. |
 | High     | Help Window        | General  |             | Update the currently outdated help window. |
+| High     | Controls Checking  | Controls |             | Add error-checking to the controls window. |
+| High     | Modular Controls   | Controls |             | Make the less-recent controls modular. |
 | Medium   | Axis Scaling       | Controls | Figure      | Scale the axes by a certain factor. |
 | Medium   | Zoom Update        | Controls | Figure      | Change axis limit controls upon zooming. | 
 | Medium   | Series Color       | Controls | Appearance  | Change a series' color. |
