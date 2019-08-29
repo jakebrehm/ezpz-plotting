@@ -275,6 +275,23 @@ class BasicFile(gui.ScrollableTab):
         self._y1_labels[ID].delete(0, 'end')
         self._y2_labels[ID].delete(0, 'end')
 
+    def clear_all(self, delete_header=True):
+        """Clear the contents of every field."""
+
+        # Delete the content of each field
+        if delete_header:
+            self.data_row_entry.delete(0, 'end')
+            self.label_row_entry.delete(0, 'end')
+            self.unit_row_entry.delete(0, 'end')
+        for row in range(len(self._rows)):
+            self._titles[row].delete(0, 'end')
+            self._x_columns[row].delete(0, 'end')
+            self._y1_columns[row].delete(0, 'end')
+            self._y2_columns[row].delete(0, 'end')
+            self._x_labels[row].delete(0, 'end')
+            self._y1_labels[row].delete(0, 'end')
+            self._y2_labels[row].delete(0, 'end')
+
     def save_preset(self, preset, file, filepath, file_index):
 
         # Shorthand for file_index

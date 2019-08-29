@@ -306,8 +306,26 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._units[ID].set(self.clipboard['unit row'])
 
 
+	def clear_all(self):
+		"""Clear the contents of every field."""
+
+        # Iterate through each file, resetting the contents of each field
+		self.lower_entry.delete(0, 'end')
+		self.upper_entry.delete(0, 'end')
+		self.convert.set(False)
+		self.zero.set(False)
+		self.split.set(False)
+		for row in range(len(self._rows)):
+			self._sections[row].set('1')
+			self._counters[row].set('segments')
+			self._x_columns[row].set('1')
+			self._y_columns[row].set('1')
+			self._labels[row].set('1')
+			self._units[row].set('1')
+
+
 	def save_preset(self, preset, file, filepath, file_index):
-		
+
 		# Shorthand for file_index
 		f = file_index
 	

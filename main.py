@@ -661,10 +661,22 @@ class Application(gui.Application):
 
     def paste_file(self):
         """Paste the contents of the clipboard into every row of the
-        currently selected file."""
+        currently selected file.
+        
+        Intended to only work for basic files."""
 
         # Get the index of the currently selected notebook tab
         current = self.notebook.index(self.notebook.select())
+
+        # Exit the function if the currently selected file is not basic
+        if not isinstance(self.files[current], BasicFile):
+            message = "The 'Paste (Selected File)' feature only works for " \
+                      "basic files."
+            msg.showinfo('Invalid type', message)
+            return
+
+        # Clear the selected file
+        self.files[current].clear_all(delete_header=False)
 
         # Iterate through the rows of the currently selected file and delete the
         # contents of every field, then insert the contents of the clipboard.
@@ -694,11 +706,16 @@ class Application(gui.Application):
 
     def paste_all(self):
         """Paste the contents of the clipboard into every row of every
-        file."""
+        file.
+        
+        Intended to only work for basic files."""
 
         # Iterate through the rows of each file and delete the contents of
         # every field, then insert the contents of the clipboard.
         for file in self.files:
+            if not isinstance(file, BasicFile): continue
+            # Clear all files
+            file.clear_all(delete_header=False)
             for row in range(len(file._rows)):
                 if self.clipboard['title']:
                     file._titles[row].delete(0, 'end')
@@ -726,19 +743,9 @@ class Application(gui.Application):
     def clear_all(self):
         """Clears the contents of every field."""
 
-        # Iterate through each file, deleting the contents of each field.
+        # Iterate through the files and call each one's clear_all method
         for file in self.files:
-            file.data_row_entry.delete(0, 'end')
-            file.label_row_entry.delete(0, 'end')
-            file.unit_row_entry.delete(0, 'end')
-            for row in range(len(file._rows)):
-                file._titles[row].delete(0, 'end')
-                file._x_columns[row].delete(0, 'end')
-                file._y1_columns[row].delete(0, 'end')
-                file._y2_columns[row].delete(0, 'end')
-                file._x_labels[row].delete(0, 'end')
-                file._y1_labels[row].delete(0, 'end')
-                file._y2_labels[row].delete(0, 'end')
+            file.clear_all()
 
 
     def test(self):
@@ -746,7 +753,7 @@ class Application(gui.Application):
         testing purposes."""
 
         self.load_preset('Presets\\work.ini')
-        self.open_flipbook()
+        # self.open_flipbook()
 
 
 class Flipbook(tk.Toplevel):
@@ -1311,7 +1318,7 @@ class Help(tk.Toplevel):
         clear_form_description = ttk.Label(clear_form_frame,
                                  text='Clear data from all fields.')
         clear_form_description.grid(row=1, column=2, sticky='EW')
-        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2)
+        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2),
                               sticky='NSEW')
 
         reset_frame = tk.Frame(descriptions_frame)
@@ -1516,7 +1523,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Run the program in a continuous loop
 app.mainloop()
