@@ -232,7 +232,7 @@ class Application(gui.Application):
         """Gets user input information from the specified preset file and pastes them
         into the GUI."""
 
-        # 
+        # Keep track of whether or not there was an error finding a file
         LOAD_ERROR = False
 
         # If no location was specified, have the user navigate to the preset file
@@ -246,19 +246,15 @@ class Application(gui.Application):
 
         # If the user presses cancel or if the preset file is empty (possibly corrupt),
         # display a message and exit the function.
-        if len(preset) == 0:
-            # message = 'It looks like the preset file you chose is either empty or not ' \
-            #           'formatted correctly. Please double check the file and try again.'
-            # msg.showinfo('Oops!', message)
-            return
+        if len(preset) == 0: return
 
-        # inputs = [(i, info['type'], info['filepath']) for i, info in enumerate(preset.values()) \
-        #           if os.path.isfile(info['filepath'])]
-        inputs = [(key, info['type'], info['filepath']) for key, info in preset.items() \
-                  if os.path.isfile(info['filepath'])]
+        # Keep track of all of the valid inputs and relevent information
+        inputs = [(key, info['type'], info['filepath']) for key, info \
+                  in preset.items() if os.path.isfile(info['filepath'])]
         if not inputs:
-            message = 'There are no valid filepaths in this preset. Please verify that ' \
-                      'they are correct, and that the files still exist, and try again.'
+            message = 'There are no valid filepaths in this preset. Please ' \
+                      'verify that they are correct, and that the files still' \
+                      ' exist, and try again.'
             msg.showinfo('Oops!', message)
             return
         if len(inputs) != len(preset.keys()):
@@ -275,8 +271,7 @@ class Application(gui.Application):
         self.listbox.field['state'] = 'disable'
         self.listbox.field['justify'] = 'left'
 
-        # With the inputs variable initialized, it is safe to enable all fields and
-        # create tabs/rows for each input
+        # With the inputs variable initialized, it is safe to enable all fields
         self.enable()
 
         # Destroy everything in the primary frame
@@ -287,7 +282,6 @@ class Application(gui.Application):
         self.notebook.grid(row=0, column=0, sticky='NSEW')
 
         # Initialize the files attribute
-        # backup = self.files.copy() if hasattr(self, 'files') else []
         self.files = []
 
         # Create the appropriate type of file and append it to self.files
@@ -297,13 +291,12 @@ class Application(gui.Application):
             elif item == 'Peak Valley':
                 file = PeakValleyFile(self.notebook, self.inputs[i], self)
             else:
-                # self.files = backup.copy()
                 self.reset()
                 message = 'One or more of the files in the selected preset' \
                           ' have an invalid type.\n\nValid types:\n - Basic\n' \
                           ' - Peak Valley\n\nPlease check and try again.'
                 msg.showinfo('Invalid type', message)
-                return # requires a more thought-out approach
+                return # could use a more thought-out approach without resetting
             self.files.append(file)
 
         # The number of items in each section of the preset that are not plot subsections
