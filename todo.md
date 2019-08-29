@@ -6,7 +6,6 @@ The list will be ordered from highest priority to lowest priority.
 
 | Priority | Feature            | Category | Subcategory | Description |
 |:--------:|:------------------:|:--------:|:-----------:|-------------|
-| High     | Special Presets    | General  |             | Save special files to the preset file. |
 | High     | Controls Presets   | General  |             | Save custom controls to the preset file for loading. |
 | High     | Help Window        | General  |             | Update the currently outdated help window. |
 | High     | Controls Checking  | Controls |             | Add error-checking to the controls window. |

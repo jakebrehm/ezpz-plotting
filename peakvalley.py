@@ -306,6 +306,37 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._units[ID].set(self.clipboard['unit row'])
 
 
+	def save_preset(self, preset, file, filepath, file_index):
+		
+		# Shorthand for file_index
+		f = file_index
+	
+		# For each plot in each file, certain information will be the same.
+		# Record these under the main section for this file.
+		preset[f'File {f+1}'] = {
+			'type': 'Peak Valley',
+			'filepath': filepath,
+			'delimiter': file.delimiter_combo.get(),
+			'valley maximum': file.lower_entry.get(),
+			'peak minimum': file.upper_entry.get(),
+			'convert': bool(self.convert.get()),
+			'zero': bool(self.zero.get()),
+			'split': bool(self.split.get()),
+		}
+	
+		# The rest of the inputs are specific to each plot. Iterate through each
+		# plot, recording each one's inputs under a different subsection.
+		for p in range(len(file.plots)):
+		    preset[f'File {f+1}'][f'Plot {p+1}'] = {
+		        'section': file._sections[p].get(),
+		        'counter': file._counters[p].get(),
+		        'x column': file._x_columns[p].get(),
+		        'y column': file._y_columns[p].get(),
+		        'label row': file._labels[p].get(),
+		        'unit row': file._units[p].get(),
+		    }
+
+
 	def load_preset(self, master, tab_index, rows, info):
 
 		self.delimiter_combo.set(info['delimiter'])

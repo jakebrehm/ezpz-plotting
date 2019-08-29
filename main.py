@@ -198,31 +198,8 @@ class Application(gui.Application):
 
         # Iterator through the file objects
         for f, file in enumerate(self.files):
-            
-            # Special files are currently unsupported, so skip them
-            if isinstance(file, PeakValleyFile): continue
-
-            # For each plot in each file, filepath, data start row, label row, and unit row
-            # will be the same. Record these under the main section for this file.
-            preset[f'File {f+1}'] = {
-                'filepath': self.inputs[f],
-                'data start': file.data_row_entry.get(),
-                'label row': file.label_row_entry.get(),
-                'unit row': file.unit_row_entry.get() if file.unit_row_entry.get() else '',
-            }
-
-            # The rest of the inputs are specific to each plot. Iterate through each plot,
-            # recording each one's inputs under a different subsection of the preset.
-            for n in range(len(file.plots)):
-                preset[f'File {f+1}'][f'Plot {n+1}'] = {
-                    'title': self.files[f]._titles[n].get(),
-                    'x column': self.files[f]._x_columns[n].get(),
-                    'y1 columns': self.files[f]._y1_columns[n].get(),
-                    'y2 columns': self.files[f]._y2_columns[n].get(),
-                    'x label': self.files[f]._x_labels[n].get(),
-                    'y1 label': self.files[f]._y1_labels[n].get(),
-                    'y2 label': self.files[f]._y2_labels[n].get(),
-                }
+            # Pass the relevant information to the file's save_preset method
+            file.save_preset(preset, file, self.inputs[f], f)
 
         # Save the completed preset file to the specified filepath
         preset.write()
@@ -753,8 +730,8 @@ class Application(gui.Application):
     def test(self):
         """Function that loads a preset and opens the flipbook for testing purposes."""
 
-        self.load_preset('Presets\\test.ini')
-        # self.open_flipbook()
+        self.load_preset('Presets\\work.ini')
+        self.open_flipbook()
 
 
 class Flipbook(tk.Toplevel):

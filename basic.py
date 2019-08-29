@@ -275,6 +275,34 @@ class BasicFile(gui.ScrollableTab):
         self._y1_labels[ID].delete(0, 'end')
         self._y2_labels[ID].delete(0, 'end')
 
+    def save_preset(self, preset, file, filepath, file_index):
+
+        # Shorthand for file_index
+        f = file_index
+
+        # For each plot in each file, certain information will be the same.
+        # Record these under the main section for this file.
+        preset[f'File {f+1}'] = {
+            'type': 'Basic',
+            'filepath': filepath,
+            'data start': file.data_row_entry.get(),
+            'label row': file.label_row_entry.get(),
+            'unit row': file.unit_row_entry.get() if file.unit_row_entry.get() else '',
+        }
+
+        # The rest of the inputs are specific to each plot. Iterate through each
+        # plot, recording each one's inputs under a different subsection.
+        for p in range(len(file.plots)):
+            preset[f'File {f+1}'][f'Plot {p+1}'] = {
+                'title': file._titles[p].get(),
+                'x column': file._x_columns[p].get(),
+                'y1 columns': file._y1_columns[p].get(),
+                'y2 columns': file._y2_columns[p].get(),
+                'x label': file._x_labels[p].get(),
+                'y1 label': file._y1_labels[p].get(),
+                'y2 label': file._y2_labels[p].get(),
+            }
+
     def load_preset(self, master, tab_index, rows, info):
         for _ in range(rows):
             master.plus_row(tab=tab_index)
