@@ -530,34 +530,8 @@ class Application(gui.Application):
         current = self.notebook.index(self.notebook.select())
         file = self.files[current]
 
-        # Create a list that contains all possible fields contained in each row
-        fields = [file._titles, file._x_columns,
-                  file._y1_columns, file._y2_columns,
-                  file._x_labels, file._y1_labels, file._y2_labels]
-
-        # Iterate through the list and find the widget that currently has focus,
-        # then store which entry it is as well as the row that it's in
-        for f, field in enumerate(fields):
-            for i, item in enumerate(field):
-                if item == app.root.focus_get():
-                    entry = f
-                    row = i
-                    break # Once the field is found, break from the loop
-            else:
-                continue # Continue if the inner loop was not broken
-            break # If the inner loop was broken, break from the outer loop
-        else:
-            # If the widget was not found, exit this method. This is intended
-            # to happen with the data start, label, and unit row entries.
-            return
-
-        # Get the index of the row that the user wants to go to
-        destination = (row + 1) if direction == 'next' else (row - 1)
-
-        # If the row exists, find the relevant widget and set focus on it
-        if destination in range(len(fields[entry])):
-            next_widget = fields[entry][destination]
-            next_widget.focus_set()
+        # Call the file's switch_row method
+        file.switch_row(event, direction, app.root)
 
         # Return 'break' to bypass event propagation
         return ('break')

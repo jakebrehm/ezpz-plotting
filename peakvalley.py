@@ -284,6 +284,10 @@ class PeakValleyFile(gui.ScrollableTab):
 		self.lower_entry.focus_set()
 
 
+	def switch_row(self, event, direction, master):
+		pass
+
+
 	def copy(self, ID):
 		"""Copies the contents of the selected row to the clipboard."""
 
