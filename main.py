@@ -286,11 +286,11 @@ class Application(gui.Application):
         self.notebook = ttk.Notebook(self.primary, takefocus=0)
         self.notebook.grid(row=0, column=0, sticky='NSEW')
 
-        #
+        # Initialize the files attribute
         # backup = self.files.copy() if hasattr(self, 'files') else []
         self.files = []
 
-        #
+        # Create the appropriate type of file and append it to self.files
         for i, item in enumerate(types):
             if item == 'Basic':
                 file = BasicFile(self.notebook, self.inputs[i], self)
@@ -306,23 +306,20 @@ class Application(gui.Application):
                 return # requires a more thought-out approach
             self.files.append(file)
 
-        # The number of items in each sections of the preset that are not plot subsections
+        # The number of items in each section of the preset that are not plot subsections
         header = {
             'Basic': 5,
-            'Peak Valley': 3,
+            'Peak Valley': 8,
         }
-
-        # Add the appropriate number of rows to each tab/file
-        for k, key in enumerate(keys):
-            number_of_plots = len(preset[key]) - header[types[k]]
-            if number_of_plots > 0:
-                rows_needed = number_of_plots - 1 # one row is already added by default
-                for _ in range(rows_needed): self.plus_row(tab=k)
 
         # Grab the relevant info and pass it to the file's load_preset method
         for i, file in enumerate(self.files):
+            # Add the appropriate number of rows to each tab/file
+            number_of_plots = len(preset[keys[i]]) - header[types[i]]
+            rows_needed = ( number_of_plots - 1 ) if number_of_plots > 0 else 0
+            # Pass the relevant information to the file's load_preset method
             info = preset[keys[i]]
-            file.load_preset(info)
+            file.load_preset(self, i, rows_needed, info)
 
         # If a file could not be found, display a message
         if LOAD_ERROR:

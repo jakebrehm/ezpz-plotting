@@ -275,7 +275,9 @@ class BasicFile(gui.ScrollableTab):
         self._y1_labels[ID].delete(0, 'end')
         self._y2_labels[ID].delete(0, 'end')
 
-    def load_preset(self, info):
+    def load_preset(self, master, tab_index, rows, info):
+        for _ in range(rows):
+            master.plus_row(tab=tab_index)
         self.data_row_entry.insert(0, info['data start'])
         self.label_row_entry.insert(0, info['label row'])
         self.unit_row_entry.insert(0, info['unit row'])

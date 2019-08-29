@@ -4,6 +4,7 @@ import pandas as pd
 import lemons.gui as gui
 import tkinter as tk
 from tkinter import ttk
+import configobj
 import re
 
 import matplotlib as mpl
@@ -305,8 +306,29 @@ class PeakValleyFile(gui.ScrollableTab):
 		self._units[ID].set(self.clipboard['unit row'])
 
 
-	def load_preset(self, info):
+	def load_preset(self, master, tab_index, rows, info):
+
+		self.delimiter_combo.set(info['delimiter'])
 		self.read()
+
+		for _ in range(rows):
+			master.plus_row(tab=tab_index)
+
+		self.lower_entry.insert(0, info['valley maximum'])
+		self.upper_entry.insert(0, info['peak minimum'])
+		self.convert.set(info.as_bool('convert'))
+		self.zero.set(info.as_bool('zero'))
+		self.split.set(info.as_bool('split'))
+
+		plots = [key for key, value in info.items()
+					if isinstance(value, configobj.Section)]
+		for p, plot in enumerate(plots):
+			self._sections[p].set(info[plot]['section'])
+			self._counters[p].set(info[plot]['counter'])
+			self._x_columns[p].set(info[plot]['x column'])
+			self._y_columns[p].set(info[plot]['y column'])
+			self._labels[p].set(info[plot]['label row'])
+			self._units[p].set(info[plot]['unit row'])
 
 
 	def read(self, event=None):
