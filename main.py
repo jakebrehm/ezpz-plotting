@@ -37,11 +37,12 @@ from peakvalley import PeakValleyFile, PeakValleyControls
 
 
 class Application(gui.Application):
-    """The main application of the program, which combines the GUI and all related
-    methods and functionality."""
+    """The main application of the program, which combines the GUI and
+    all related methods and functionality."""
 
     def __init__(self, padding=12):
-        """Initialize the main GUI and miscellaneous constants of the program."""
+        """Initialize the main GUI and miscellaneous constants of the
+        program."""
 
         # Initialize the application using the lemons GUI module
         gui.Application.__init__(self, padding=12)
@@ -185,11 +186,12 @@ class Application(gui.Application):
 
 
     def save_preset(self):
-        """Copies all user inputs to a config file and saves in the specified location."""
+        """Copies all user inputs to a config file and saves in the
+        specified location."""
 
-        # Show a dialog box where the user can choose where to save the preset file
+        # Show a dialog box where the user can choose where to save the preset
         valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
-        location = fd.asksaveasfilename(title='Choose where to save the preset file',
+        location = fd.asksaveasfilename(title='Choose where to save the preset',
                                         defaultextension='.ini',
                                         filetypes=valid)
 
@@ -206,22 +208,22 @@ class Application(gui.Application):
 
 
     def load_preset(self, location=None):
-        """Gets user input information from the specified preset file and pastes them
-        into the GUI."""
+        """Gets user input information from the specified preset file
+        and pastes them into the GUI."""
 
         # Keep track of whether or not there was an error finding a file
         LOAD_ERROR = False
 
-        # If no location was specified, have the user navigate to the preset file
+        # If no location was specified, navigate to the preset file
         if not location:
             filetypes = [('Configuration Files (*.ini)', '*.ini')]
-            location = fd.askopenfilename(title='Choose the preset file',
+            location = fd.askopenfilename(title='Select the preset',
                                           filetypes=filetypes)
 
         # Initialize a ConfigObj object
         preset = configobj.ConfigObj(location)
 
-        # If the user presses cancel or if the preset file is empty (possibly corrupt),
+        # If the user presses cancel or if the preset file is empty/corrupt,
         # display a message and exit the function.
         if len(preset) == 0: return
 
@@ -276,7 +278,7 @@ class Application(gui.Application):
                 return # could use a more thought-out approach without resetting
             self.files.append(file)
 
-        # The number of items in each section of the preset that are not plot subsections
+        # The number of items in each section that are not plot subsections
         header = {
             'Basic': 5,
             'Peak Valley': 8,
@@ -301,7 +303,8 @@ class Application(gui.Application):
 
 
     def browse(self):
-        """Allow the user to browse for inputs, then initialize the GUI."""
+        """Allow the user to browse for inputs, then initialize the
+        GUI."""
 
         # Only run this code if there are inputs stored in the listbox
         if self.listbox.get():
@@ -311,7 +314,8 @@ class Application(gui.Application):
 
 
     def enable(self):
-        """Change the GUI to its enabled state, which only occurs when inputs are loaded."""
+        """Change the GUI to its enabled state, which only occurs when
+        inputs are loaded."""
 
         # Enable the buttons in the footer
         self.plot_button['state'] = 'normal'
@@ -330,7 +334,8 @@ class Application(gui.Application):
 
 
     def disable(self):
-        """Change the GUI to its disabled state, which occurs when inputs are not loaded."""
+        """Change the GUI to its disabled state, which occurs when
+        inputs are not loaded."""
 
         # Disable the buttons in the footer
         self.plot_button['state'] = 'disabled'
@@ -349,7 +354,8 @@ class Application(gui.Application):
 
 
     def reset(self):
-        """Revert the GUI back to its disabled state, before any inputs were loaded."""
+        """Revert the GUI back to its disabled state, before any inputs
+        were loaded."""
 
         # Clear the listbox
         self.listbox.clear()
@@ -364,8 +370,9 @@ class Application(gui.Application):
         self.inputs = []
         self.files = []
 
-        # Recreate the message that lets the user know there are no inputs loaded
-        message = 'Please provide at least one input file.\n\nControls will appear here.'
+        # Recreate the message that tells the user there are no inputs loaded
+        message = 'Please provide at least one input file.\n\n' \
+                  'Controls will appear here.'
         no_input_label = tk.Label(self.primary, text=message)
         no_input_label.grid(row=0, column=0, sticky='NSEW')
 
@@ -380,11 +387,13 @@ class Application(gui.Application):
         self.notebook = ttk.Notebook(self.primary, takefocus=0)
         self.notebook.grid(row=0, column=0, sticky='NSEW')
 
-        # Create an object file for each input and add them to a list to keep track
+        # Create a file object for each input and keep a reference to them
         if not special:
-            self.files = [BasicFile(self.notebook, filepath, self) for filepath in self.inputs]
+            self.files = [BasicFile(self.notebook, filepath, self) \
+                          for filepath in self.inputs]
         elif special == 'Peak Valley':
-            self.files = [PeakValleyFile(self.notebook, filepath, self) for filepath in self.inputs]
+            self.files = [PeakValleyFile(self.notebook, filepath, self) \
+                          for filepath in self.inputs]
 
         # Set cursor focus on the default field of the first tab for ease of use
         self.files[0].set_default_focus()
@@ -394,7 +403,7 @@ class Application(gui.Application):
         """Add a row to the specified file/tab of the notebook."""
 
         try:
-            # If a tab is not specified, set tab equal to the index of the current tab.
+            # If a tab is not specified, tab equals the current tab's index.
             # This is the case when clicking the 'create row' button on the GUI.
             # Otherwise, the tab parameter is used when loading presets, etc.
             if not tab: tab = self.notebook.index(self.notebook.select())
@@ -407,7 +416,7 @@ class Application(gui.Application):
         """Remove a row from the specified file/tab of the notebook."""
 
         try:
-            # If a tab is not specified, set tab equal to the index of the current tab.
+            # If a tab is not specified, tab equals the current tab's index.
             # This is the case when clicking the 'delete row' button on the GUI.
             # Otherwise, the tab parameter is used when loading presets, etc.
             if not tab: tab = self.notebook.index(self.notebook.select())
@@ -448,11 +457,6 @@ class Application(gui.Application):
             self.input_controls(special)
             self.listbox.clear()
         else:
-            # # Place a notebook in the primary frame
-            # self.notebook = ttk.Notebook(self.primary, takefocus=0)
-            # self.notebook.grid(row=0, column=0, sticky='NSEW')
-            # self.enable()
-            # self.notebook.grid(row=0, column=0, sticky='NSEW')
             # Create a basic file object by default
             if not special:
                 file = BasicFile(self.notebook, filepath, self)
@@ -462,8 +466,8 @@ class Application(gui.Application):
                 file = PeakValleyFile(self.notebook, filepath, self)
             # Append it to the list of file objects
             self.files.append(file)
-            # # Set cursor focus on the default field of the first tab for ease of use
-            # self.files[0].set_default_focus()
+            # Set focus on the default field of the first tab for ease of use
+            self.files[0].set_default_focus()
 
         # Add the filepath to the listbox
         self.listbox.field['state'] = 'normal'
@@ -478,7 +482,7 @@ class Application(gui.Application):
     def remove_file(self):
         """Retroactively remove a file from the current inputs."""
 
-        # Don't continue if the currently selected file is the last remaining input
+        # Reset if the currently selected file is the last remaining input
         if not len(self.files) > 1:
             self.reset()
             return
@@ -486,13 +490,12 @@ class Application(gui.Application):
         # Get the index of the currently selected tab
         current = self.notebook.index(self.notebook.select())
 
-        # Delete the information about this tab that is stored in the inputs and files lists
+        # Delete all information stored about this tab
         del(self.inputs[current])
         del(self.files[current])
 
-        # Destroy the currently selected tab
-        # The select method of a notebook gives a name; however, the nametowidget method
-        # finds the respective object
+        # Destroy the selected tab. The select method of a notebook gives a
+        # name; however, the nametowidget method finds the respective object
         app.root.nametowidget(self.notebook.select()).destroy()
 
         # Remove the filepath from the listbox
@@ -512,22 +515,24 @@ class Application(gui.Application):
             # Attempt to select the notebook tab
             self.notebook.select(destination)
         except (NameError, tk.TclError):
-            pass # If the currently selected tab is either the first or the last, do nothing
+            # If the selected tab is either the first or the last, do nothing
+            pass
         else:
-            # If there was no error, set cursor focus on the data start row entry
+            # If there was no error, set default focus for the file
             self.files[destination].set_default_focus()
 
 
     def switch_row(self, event, direction):
-        """Switch to the same field that is currently selected in either the next
-        or previous row."""
+        """Switch to the same field that is currently selected in
+        either the next or previous row."""
 
         # Get a reference to the File object that is currently selected
         current = self.notebook.index(self.notebook.select())
         file = self.files[current]
 
         # Create a list that contains all possible fields contained in each row
-        fields = [file._titles, file._x_columns, file._y1_columns, file._y2_columns,
+        fields = [file._titles, file._x_columns,
+                  file._y1_columns, file._y2_columns,
                   file._x_labels, file._y1_labels, file._y2_labels]
 
         # Iterate through the list and find the widget that currently has focus,
@@ -542,8 +547,8 @@ class Application(gui.Application):
                 continue # Continue if the inner loop was not broken
             break # If the inner loop was broken, break from the outer loop
         else:
-            # If the widget was not found, don't execute any of the following code.
-            # This is intended to happen with the data start, label, and unit row entries.
+            # If the widget was not found, exit this method. This is intended
+            # to happen with the data start, label, and unit row entries.
             return
 
         # Get the index of the row that the user wants to go to
@@ -559,11 +564,16 @@ class Application(gui.Application):
 
 
     def validate_inputs(self):
+        """Validate the user's inputs before plotting, and show a
+        message if they are not valid."""
 
+        # Initialize variables to keep track of any invalid inputs
         blanks = False
         length = False
         rows = False
         columns = False
+
+        # Iterate through the files and determine if any inputs are invalid
         for file in self.files:
             status = file.validate_inputs()
             if status is True: continue
@@ -573,8 +583,8 @@ class Application(gui.Application):
             elif status == 'columns': columns = True
             file.reset()
 
+        # If one or more of the inputs were invalid, show a message accordingly
         if any(item == True for item in [blanks, length, rows, columns]):
-
             title = 'Invalid input'
             message = ""
             count = [blanks, length, rows, columns].count(True)
@@ -609,8 +619,10 @@ class Application(gui.Application):
                     message += " - Invalid column selection(s)\n"
             message += '\nPlease correct and try again.'
             msg.showinfo(title, message)
+            # Return False, telling the program not to plot anything
             return False
         else:
+            # Return True, telling the program to continue plotting
             return True
 
 
@@ -619,6 +631,7 @@ class Application(gui.Application):
 
         # If the flipbook is already open, exit the function
         if self.FLIPBOOK: return
+        # May be unnecessary since the main window is withdrawn anyways
 
         # Reset parameters to avoid problems associated with using styles
         mpl.rcParams.update(mpl.rcParamsDefault)
@@ -647,8 +660,8 @@ class Application(gui.Application):
 
 
     def paste_file(self):
-        """Paste the contents of the clipboard into every row of the currently
-        selected file."""
+        """Paste the contents of the clipboard into every row of the
+        currently selected file."""
 
         # Get the index of the currently selected notebook tab
         current = self.notebook.index(self.notebook.select())
@@ -680,7 +693,8 @@ class Application(gui.Application):
 
 
     def paste_all(self):
-        """Paste the contents of the clipboard into every row of every file."""
+        """Paste the contents of the clipboard into every row of every
+        file."""
 
         # Iterate through the rows of each file and delete the contents of
         # every field, then insert the contents of the clipboard.
@@ -728,22 +742,26 @@ class Application(gui.Application):
 
 
     def test(self):
-        """Function that loads a preset and opens the flipbook for testing purposes."""
+        """Function that loads a preset and opens the flipbook for
+        testing purposes."""
 
         self.load_preset('Presets\\work.ini')
         self.open_flipbook()
 
 
 class Flipbook(tk.Toplevel):
-    """The flipbook is where the plots and relevant information are shown. The main feature
-    of the flipbook is that you are able to quickly and easily move through a series of
-    plots by pressing the left button (or arrow key) or right button (or arrow key)."""
+    """The flipbook is where the plots and relevant information are
+    shown. The main feature of the flipbook is that you are able to
+    quickly and easily move through a series of plots by pressing the
+    left button (or arrow key) or right button (or arrow key)."""
 
     def __init__(self, *args, info, **kwargs):
-        """Create the flipbook GUI and perform any initialization that needs to be done."""
+        """Create the flipbook GUI and perform any initialization that
+        needs to be done."""
 
         def on_close():
-            """When the flipbook is closed, redisplay the main window as well."""
+            """When the flipbook is closed, redisplay the main window
+            as well."""
 
             self.destroy()
             app.root.deiconify()
@@ -758,22 +776,25 @@ class Flipbook(tk.Toplevel):
 
 
         # Initialize variables
-        self.info = info # Make the information that was passed in accessible elsewhere
+        self.info = info # Make the information accessible elsewhere
         self.page = 0 # Current page number
-        self.pages = sum(file._count for file in info) - 1 # Index of the last page
+        self.pages = sum(file._count for file in info) - 1 # Index of last page
         self.secondary = None # Secondary axis
         self.controls = None # Controls window
 
         # Get a list of plots, files, and plot numbers.
-        # self.plots --> a list of all plots in each file, meant to make it easier to move
-        #                between plots by simply incrementing the page number
-        # self.files --> list of numbers that links each plot in self.plots to its corresponding
-        #                file index
-        # self.numbers --> list of numbers that enumerates each plot in self.plots with respect
-        #                  to its corresponding file
+        # self.plots --> a list of all plots in each file, meant to make it
+        #                easier to move between plots by simply incrementing the
+        #                page number
+        # self.files --> list of numbers that links each plot in self.plots to
+        #                its corresponding file index
+        # self.numbers --> list of numbers that enumerates each plot in
+        #                  self.plots with respect to its corresponding file
         self.plots = [plot for file in self.info for plot in file.plots]
-        self.files = [f for f, file in enumerate(self.info) for _ in range(len(file.plots))]
-        self.numbers = [p for f, file in enumerate(self.info) for p in range(len(file.plots))]
+        self.files = [f for f, file in enumerate(self.info)
+                      for _ in range(len(file.plots))]
+        self.numbers = [p for f, file in enumerate(self.info)
+                        for p in range(len(file.plots))]
 
         # Initialize the flipbook as a top-level window and immediately hide it
         tk.Toplevel.__init__(self, *args, **kwargs)
@@ -836,14 +857,18 @@ class Flipbook(tk.Toplevel):
         toolbar.update()
         toolbar.grid(row=0, column=0, sticky='NSEW')
 
-        # Create the controls button that allows the user to open the controls window
-        controls_image = gui.RenderImage(gui.ResourcePath('Assets\\controls.png'), downscale=9)
-        controls_button = ttk.Button(toolbar_frame, text='Controls', takefocus=0,
-                                     image=controls_image, command=show_controls)
+        # Create a button that allows the user to open the controls window
+        controls_image = gui.RenderImage(
+            gui.ResourcePath('Assets\\controls.png'),
+            downscale=9
+        )
+        controls_button = ttk.Button(toolbar_frame, text='Controls',
+                                     takefocus=0, image=controls_image)
+        controls_button['command'] = show_controls
         controls_button.grid(row=0, column=1, sticky='E')
         controls_button.image = controls_image
 
-        # Create a label that will display the filename of the current plot's corresponding file
+        # Create a label that displays the filename for the current plot
         self.filename = tk.StringVar()
         filename_label = tk.Label(middle, textvar=self.filename,
                                   font=('Helvetica', 18, 'bold'),
@@ -854,23 +879,23 @@ class Flipbook(tk.Toplevel):
         graph_widget = self.canvas.get_tk_widget()
         graph_widget.grid(row=2, column=0, sticky='NSEW')
 
-        # Create keyboard shortcuts that allow for flipping between pages with the arrow keys
+        # Create bindings to allow for flipping the page with the arrow keys
         self.bind('<Left>',
-                  lambda event, direction='left': self.flip_page(event, direction))
+                  lambda event, direction='left':
+                        self.flip_page(event, direction))
         self.bind('<Right>',
-                  lambda event, direction='right': self.flip_page(event, direction))
+                  lambda event, direction='right':
+                        self.flip_page(event, direction))
 
-        # Add call the on_click method whenever the user clicks on a clickable object
-        # self.canvas.mpl_connect('pick_event', self.on_click)
+        # Call the on_click method when the user clicks on a clickable object
         self.figure.canvas.mpl_connect('pick_event', self.on_click)
 
         # Update the arrows and the plot of the flipbook
         self.update_arrows()
         self.update_plot()
 
-        # If the controls window has not been created yet, create it and leave it hidden
+        # Create the controls windows and leave it hidden if it doesn't exist
         if not self.controls:
-            # self.controls = Controls(self, self.plots[self.page])
             self.controls = Controls(self, self.page)
             self.controls.withdraw()
 
@@ -919,10 +944,10 @@ class Flipbook(tk.Toplevel):
     def flip_page(self, event, direction):
         """Flip between pages of the flipbook."""
 
-        # Determine the destination page
-        destination = (self.page + 1) if direction == 'right' else (self.page - 1)
-        # If the destination page is within the range of the total number of pages...
-        if destination in range(self.pages + 1):
+        # Determine the destination (target) page
+        target = (self.page + 1) if direction == 'right' else (self.page - 1)
+        # If the destination is within the range of the total number of pages...
+        if target in range(self.pages + 1):
             # Set the new page number; update arrows and the plot
             self.page += 1 if direction == 'right' else -1
             # self.controls.current = self.plots[self.page]
@@ -937,56 +962,47 @@ class Flipbook(tk.Toplevel):
 
 
     def on_click(self, event):
-        """Hide or show a line when the corresponding object in the legend is clicked."""
+        """Hide or show a line when the corresponding object in the
+        legend is clicked."""
 
         # Reroute to plot object's on_click method
         current = self.plots[self.page]
         current.on_click(event, self)
 
-        # self.canvas.draw()
-
-        # # Get a reference to the legend line and the original line
-        # legend_line = event.artist
-        # original_line = self.line_map[legend_line]
-        # # Determine whether to show or hide the original line
-        # visible = not original_line.get_visible()
-        # # Set the visibility accordingly
-        # original_line.set_visible(visible)
-        # legend_line.set_alpha(1.0 if visible else 0.2)
-        # # Update the plot
-        # self.canvas.draw()
-
 
     def _coordinates(self, current, other, secondary_exists):
-        """Determine the appropriate coordinate format to use for the number of axes.
-        Current is the axis that is being formatted; other is the axis that is not being
-        formatted; secondary_exists is a boolean value, where True means that a secondary
-        axis exists, while False means it does not."""
+        """Determine the appropriate coordinate format to use for the
+        number of axes. Current is the axis that is being formatted;
+        other is the axis that is not being formatted; secondary_exists
+        is a boolean value, where True means that a secondary axis
+        exists, while False means it does not."""
 
         if secondary_exists:
             def format_coord(x, y):
-                """Create the appropriate coordinate formatting if both axes exist,
-                where x and y are data coordinates passed to this function by the mouse
-                event of matplotlib."""
+                """Create the appropriate coordinate formatting if both
+                axes exist, where x and y are data coordinates passed
+                to this function by the mouse event of matplotlib."""
 
-                # Secondary axis coordinates have been passed into this function already
+                # Secondary axis coordinates were passed as arguments
                 secondary = (x, y)
-                # Convert data coordinates of the secondary axis to display coordinates
+                # Convert the secondary axis's coordinates from data to display
                 display = current.transData.transform(secondary)
                 # Invert the primary axis coordinates
                 inverted = other.transData.inverted()
-                # Convert to data coords with respect to the display coordinates
+                # Convert to data coordinates w.r.t. the display coordinates
                 primary = inverted.transform(display)
-                # Combine the coordinates into a list and return the formatted string
+                # Combine the coordinates into a list
                 coords = [primary, secondary]
+                # Return the formatted string
                 return ('Primary: {:<}  |  Secondary: {:<}'
-                            .format(*['({:.3f}, {:.3f})'.format(x, y) for x, y in coords]))
+                        .format(*['({:.3f}, {:.3f})'.format(x, y)
+                        for x, y in coords]))
 
         elif not secondary_exists:
             def format_coord(x, y):
-                """Create the appropriate coordinate formatting if only the primary
-                axis exists, where x and y are data coordinates passed to this function
-                by matplotlib."""
+                """Create the appropriate coordinate formatting if only
+                the primary axis exists, where x and y are data
+                coordinates passed to this function by matplotlib."""
 
                 # Return the formatted string
                 return ('Primary: ({:<.3f}, {:<.3f})'.format(x, y))
@@ -1012,7 +1028,7 @@ class Controls(tk.Toplevel):
         # Initialize miscellaneous instance variables
         self.flipbook = master
 
-        # Create the primary frame, which will hold the notebook and provide padding
+        # Create the primary frame, which will hold the notebook with padding
         self.primary = gui.PaddedFrame(self)
         self.primary.grid(row=0, column=0, sticky='NSEW')
         self.primary.columnconfigure(0, weight=1)
@@ -1049,10 +1065,9 @@ class Controls(tk.Toplevel):
 
 
     def flip_page(self, page):
-        """Upon changing this page of the flipbook, update instance attributes,
-        remove the old controls from view, and show the controls of the current
-        page.
-        """
+        """Upon changing this page of the flipbook, update instance
+        attributes, remove the old controls from view, and show the
+        controls of the current page."""
 
         # Set relevant attributes according to the page number
         self.page = page
@@ -1085,8 +1100,8 @@ class Controls(tk.Toplevel):
 
 
 class Help(tk.Toplevel):
-    """Help window that displays useful information such as button information
-    and keyboard shortcuts to the user."""
+    """Help window that displays useful information such as button
+    information and keyboard shortcuts to the user."""
 
     def __init__(self, *args, **kwargs):
         """Create the help window."""
@@ -1133,18 +1148,20 @@ class Help(tk.Toplevel):
                        'The row number that the data starts on.',
                        'The row number that the series labels are found on.',
                        'The row number that the units are found on.',
-                       'The column that you want to plot on the x-axis.',
-                       'The column(s) that you want to plot on the primary y-axis.',
-                       'The column(s) that you want to plot on the secondary y-axis.',
+                       'The column to plot on the x-axis.',
+                       'The column(s) to plot on the primary y-axis.',
+                       'The column(s) to plot on the secondary y-axis.',
                        'Overwrites the pregenerated title.',
                        'Overwrites the pregenerated x-axis label.',
                        'Overwrites the pregenerated primary y-axis label.',
                        'Overwrites the pregenerated secondary y-axis label.',
-                       'In a field where multiple inputs are allowed ' \
-                            '(i.e. \'y1 columns\' and \'y2 columns\'), ' \
-                            'separate the inputs with any non-numeric character(s).\n' \
-                       '\nFor example, \'1;3;5;7\' and \'1abc3.5 7\' will successfully ' \
-                            'plot columns 1, 3, 5, and 7, but \'1357\' or \'1133577\' will not.'
+                       "In a field where multiple inputs are allowed " \
+                            "(i.e. 'y1 columns' and 'y2 columns'), " \
+                            "separate the inputs with any non-numeric " \
+                            "character(s).\n" \
+                       "\nFor example, '1;3;5;7' and '1abc3.5 7' will " \
+                            "successfully plot columns 1, 3, 5, and 7, but " \
+                            "'1357' or '1133577' will not."
                      ]
 
         help_row = 0
@@ -1170,13 +1187,15 @@ class Help(tk.Toplevel):
 
             if INPUT != input_text[-1]:
                 separation = tk.Frame(inputs)
-                ttk.Separator(separation, orient='horizontal').grid(row=1, column=0, sticky="EW")
+                separator = ttk.Separator(separation, orient='horizontal')
+                separator.grid(row=1, column=0, sticky="EW")
                 separation.columnconfigure(0, weight=1)
                 separation.grid(row=help_row, column=0, sticky="EW")
                 help_row += 1
 
         # Controls tab
-        controls = gui.ScrollableTab(help_book, 'Controls', cheight=400, cwidth=375)
+        controls = gui.ScrollableTab(help_book, 'Controls',
+                                     cheight=400, cwidth=375)
         controls_row = 0
 
         plus_frame = tk.Frame(controls)
@@ -1185,14 +1204,15 @@ class Help(tk.Toplevel):
         plus_label.image = plus_image
         plus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         plus_separator = gui.Separator(plus_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                         padding=((0, 10), 0))
         plus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         plus_title = ttk.Label(plus_frame, text='Create Row', font=HELVETICA)
         plus_title.grid(row=0, column=2, sticky='EW')
         plus_description = ttk.Label(plus_frame,
-            text='Creates a row at the bottom of the selected file.')
+                    text='Creates a row at the bottom of the selected file.')
         plus_description.grid(row=1, column=2, sticky='EW')
-        plus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        plus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
+                        sticky='NSEW')
         controls_row += 1
 
         minus_frame = tk.Frame(controls)
@@ -1201,14 +1221,15 @@ class Help(tk.Toplevel):
         minus_label.image = minus_image
         minus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         minus_separator = gui.Separator(minus_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                        padding=((0, 10), 0))
         minus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         minus_title = ttk.Label(minus_frame, text='Delete Row', font=HELVETICA)
         minus_title.grid(row=0, column=2, sticky='EW')
         minus_description = ttk.Label(minus_frame,
-            text='Deletes the bottom row of the selected file.')
+                            text='Deletes the bottom row of the selected file.')
         minus_description.grid(row=1, column=2, sticky='EW')
-        minus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        minus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
+                         sticky='NSEW')
         controls_row += 1
 
         copy_frame = tk.Frame(controls)
@@ -1217,14 +1238,15 @@ class Help(tk.Toplevel):
         copy_label.image = copy_image
         copy_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         copy_separator = gui.Separator(copy_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                       padding=((0, 10), 0))
         copy_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         copy_title = ttk.Label(copy_frame, text='Copy', font=HELVETICA)
         copy_title.grid(row=0, column=2, sticky='EW')
         copy_description = ttk.Label(copy_frame,
-            text='Copy data from the respective fields.')
+                           text='Copy data from the respective fields.')
         copy_description.grid(row=1, column=2, sticky='EW')
-        copy_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        copy_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
+                        sticky='NSEW')
         controls_row += 1
 
         paste_frame = tk.Frame(controls)
@@ -1233,14 +1255,15 @@ class Help(tk.Toplevel):
         paste_label.image = paste_image
         paste_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         paste_separator = gui.Separator(paste_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                        padding=((0, 10), 0))
         paste_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         paste_title = ttk.Label(paste_frame, text='Paste', font=HELVETICA)
         paste_title.grid(row=0, column=2, sticky='EW')
         paste_description = ttk.Label(paste_frame,
-            text='Pastes data into the respective fields.')
+                            text='Pastes data into the respective fields.')
         paste_description.grid(row=1, column=2, sticky='EW')
-        paste_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        paste_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
+                         sticky='NSEW')
         controls_row += 1
 
         clear_frame = tk.Frame(controls)
@@ -1249,75 +1272,89 @@ class Help(tk.Toplevel):
         clear_label.image = clear_image
         clear_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
         clear_separator = gui.Separator(clear_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                        padding=((0, 10), 0))
         clear_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         clear_title = ttk.Label(clear_frame, text='Clear', font=HELVETICA)
         clear_title.grid(row=0, column=2, sticky='EW')
         clear_description = ttk.Label(clear_frame,
-            text='Clear data from the respective fields.')
+                            text='Clear data from the respective fields.')
         clear_description.grid(row=1, column=2, sticky='EW')
-        clear_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        clear_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
+                         sticky='NSEW')
         controls_row += 1
 
         edit_menu_frame = tk.Frame(controls)
 
         label_frame = tk.Frame(edit_menu_frame)
-        menu1_label = ttk.Label(label_frame, text='Edit', anchor='center', font=HELVETICA)
+        menu1_label = ttk.Label(label_frame, text='Edit', anchor='center',
+                                font=HELVETICA)
         menu1_label.grid(row=1, column=0, sticky='NSEW')
-        menu2_label = ttk.Label(label_frame, text='Menu', anchor='center', font=HELVETICA)
+        menu2_label = ttk.Label(label_frame, text='Menu', anchor='center',
+                                font=HELVETICA)
         menu2_label.grid(row=2, column=0, sticky='NSEW')
         label_frame.grid_rowconfigure(0, weight=1)
         label_frame.grid_rowconfigure(3, weight=1)
         label_frame.grid(row=0, column=0, padx=(6, 15), sticky='NSEW')
 
-        edit_menu_separator = gui.Separator(edit_menu_frame, orientation='vertical',
-            padding=((0, 10), 0))
+        edit_menu_separator = gui.Separator(edit_menu_frame,
+                                            orientation='vertical',
+                                            padding=((0, 10), 0))
         edit_menu_separator.grid(row=0, column=1, sticky='NS')
 
         descriptions_frame = tk.Frame(edit_menu_frame)
 
         clear_form_frame = tk.Frame(descriptions_frame)
-        clear_form_title = ttk.Label(clear_form_frame, text='Edit > Clear Form',
-            font=HELVETICA)
+        clear_form_title = ttk.Label(clear_form_frame,
+                                     text='Edit > Clear Form',
+                                     font=HELVETICA)
         clear_form_title.grid(row=0, column=2, sticky='EW')
         clear_form_description = ttk.Label(clear_form_frame,
-            text='Clear data from all fields.')
+                                 text='Clear data from all fields.')
         clear_form_description.grid(row=1, column=2, sticky='EW')
-        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2), sticky='NSEW')
+        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2)
+                              sticky='NSEW')
 
         reset_frame = tk.Frame(descriptions_frame)
-        reset_title = ttk.Label(reset_frame, text='Edit > Reset Form',
-            font=HELVETICA)
+        reset_title = ttk.Label(reset_frame,
+                                text='Edit > Reset Form',
+                                font=HELVETICA)
         reset_title.grid(row=0, column=2, sticky='EW')
         reset_description = ttk.Label(reset_frame,
-            text='Clear inputs and revert form back to its original state.')
+                            text='Clear inputs and revert form back to its ' \
+                                 'original state.')
         reset_description.grid(row=1, column=2, sticky='EW')
         reset_frame.grid(row=1, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_one_frame = tk.Frame(descriptions_frame)
-        paste_one_title = ttk.Label(paste_one_frame, text='Edit > Paste (Selected File)',
-            font=HELVETICA)
+        paste_one_title = ttk.Label(paste_one_frame,
+                                    text='Edit > Paste (Selected File)',
+                                    font=HELVETICA)
         paste_one_title.grid(row=0, column=2, sticky='EW')
         paste_one_description = ttk.Label(paste_one_frame,
-            text='Pastes contents of the clipboard into all fields of the\nselected file.')
+                                text='Pastes contents of the clipboard into ' \
+                                     'all fields of the\nselected file.')
         paste_one_description.grid(row=1, column=2, sticky='EW')
         paste_one_frame.grid(row=2, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_all_frame = tk.Frame(descriptions_frame)
-        paste_all_title = ttk.Label(paste_all_frame, text='Edit > Paste (All Files)',
-            font=HELVETICA)
+        paste_all_title = ttk.Label(paste_all_frame,
+                                    text='Edit > Paste (All Files)',
+                                    font=HELVETICA)
         paste_all_title.grid(row=0, column=2, sticky='EW')
         paste_all_description = ttk.Label(paste_all_frame,
-            text='Pastes contents of the clipboard into all fields of all\nfiles.')
+                                text='Pastes contents of the clipboard into ' \
+                                     'all fields of all\nfiles.')
         paste_all_description.grid(row=1, column=2, sticky='EW')
         paste_all_frame.grid(row=3, column=0, pady=(MARGIN/2, 0), sticky='NSEW')
 
         descriptions_frame.grid(row=0, column=2, sticky='NSEW')
 
-        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
+        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN,
+                             pady=MARGIN, sticky='NSEW')
 
         # Shortcuts tab
-        shortcuts = gui.ScrollableTab(help_book, 'Shortcuts', cheight=400, cwidth=375)
+        shortcuts = gui.ScrollableTab(help_book, 'Shortcuts',
+                                      cheight=400, cwidth=375)
         shortcuts_row = 0
 
         COLUMN_SIZE = 110
@@ -1329,16 +1366,18 @@ class Help(tk.Toplevel):
         enter_frame.rowconfigure(0, minsize=ROW_SIZE)
         enter_frame.rowconfigure(1, minsize=ROW_SIZE)
         enter_label = ttk.Label(enter_frame, text='<Enter>', anchor='center',
-            font=VERDANA)
-        enter_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+                                font=VERDANA)
+        enter_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                         sticky='NSEW')
         enter_separator = gui.Separator(enter_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                        padding=((0, 10), 0))
         enter_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
         enter_title = ttk.Label(enter_frame, text='Keypress: Enter',
-            font=HELVETICA)
+                                font=HELVETICA)
         enter_title.grid(row=0, column=2, sticky='EW')
         enter_description = ttk.Label(enter_frame,
-            text='Bound to the [Plot] button.\nTakes the user\'s inputs and plots the data.')
+                text='Bound to the [Plot] button.\nTakes the user\'s inputs ' \
+                     'and plots the data.')
         enter_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1347,17 +1386,21 @@ class Help(tk.Toplevel):
         create_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         create_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         create_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        create_row_label = ttk.Label(create_row_frame, text='<Ctrl>\n+ <+>', anchor='center',
-            font=VERDANA)
-        create_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
-        create_row_separator = gui.Separator(create_row_frame, orientation='vertical',
-            padding=((0, 10), 0))
+        create_row_label = ttk.Label(create_row_frame, text='<Ctrl>\n+ <+>',
+                                    anchor='center', font=VERDANA)
+        create_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                              sticky='NSEW')
+        create_row_separator = gui.Separator(create_row_frame,
+                                             orientation='vertical',
+                                             padding=((0, 10), 0))
         create_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        create_row_title = ttk.Label(create_row_frame, text='Combination: Control + Plus',
-            font=HELVETICA)
+        create_row_title = ttk.Label(create_row_frame,
+                                     text='Combination: Control + Plus',
+                                     font=HELVETICA)
         create_row_title.grid(row=0, column=2, sticky='EW')
         create_row_description = ttk.Label(create_row_frame,
-            text='Bound to the [+] button.\nCreates a new row in the selected tab.')
+                                text='Bound to the [+] button.\nCreates a '\
+                                     'new row in the selected tab.')
         create_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1366,17 +1409,21 @@ class Help(tk.Toplevel):
         delete_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         delete_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         delete_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        delete_row_label = ttk.Label(delete_row_frame, text='<Ctrl>\n+ <->', anchor='center',
-            font=VERDANA)
-        delete_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
-        delete_row_separator = gui.Separator(delete_row_frame, orientation='vertical',
-            padding=((0, 10), 0))
+        delete_row_label = ttk.Label(delete_row_frame, text='<Ctrl>\n+ <->',
+                                     anchor='center', font=VERDANA)
+        delete_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                              sticky='NSEW')
+        delete_row_separator = gui.Separator(delete_row_frame,
+                                             orientation='vertical',
+                                             padding=((0, 10), 0))
         delete_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        delete_row_title = ttk.Label(delete_row_frame, text='Combination: Control + Minus',
-            font=HELVETICA)
+        delete_row_title = ttk.Label(delete_row_frame,
+                                     text='Combination: Control + Minus',
+                                     font=HELVETICA)
         delete_row_title.grid(row=0, column=2, sticky='EW')
         delete_row_description = ttk.Label(delete_row_frame,
-            text='Bound to the [-] button.\nDeletes the bottom row of the selected tab.')
+                                 text='Bound to the [-] button.\nDeletes the ' \
+                                      'bottom row of the selected tab.')
         delete_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1386,16 +1433,17 @@ class Help(tk.Toplevel):
         insert_frame.rowconfigure(0, minsize=ROW_SIZE)
         insert_frame.rowconfigure(1, minsize=ROW_SIZE)
         insert_label = ttk.Label(insert_frame, text='<Insert>', anchor='center',
-            font=VERDANA)
-        insert_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+                                 font=VERDANA)
+        insert_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                          sticky='NSEW')
         insert_separator = gui.Separator(insert_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                         padding=((0, 10), 0))
         insert_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
         insert_title = ttk.Label(insert_frame, text='Keypress: Insert',
-            font=HELVETICA)
+                                 font=HELVETICA)
         insert_title.grid(row=0, column=2, sticky='EW')
         insert_description = ttk.Label(insert_frame,
-            text='Selects the previous tab.')
+                                       text='Selects the previous tab.')
         insert_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1405,16 +1453,17 @@ class Help(tk.Toplevel):
         page_up_frame.rowconfigure(0, minsize=ROW_SIZE)
         page_up_frame.rowconfigure(1, minsize=ROW_SIZE)
         page_up_label = ttk.Label(page_up_frame, text='<PgUp>', anchor='center',
-            font=VERDANA)
-        page_up_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
+                                  font=VERDANA)
+        page_up_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                           sticky='NSEW')
         page_up_separator = gui.Separator(page_up_frame, orientation='vertical',
-            padding=((0, 10), 0))
+                                          padding=((0, 10), 0))
         page_up_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
         page_up_title = ttk.Label(page_up_frame, text='Keypress: Page Up',
-            font=HELVETICA)
+                                  font=HELVETICA)
         page_up_title.grid(row=0, column=2, sticky='EW')
         page_up_description = ttk.Label(page_up_frame,
-            text='Selects the next tab.')
+                                        text='Selects the next tab.')
         page_up_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1423,11 +1472,14 @@ class Help(tk.Toplevel):
         previous_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         previous_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         previous_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        previous_row_label = ttk.Label(previous_row_frame, text='  <Ctrl>\n+ <Shift>\n + <Tab>',
-            anchor='center', font=VERDANA)
-        previous_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
-        previous_row_separator = gui.Separator(previous_row_frame, orientation='vertical',
-            padding=((0, 10), 0))
+        previous_row_label = ttk.Label(previous_row_frame,
+                                       text='  <Ctrl>\n+ <Shift>\n + <Tab>',
+                                       anchor='center', font=VERDANA)
+        previous_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                                sticky='NSEW')
+        previous_row_separator = gui.Separator(previous_row_frame,
+                                               orientation='vertical',
+                                               padding=((0, 10), 0))
         previous_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
         previous_row_title = ttk.Label(previous_row_frame,
             text='Combination: Control + Shift + Tab ', font=HELVETICA)
@@ -1444,15 +1496,19 @@ class Help(tk.Toplevel):
         next_row_frame.rowconfigure(1, minsize=ROW_SIZE)
         next_row_label = ttk.Label(next_row_frame, text='  <Ctrl>\n+ <Tab>',
             anchor='center', font=VERDANA)
-        next_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10), sticky='NSEW')
-        next_row_separator = gui.Separator(next_row_frame, orientation='vertical',
-            padding=((0, 10), 0))
+        next_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
+                            sticky='NSEW')
+        next_row_separator = gui.Separator(next_row_frame,
+                                           orientation='vertical',
+                                           padding=((0, 10), 0))
         next_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
         next_row_title = ttk.Label(next_row_frame,
-            text='Combination: Control + Tab ', font=HELVETICA)
+                                   text='Combination: Control + Tab ',
+                                   font=HELVETICA)
         next_row_title.grid(row=0, column=2, sticky='EW')
         next_row_description = ttk.Label(next_row_frame,
-            text='Selects the currently selected field of the\nnext row.')
+                               text='Selects the currently selected field of ' \
+                                    'the\nnext row.')
         next_row_description.grid(row=1, column=2, sticky='EW')
 
         gui.CenterWindow(self)
