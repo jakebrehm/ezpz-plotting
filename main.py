@@ -866,6 +866,9 @@ class Flipbook(tk.Toplevel):
             self.controls.deiconify()
 
 
+        # Initialize constants
+        MIDDLE_COLOR = '#e6e6e6' # color to be used for the plot
+
         # Initialize variables
         self.info = info # Make the information accessible elsewhere
         self.page = 0 # Current page number
@@ -904,8 +907,7 @@ class Flipbook(tk.Toplevel):
         left.rowconfigure(0, weight=1)
         self.previous_button = ttk.Button(left, text='◀', width=3, takefocus=0)
         self.previous_button.grid(row=0, column=0, sticky='NSEW')
-        self.previous_button['command'] = lambda event=None, direction='left': \
-                                          self.flip_page(event, direction)
+        self.previous_button['command'] = lambda: self.flip_page(None, 'left')
 
         # Create the frame that will hold the 'flip right' button
         right = tk.Frame(flipbook)
@@ -913,14 +915,10 @@ class Flipbook(tk.Toplevel):
         right.rowconfigure(0, weight=1)
         self.next_button = ttk.Button(right, text='▶', width=3, takefocus=0)
         self.next_button.grid(row=0, column=0, sticky='NSEW')
-        self.next_button['command'] = lambda event=None, direction='right': \
-                                      self.flip_page(event, direction)
-
-        # Define the color to be used for the plot
-        middle_color = '#e6e6e6'
+        self.next_button['command'] = lambda: self.flip_page(None, 'right')
 
         # Create the frame that the plot and its controls will be held in
-        middle = tk.Frame(flipbook, bg=middle_color)
+        middle = tk.Frame(flipbook, bg=MIDDLE_COLOR)
         middle.grid(row=0, column=1, sticky='NSEW')
         middle.columnconfigure(0, minsize=800)
 
@@ -929,7 +927,7 @@ class Flipbook(tk.Toplevel):
         self.primary = self.figure.add_subplot(111)
 
         # Change the face color of the figure and adjust the padding
-        self.figure.patch.set_facecolor(middle_color)
+        self.figure.patch.set_facecolor(MIDDLE_COLOR)
         self.figure.subplots_adjust(top=0.90, bottom=0.15)
 
         # Place a canvas on the figure and update it
@@ -943,15 +941,15 @@ class Flipbook(tk.Toplevel):
 
         # Create a toolbar that can be used for manipulating the plot
         toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
-        toolbar.config(bg=middle_color)
-        toolbar._message_label.config(bg=middle_color)
+        toolbar.config(bg=MIDDLE_COLOR)
+        toolbar._message_label.config(bg=MIDDLE_COLOR)
         toolbar.update()
         toolbar.grid(row=0, column=0, sticky='NSEW')
 
         # Create a button that allows the user to open the controls window
         controls_image = gui.RenderImage(
             gui.ResourcePath('Assets\\controls.png'),
-            downscale=9
+            downscale=9,
         )
         controls_button = ttk.Button(toolbar_frame, text='Controls',
                                      takefocus=0, image=controls_image)
@@ -963,7 +961,7 @@ class Flipbook(tk.Toplevel):
         self.filename = tk.StringVar()
         filename_label = tk.Label(middle, textvar=self.filename,
                                   font=('Helvetica', 18, 'bold'),
-                                  anchor='w', bg=middle_color)
+                                  anchor='w', bg=MIDDLE_COLOR)
         filename_label.grid(row=1, column=0, sticky='EW')
 
         # Create the graph widget where the plot will be displayed
@@ -971,12 +969,8 @@ class Flipbook(tk.Toplevel):
         graph_widget.grid(row=2, column=0, sticky='NSEW')
 
         # Create bindings to allow for flipping the page with the arrow keys
-        self.bind('<Left>',
-                  lambda event, direction='left':
-                        self.flip_page(event, direction))
-        self.bind('<Right>',
-                  lambda event, direction='right':
-                        self.flip_page(event, direction))
+        self.bind('<Left>', lambda _: self.flip_page(_, 'left'))
+        self.bind('<Right>', lambda _: self.flip_page(_, 'right'))
 
         # Call the on_click method when the user clicks on a clickable object
         self.figure.canvas.mpl_connect('pick_event', self.on_click)
