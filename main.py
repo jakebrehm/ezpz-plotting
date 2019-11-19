@@ -1,85 +1,92 @@
-# GUI packages
+import math
+import os
+import platform
+import random
+import re
 import tkinter as tk
-from tkinter import ttk
 from tkinter import StringVar
 from tkinter import filedialog as fd
 from tkinter import messagebox as msg
-from PIL import Image, ImageTk
-from lemons import gui
+from tkinter import ttk
 
-# System packages
-import os
-import platform
-
-# Plotting packages
+import configobj
 import matplotlib as mpl
+import numpy as np
+import pandas as pd
+from lemons import gui
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
+                                               NavigationToolbar2Tk)
+from matplotlib.figure import Figure
+from PIL import Image, ImageTk
+
+from basic import BasicControls, BasicFile
+from peakvalley import PeakValleyControls, PeakValleyFile
+
 if platform.system() == 'Darwin':
     mpl.use("TkAgg") # On Mac, this must come before the pyplot import
 import matplotlib.pyplot as plt
 if platform.system() == 'Windows':
     mpl.use("TkAgg") # On Windows, this must come after the pyplot import
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure
-
-# Data science packages
-import math
-import numpy as np
-import pandas as pd
-
-# Miscellaneous packages
-import re
-import configobj
-import random
-
-# Import custom classes for each type of file
-from basic import BasicFile, BasicControls
-from peakvalley import PeakValleyFile, PeakValleyControls
 
 
 class Application(gui.Application):
     """The main application of the program, which combines the GUI and
     all related methods and functionality."""
 
-    def __init__(self, padding=12):
+    def __init__(self):
         """Initialize the main GUI and miscellaneous constants of the
         program."""
 
-        # Initialize the application using the lemons GUI module
-        gui.Application.__init__(self, padding=12)
-        self.configure(
-            title='EZPZ Plotting',
-            icon=gui.ResourcePath('Assets\\icon.ico'),
-            resizable=False
-        )
-
         # Initialize program constants
-        self.FLIPBOOK = False # keeps track of whether or not the flipbook is open
-        self.HELP = False # keeps track of whether or not the help window is open
+        PADDING = 12 # widget padding
+        self.FLIPBOOK = False # whether or not the flipbook is open
+        self.HELP = False # whether or not the help window is open
 
         # Initialize the inputs list
         self.inputs = []
 
+        # Initialize the application using the lemons GUI module
+        gui.Application.__init__(self, padding=PADDING)
+        self.configure(
+            title='EZPZ Plotting',
+            icon=gui.ResourcePath('Assets\\icon.ico'),
+            resizable=False,
+        )
+
         # Add a header/logo to the top of the application
-        header = gui.Header(self, logo=gui.ResourcePath('Assets\\logo.png'), downscale=10)
+        header = gui.Header(
+            self,
+            logo=gui.ResourcePath('Assets\\logo.png'),
+            downscale=10,
+        )
         header.grid(row=0, column=0, sticky='NSEW')
 
         # Add a separator between the header and the listbox
-        gui.Separator(self, padding=(0, padding)).grid(row=1, column=0, sticky='NSEW')
+        separator1 = gui.Separator(self, padding=(0, PADDING))
+        separator1.grid(row=1, column=0, sticky='NSEW')
 
-        # Add a listbox that will show the users the inputs that have been loaded
+        # Add a listbox that will show the users the inputs that are loaded
         filetypes = [
             ('Comma-Separated Values (*.csv)', '*.csv'),
             ('Excel Spreadsheet (*.xls)', '*.xls'),
             ('Excel Spreadsheet (*.xlsx)', '*.xlsx'),
-            ('Data File (*.dat)', '*.dat')
+            ('Data File (*.dat)', '*.dat'),
         ]
         browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
-        self.listbox = gui.InputField(self, quantity='multiple', appearance='list', width=80,
-                                 image=browse_image, command=self.browse, filetypes=filetypes)
+        self.listbox = gui.InputField(
+            self,
+            quantity='multiple',
+            appearance='list',
+            width=80,
+            image=browse_image,
+            command=self.browse,
+            filetypes=filetypes,
+        )
         self.listbox.grid(row=2, column=0, sticky='NSEW')
 
         # Create a separator between the listbox and the primary frame
-        gui.Separator(self, padding=(0, padding)).grid(row=3, column=0, sticky='NSEW')
+        separator2 = gui.Separator(self, padding=(0, PADDING))
+        separator2.grid(row=3, column=0, sticky='NSEW')
 
         # Create the primary frame, where the notebook will be held
         self.primary = tk.Frame(self)
@@ -87,92 +94,174 @@ class Application(gui.Application):
         self.primary.columnconfigure(0, weight=1)
         self.primary.rowconfigure(0, minsize=278)
 
-        # On first load or reset, show a message saying that no inputs have been loaded
-        message = 'Please provide at least one input file.\n\nControls will appear here.'
+        # On first load or reset, show a message saying no inputs are loaded
+        message = (
+            'Please provide at least one input file.\n\n'
+            'Controls will appear here.'
+        )
         no_input_label = tk.Label(self.primary, text=message)
         no_input_label.grid(row=0, column=0, sticky='NSEW')
 
         # Create a separator between the primary frame and the footer
-        gui.Separator(self, padding=(0, padding)).grid(row=5, column=0, sticky='NSEW')
+        separator3 = gui.Separator(self, padding=(0, PADDING))
+        separator3.grid(row=5, column=0, sticky='NSEW')
 
         # Create the footer
         footer = tk.Frame(self)
         footer.grid(row=6, column=0, sticky='NSEW')
         footer.columnconfigure(1, weight=1)
 
-        # Create a frame inside of the footer that will hold all of the controls
+        # Create a frame inside of the footer that will hold the controls
         row_controls = tk.Frame(footer)
         row_controls.grid(row=0, column=0, sticky='NSEW')
 
         # Add a create row button
         plus_image = gui.RenderImage('Assets\\plus.png', downscale=9)
-        self.plus_button = ttk.Button(row_controls, takefocus=0, image=plus_image, state='disabled')
+        self.plus_button = ttk.Button(
+            row_controls,
+            takefocus=0,
+            image=plus_image,
+            state='disabled',
+        )
         self.plus_button['command'] = self.plus_row
         self.plus_button.image = plus_image
         self.plus_button.grid(row=0, column=0, padx=2, sticky='NSEW')
 
         # Add a delete row button
         minus_image = gui.RenderImage('Assets\\minus.png', downscale=9)
-        self.minus_button = ttk.Button(row_controls, takefocus=0, image=minus_image, state='disabled')
+        self.minus_button = ttk.Button(
+            row_controls,
+            takefocus=0,
+            image=minus_image,
+            state='disabled',
+        )
         self.minus_button['command'] = self.minus_row
         self.minus_button.image = minus_image
         self.minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
 
         # Add a plot button
         plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
-        self.plot_button = ttk.Button(footer, takefocus=0, image=plot_image, state='disabled')
+        self.plot_button = ttk.Button(
+            footer,
+            takefocus=0,
+            image=plot_image,
+            state='disabled',
+        )
         self.plot_button['command'] = self.open_flipbook
         self.plot_button.image = plot_image
         self.plot_button.grid(row=0, column=2, padx=2, sticky='NSEW')
 
         # Create a menu bar
         menu_bar = tk.Menu(self.root)
+        # Create a file menu
         self.file_menu = tk.Menu(menu_bar, tearoff=0)
-        self.file_menu.add_command(label='Load Files', command=self.listbox.Browse)
-        self.file_menu.add_command(label='Add File', command=self.add_file)
+        self.file_menu.add_command(
+            label='Load Files',
+            command=self.listbox.Browse,
+        )
+        self.file_menu.add_command(
+            label='Add File',
+            # accelerator='Ctrl+Q',
+            # underline=0,
+            command=self.add_file,
+        )
         add_special = tk.Menu(menu_bar, tearoff=0)
-        add_special.add_command(label='Peak Valley', command=lambda: self.add_file('Peak Valley'))
-        self.file_menu.add_cascade(label='Add Special', menu=add_special)
-        self.file_menu.add_command(label='Remove File', state='disabled', command=self.remove_file)
+        add_special.add_command(
+            label='Peak Valley',
+            command=lambda: self.add_file('Peak Valley'),
+        )
+        self.file_menu.add_cascade(
+            label='Add Special',
+            menu=add_special,
+        )
+        self.file_menu.add_command(
+            label='Remove File',
+            state='disabled',
+            # accelerator='Ctrl+R',
+            # underline=0,
+            command=self.remove_file,
+        )
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Save Preset', state='disabled', command=self.save_preset)
-        self.file_menu.add_command(label='Load Preset', command=self.load_preset)
+        self.file_menu.add_command(
+            label='Save Preset',
+            # accelerator='Ctrl+S',
+            # underline=0,
+            state='disabled',
+            command=self.save_preset,
+        )
+        self.file_menu.add_command(
+            label='Load Preset',
+            # accelerator='Ctrl+L',
+            # underline=0,
+            command=self.load_preset,
+        )
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Exit', command=lambda: self.root.destroy())
+        self.file_menu.add_command(
+            label='Quit',
+            accelerator='Ctrl+Q',
+            underline=0,
+            command=self.root.destroy,
+        )
         menu_bar.add_cascade(label='File', menu=self.file_menu)
+        # Create an edit menu
         self.edit_menu = tk.Menu(menu_bar, tearoff=0)
-        self.edit_menu.add_command(label='Clear Form', state='disabled', command=self.clear_all)
-        self.edit_menu.add_command(label='Reset Form', state='disabled', command=self.reset)
+        self.edit_menu.add_command(
+            label='Clear Form',
+            state='disabled',
+            command=self.clear_all,
+        )
+        self.edit_menu.add_command(
+            label='Reset Form',
+            state='disabled',
+            command=self.reset,
+        )
         self.edit_menu.add_separator()
-        self.edit_menu.add_command(label='Paste (Selected File)', state='disabled', command=self.paste_file)
-        self.edit_menu.add_command(label='Paste (All Files)', state='disabled', command=self.paste_all)
+        self.edit_menu.add_command(
+            label='Paste (Selected File)',
+            state='disabled',
+            command=self.paste_file,
+        )
+        self.edit_menu.add_command(
+            label='Paste (All Files)',
+            state='disabled',
+            command=self.paste_all,
+        )
         menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
+        # Create a help menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label='View Help', command=self.open_help)
         help_menu.add_separator()
         help_menu.add_command(label='About', state='disabled')
         menu_bar.add_cascade(label='Help', menu=help_menu)
+        # Add the menu bar to the root window
         self.root.config(menu=menu_bar)
 
-        # Create keyboard shortcut that will function the same as clicking the 'Plot' button
+        # Create keyboard shortcuts for menu items
+        # self.root.bind('<Control-a>', self.add_file)
+        # self.root.bind('<Control-r>', self.remove_file)
+        # self.root.bind('<Control-s>', self.save_preset)
+        # self.root.bind('<Control-l>', self.load_preset)
+        # self.root.bind('<Control-o>', self.listbox.Browse)
+        self.root.bind_all('<Control-q>', lambda event: self.root.destroy())
+
+        # Create shortcut that will do the same as clicking the 'Plot' button
         self.root.bind('<Return>', self.open_flipbook)
-        # default_binding = self.root.bind('<Return>', self.open_flipbook)
 
         # Create keyboard shortcuts for creating and deleting rows
         self.root.bind('<Control-minus>', self.minus_row)
         self.root.bind('<Control-=>', self.plus_row)
 
         # Create keyboard shortcuts for moving between notebook tabs
-        self.root.bind('<Insert>',
-            lambda event, direction='previous': self.switch_tab(event, direction)) # Insert
-        self.root.bind('<Prior>',
-            lambda event, direction='next': self.switch_tab(event, direction)) # Page Up
+        self.root.bind('<Insert>', # Insert key
+            lambda _, direction='previous': self.switch_tab(_, direction))
+        self.root.bind('<Prior>', # Page Up key
+            lambda _, direction='next': self.switch_tab(_, direction))
 
         # Create keyboard shortcuts for moving between rows of a notebook tab
         self.root.bind('<Control-Tab>',
-            lambda event, direction='next': self.switch_row(event, direction))
+            lambda _, direction='next': self.switch_row(_, direction))
         self.root.bind('<Control-Shift-Tab>',
-            lambda event, direction='previous': self.switch_row(event, direction))
+            lambda _, direction='previous': self.switch_row(_, direction))
 
         self.clipboard = {
             'title': None,
@@ -190,10 +279,15 @@ class Application(gui.Application):
         specified location."""
 
         # Show a dialog box where the user can choose where to save the preset
-        valid = (('Configuration Files (*.ini)', '*.ini'),('All Files',"*.*"))
-        location = fd.asksaveasfilename(title='Choose where to save the preset',
-                                        defaultextension='.ini',
-                                        filetypes=valid)
+        valid_filetypes = (
+            ('Configuration Files (*.ini)', '*.ini'),
+            ('All Files',"*.*"),
+        )
+        location = fd.asksaveasfilename(
+            title='Choose where to save the preset',
+            defaultextension='.ini',
+            filetypes=valid_filetypes,
+        )
 
         # Create a ConfigObj object, targeted at the specified filepath
         preset = configobj.ConfigObj(location)
@@ -231,9 +325,11 @@ class Application(gui.Application):
         inputs = [(key, info['type'], info['filepath']) for key, info \
                   in preset.items() if os.path.isfile(info['filepath'])]
         if not inputs:
-            message = 'There are no valid filepaths in this preset. Please ' \
-                      'verify that they are correct, and that the files still' \
-                      ' exist, and try again.'
+            message = (
+                'There are no valid filepaths in this preset. Please '
+                'verify that they are correct, and that the files still '
+                'exist, and try again.'
+            )
             msg.showinfo('Oops!', message)
             return
         if len(inputs) != len(preset.keys()):
@@ -271,11 +367,18 @@ class Application(gui.Application):
                 file = PeakValleyFile(self.notebook, self.inputs[i], self)
             else:
                 self.reset()
-                message = 'One or more of the files in the selected preset' \
-                          ' have an invalid type.\n\nValid types:\n - Basic\n' \
-                          ' - Peak Valley\n\nPlease check and try again.'
+                message = (
+                    'One or more of the files in the selected preset '
+                    'have an invalid type.\n'
+                    '\n'
+                    'Valid types:\n'
+                    ' - Basic\n'
+                    ' - Peak Valley\n'
+                    '\n'
+                    'Please check and try again.'
+                )
                 msg.showinfo('Invalid type', message)
-                return # could use a more thought-out approach without resetting
+                return # could use a more elegant approach without resetting
             self.files.append(file)
 
         # The number of items in each section that are not plot subsections
@@ -295,10 +398,11 @@ class Application(gui.Application):
 
         # If a file could not be found, display a message
         if LOAD_ERROR:
-            message = 'Unable to find one or more of the files in the preset.' \
-                      ' Please check that the filepaths are correct.' \
-                      ' Otherwise, the remaining files have been loaded' \
-                      ' successfully.'
+            message = (
+                'Unable to find one or more of the files in the preset. '
+                'Please check that the filepaths are correct. '
+                'Otherwise, the remaining files have been loaded successfully.'
+            )
             msg.showinfo('Load preset error', message)
 
 
@@ -323,14 +427,12 @@ class Application(gui.Application):
         self.minus_button['state'] = 'normal'
 
         # Enable the entries in the file menu
-        self.file_menu.entryconfig(3, state='normal')
-        self.file_menu.entryconfig(5, state='normal')
+        for index in [3, 5]:
+            self.file_menu.entryconfig(index, state='normal')
 
         # Enable the entries in the edit menu
-        self.edit_menu.entryconfig(0, state='normal')
-        self.edit_menu.entryconfig(1, state='normal')
-        self.edit_menu.entryconfig(3, state='normal')
-        self.edit_menu.entryconfig(4, state='normal')
+        for index in [0, 1, 3, 4]:
+            self.edit_menu.entryconfig(index, state='normal')
 
 
     def disable(self):
@@ -343,14 +445,12 @@ class Application(gui.Application):
         self.minus_button['state'] = 'disabled'
 
         # Disable the entries in the file menu
-        self.file_menu.entryconfig(3, state='disabled')
-        self.file_menu.entryconfig(5, state='disabled')
+        for index in [3, 5]:
+            self.file_menu.entryconfig(index, state='disabled')
 
         # Disable the entries in the edit menu
-        self.edit_menu.entryconfig(0, state='disabled')
-        self.edit_menu.entryconfig(1, state='disabled')
-        self.edit_menu.entryconfig(3, state='disabled')
-        self.edit_menu.entryconfig(4, state='disabled')
+        for index in [0, 1, 3, 4]:
+            self.edit_menu.entryconfig(index, state='disabled')
 
 
     def reset(self):
@@ -430,19 +530,21 @@ class Application(gui.Application):
 
         # Ask the user to locate the file he/she wishes to add
         if special == 'Peak Valley':
-            filetypes = [
+            valid_filetypes = [
                 ('Data File (*.dat)', '*.dat'),
-                ('Comma-Separated Values (*.csv)', '*.csv')
+                ('Comma-Separated Values (*.csv)', '*.csv'),
             ]
         else:
-            filetypes = [
+            valid_filetypes = [
                 ('Comma-Separated values (*.csv)', '*.csv'),
                 ('Excel Spreadsheet (*.xls)', '*.xls'),
                 ('Excel Spreadsheet (*.xlsx)', '*.xlsx'),
-                ('Data File (*.dat)', '*.dat')
+                ('Data File (*.dat)', '*.dat'),
             ]
-        filepath = fd.askopenfilename(title='Choose the file',
-                                      filetypes=filetypes)
+        filepath = fd.askopenfilename(
+            title='Choose the file',
+            filetypes=valid_filetypes,
+        )
 
         # Don't continue if no filepath was selected by the user
         if len(filepath) == 0: return
@@ -566,29 +668,34 @@ class Application(gui.Application):
                 message += 'There were multiple problems with your input:\n'
             if blanks:
                 if count == 1:
-                    message += "It looks like you've left required fields" \
-                                " blank."
+                    message += (
+                        "It looks like you've left required fields blank."
+                    )
                 else:
                     message += " - Required field(s) left blank\n"
             if length:
                 if count == 1:
-                    message += "It looks like you\'ve entered more than one " \
-                               "row or column in a field that cannot accept it."
+                    message += (
+                        "It looks like you\'ve entered more than one row or "
+                        "column in a field that cannot accept it."
+                    )
                 else:
                     message += " - Overloaded field(s)\n"
             if rows:
                 if count == 1:
-                    message += "It looks like you\'ve entered a row number in" \
-                               " a field that is equal to or greater than the" \
-                               " row you've entered in the corresponding " \
-                               "'data start row' field."
+                    message += (
+                        "It looks like you've entered a row number in a field "
+                        "that is equal to or greater than the row you've "
+                        "entered in the corresponding 'data start row' field."
+                    )
                 else:
                     message += " - Invalid row selection(s)\n"
             if columns:
                 if count == 1:
-                    message += "It looks like you've entered a column " \
-                                "number that is out of range in one or " \
-                                "more fields."
+                    message += (
+                        "It looks like you've entered a column number that is "
+                        "out of range in one or more fields."
+                    )
                 else:
                     message += " - Invalid column selection(s)\n"
             message += '\nPlease correct and try again.'
@@ -1497,7 +1604,7 @@ class Help(tk.Toplevel):
 
 # Initialize the application
 app = Application()
-# Run a test function
-app.after(100, app.test)
-# Run the program in a continuous loop
+# # Run a test function
+# app.after(100, app.test)
+# Launch the application
 app.mainloop()
