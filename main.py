@@ -471,8 +471,11 @@ class Application(gui.Application):
         self.files = []
 
         # Recreate the message that tells the user there are no inputs loaded
-        message = 'Please provide at least one input file.\n\n' \
-                  'Controls will appear here.'
+        message = (
+            'Please provide at least one input file.\n'
+            '\n'
+            'Controls will appear here.'
+        )
         no_input_label = tk.Label(self.primary, text=message)
         no_input_label.grid(row=0, column=0, sticky='NSEW')
 
@@ -1198,17 +1201,19 @@ class Help(tk.Toplevel):
             self.destroy()
             app.HELP = False
 
+        # Initialize constants
         MARGIN = 12
         VERDANA = ('Verdana', 10, 'bold')
         HELVETICA = ('Helvetica', 10, 'bold')
 
+        # Initialize the gelp/top-level window
         tk.Toplevel.__init__(self, *args, **kwargs)
-
         self.title('Help')
         self.resizable(width=False, height=False)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", on_close)
 
+        # Create a notebook to hold the information in
         help_book = ttk.Notebook(self)
         help_book.grid(row=0, column=0, padx=MARGIN, pady=MARGIN, sticky='NSEW')
 
@@ -1216,47 +1221,54 @@ class Help(tk.Toplevel):
         inputs = gui.ScrollableTab(help_book, 'Inputs', cheight=400, cwidth=375)
 
         input_labels = [
-                    'Data start rows',
-                    'Label rows',
-                    'Unit rows [optional]',
-                    'x column',
-                    'y1 columns [multiple inputs]',
-                    'y2 columns [optional] [multiple inputs]',
-                    'Title [optional]',
-                    'x axis label [optional]',
-                    'y1 axis label [optional]',
-                    'y2 axis label [optional]',
-                    'Other',
-                   ]
+            'Data start rows',
+            'Label rows',
+            'Unit rows [optional]',
+            'x column',
+            'y1 columns [multiple inputs]',
+            'y2 columns [optional] [multiple inputs]',
+            'Title [optional]',
+            'x axis label [optional]',
+            'y1 axis label [optional]',
+            'y2 axis label [optional]',
+            'Other',
+        ]
 
         input_text = [
-                       'The row number that the data starts on.',
-                       'The row number that the series labels are found on.',
-                       'The row number that the units are found on.',
-                       'The column to plot on the x-axis.',
-                       'The column(s) to plot on the primary y-axis.',
-                       'The column(s) to plot on the secondary y-axis.',
-                       'Overwrites the pregenerated title.',
-                       'Overwrites the pregenerated x-axis label.',
-                       'Overwrites the pregenerated primary y-axis label.',
-                       'Overwrites the pregenerated secondary y-axis label.',
-                       "In a field where multiple inputs are allowed " \
-                            "(i.e. 'y1 columns' and 'y2 columns'), " \
-                            "separate the inputs with any non-numeric " \
-                            "character(s).\n" \
-                       "\nFor example, '1;3;5;7' and '1abc3.5 7' will " \
-                            "successfully plot columns 1, 3, 5, and 7, but " \
-                            "'1357' or '1133577' will not."
-                     ]
+            'The row number that the data starts on.',
+            'The row number that the series labels are found on.',
+            'The row number that the units are found on.',
+            'The column to plot on the x-axis.',
+            'The column(s) to plot on the primary y-axis.',
+            'The column(s) to plot on the secondary y-axis.',
+            'Overwrites the pregenerated title.',
+            'Overwrites the pregenerated x-axis label.',
+            'Overwrites the pregenerated primary y-axis label.',
+            'Overwrites the pregenerated secondary y-axis label.',
+            (
+                "In a field where multiple inputs are allowed "
+                "(i.e. 'y1 columns' and 'y2 columns'), "
+                "separate the inputs with any non-numeric character(s).\n"
+                "\n"
+                "For example, '1;3;5;7' and '1abc3.5 7' will "
+                "successfully plot columns 1, 3, 5, and 7, but "
+                "'1357' or '1133577' will not."
+            ),
+        ]
 
+        # Initialize the help row counter
         help_row = 0
 
         for i, INPUT in enumerate(input_text):
             inputs.grid_rowconfigure(help_row, minsize=MARGIN)
             help_row += 1
 
-            title = tk.Label(inputs, text=input_labels[i], wraplength=345,
-                font=('Helvetica', 8, 'bold'))
+            title = tk.Label(
+                inputs,
+                text=input_labels[i],
+                wraplength=345,
+                font=('Helvetica', 8, 'bold'),
+            )
             title.grid(row=help_row, column=0, padx=10, sticky="W")
             help_row += 1
 
@@ -1288,16 +1300,26 @@ class Help(tk.Toplevel):
         plus_label = ttk.Button(plus_frame, takefocus=0, image=plus_image)
         plus_label.image = plus_image
         plus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
-        plus_separator = gui.Separator(plus_frame, orientation='vertical',
-                         padding=((0, 10), 0))
+        plus_separator = gui.Separator(
+            plus_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         plus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         plus_title = ttk.Label(plus_frame, text='Create Row', font=HELVETICA)
         plus_title.grid(row=0, column=2, sticky='EW')
-        plus_description = ttk.Label(plus_frame,
-                    text='Creates a row at the bottom of the selected file.')
+        plus_description = ttk.Label(
+            plus_frame,
+            text='Creates a row at the bottom of the selected file.',
+        )
         plus_description.grid(row=1, column=2, sticky='EW')
-        plus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
-                        sticky='NSEW')
+        plus_frame.grid(
+            row=controls_row,
+            column=0,
+            padx=MARGIN,
+            pady=MARGIN,
+            sticky='NSEW',
+        )
         controls_row += 1
 
         minus_frame = tk.Frame(controls)
@@ -1305,13 +1327,18 @@ class Help(tk.Toplevel):
         minus_label = ttk.Button(minus_frame, takefocus=0, image=minus_image)
         minus_label.image = minus_image
         minus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
-        minus_separator = gui.Separator(minus_frame, orientation='vertical',
-                                        padding=((0, 10), 0))
+        minus_separator = gui.Separator(
+            minus_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         minus_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         minus_title = ttk.Label(minus_frame, text='Delete Row', font=HELVETICA)
         minus_title.grid(row=0, column=2, sticky='EW')
-        minus_description = ttk.Label(minus_frame,
-                            text='Deletes the bottom row of the selected file.')
+        minus_description = ttk.Label(
+            minus_frame,
+            text='Deletes the bottom row of the selected file.',
+        )
         minus_description.grid(row=1, column=2, sticky='EW')
         minus_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
                          sticky='NSEW')
@@ -1322,16 +1349,26 @@ class Help(tk.Toplevel):
         copy_label = ttk.Button(copy_frame, takefocus=0, image=copy_image)
         copy_label.image = copy_image
         copy_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
-        copy_separator = gui.Separator(copy_frame, orientation='vertical',
-                                       padding=((0, 10), 0))
+        copy_separator = gui.Separator(
+            copy_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         copy_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         copy_title = ttk.Label(copy_frame, text='Copy', font=HELVETICA)
         copy_title.grid(row=0, column=2, sticky='EW')
-        copy_description = ttk.Label(copy_frame,
-                           text='Copy data from the respective fields.')
+        copy_description = ttk.Label(
+            copy_frame,
+            text='Copy data from the respective fields.',
+        )
         copy_description.grid(row=1, column=2, sticky='EW')
-        copy_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
-                        sticky='NSEW')
+        copy_frame.grid(
+            row=controls_row,
+            column=0,
+            padx=MARGIN,
+            pady=MARGIN,
+            sticky='NSEW',
+        )
         controls_row += 1
 
         paste_frame = tk.Frame(controls)
@@ -1339,16 +1376,26 @@ class Help(tk.Toplevel):
         paste_label = ttk.Button(paste_frame, takefocus=0, image=paste_image)
         paste_label.image = paste_image
         paste_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
-        paste_separator = gui.Separator(paste_frame, orientation='vertical',
-                                        padding=((0, 10), 0))
+        paste_separator = gui.Separator(
+            paste_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         paste_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         paste_title = ttk.Label(paste_frame, text='Paste', font=HELVETICA)
         paste_title.grid(row=0, column=2, sticky='EW')
-        paste_description = ttk.Label(paste_frame,
-                            text='Pastes data into the respective fields.')
+        paste_description = ttk.Label(
+            paste_frame,
+            text='Pastes data into the respective fields.',
+        )
         paste_description.grid(row=1, column=2, sticky='EW')
-        paste_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
-                         sticky='NSEW')
+        paste_frame.grid(
+            row=controls_row,
+            column=0,
+            padx=MARGIN,
+            pady=MARGIN,
+            sticky='NSEW',
+        )
         controls_row += 1
 
         clear_frame = tk.Frame(controls)
@@ -1356,86 +1403,134 @@ class Help(tk.Toplevel):
         clear_label = ttk.Button(clear_frame, takefocus=0, image=clear_image)
         clear_label.image = clear_image
         clear_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
-        clear_separator = gui.Separator(clear_frame, orientation='vertical',
-                                        padding=((0, 10), 0))
+        clear_separator = gui.Separator(
+            clear_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         clear_separator.grid(row=0, column=1, rowspan=2, sticky='NS')
         clear_title = ttk.Label(clear_frame, text='Clear', font=HELVETICA)
         clear_title.grid(row=0, column=2, sticky='EW')
-        clear_description = ttk.Label(clear_frame,
-                            text='Clear data from the respective fields.')
+        clear_description = ttk.Label(
+            clear_frame,
+            text='Clear data from the respective fields.',
+        )
         clear_description.grid(row=1, column=2, sticky='EW')
-        clear_frame.grid(row=controls_row, column=0, padx=MARGIN, pady=MARGIN,
-                         sticky='NSEW')
+        clear_frame.grid(
+            row=controls_row,
+            column=0,
+            padx=MARGIN,
+            pady=MARGIN,
+            sticky='NSEW',
+        )
         controls_row += 1
 
         edit_menu_frame = tk.Frame(controls)
 
         label_frame = tk.Frame(edit_menu_frame)
-        menu1_label = ttk.Label(label_frame, text='Edit', anchor='center',
-                                font=HELVETICA)
+        menu1_label = ttk.Label(
+            label_frame,
+            text='Edit',
+            anchor='center',
+            font=HELVETICA,
+        )
         menu1_label.grid(row=1, column=0, sticky='NSEW')
-        menu2_label = ttk.Label(label_frame, text='Menu', anchor='center',
-                                font=HELVETICA)
+        menu2_label = ttk.Label(
+            label_frame,
+            text='Menu',
+            anchor='center',
+            font=HELVETICA,
+        )
         menu2_label.grid(row=2, column=0, sticky='NSEW')
         label_frame.grid_rowconfigure(0, weight=1)
         label_frame.grid_rowconfigure(3, weight=1)
         label_frame.grid(row=0, column=0, padx=(6, 15), sticky='NSEW')
 
-        edit_menu_separator = gui.Separator(edit_menu_frame,
-                                            orientation='vertical',
-                                            padding=((0, 10), 0))
+        edit_menu_separator = gui.Separator(
+            edit_menu_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         edit_menu_separator.grid(row=0, column=1, sticky='NS')
 
         descriptions_frame = tk.Frame(edit_menu_frame)
 
         clear_form_frame = tk.Frame(descriptions_frame)
-        clear_form_title = ttk.Label(clear_form_frame,
-                                     text='Edit > Clear Form',
-                                     font=HELVETICA)
+        clear_form_title = ttk.Label(
+            clear_form_frame,
+            text='Edit > Clear Form',
+            font=HELVETICA,
+        )
         clear_form_title.grid(row=0, column=2, sticky='EW')
-        clear_form_description = ttk.Label(clear_form_frame,
-                                 text='Clear data from all fields.')
+        clear_form_description = ttk.Label(
+            clear_form_frame,
+            text='Clear data from all fields.',
+        )
         clear_form_description.grid(row=1, column=2, sticky='EW')
-        clear_form_frame.grid(row=0, column=0, pady=(0, MARGIN/2),
-                              sticky='NSEW')
+        clear_form_frame.grid(
+            row=0,
+            column=0,
+            pady=(0, MARGIN/2),
+            sticky='NSEW',
+        )
 
         reset_frame = tk.Frame(descriptions_frame)
-        reset_title = ttk.Label(reset_frame,
-                                text='Edit > Reset Form',
-                                font=HELVETICA)
+        reset_title = ttk.Label(
+            reset_frame,
+            text='Edit > Reset Form',
+            font=HELVETICA,
+        )
         reset_title.grid(row=0, column=2, sticky='EW')
-        reset_description = ttk.Label(reset_frame,
-                            text='Clear inputs and revert form back to its ' \
-                                 'original state.')
+        reset_description = ttk.Label(
+            reset_frame,
+            text='Clear inputs and revert form back to its original state.',
+        )
         reset_description.grid(row=1, column=2, sticky='EW')
         reset_frame.grid(row=1, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_one_frame = tk.Frame(descriptions_frame)
-        paste_one_title = ttk.Label(paste_one_frame,
-                                    text='Edit > Paste (Selected File)',
-                                    font=HELVETICA)
+        paste_one_title = ttk.Label(
+            paste_one_frame,
+            text='Edit > Paste (Selected File)',
+            font=HELVETICA,
+        )
         paste_one_title.grid(row=0, column=2, sticky='EW')
-        paste_one_description = ttk.Label(paste_one_frame,
-                                text='Pastes contents of the clipboard into ' \
-                                     'all fields of the\nselected file.')
+        paste_one_description = ttk.Label(
+            paste_one_frame,
+            text=(
+                'Pastes contents of the clipboard into all fields of the\n'
+                'selected file.'
+            ),
+        )
         paste_one_description.grid(row=1, column=2, sticky='EW')
         paste_one_frame.grid(row=2, column=0, pady=MARGIN/2, sticky='NSEW')
 
         paste_all_frame = tk.Frame(descriptions_frame)
-        paste_all_title = ttk.Label(paste_all_frame,
-                                    text='Edit > Paste (All Files)',
-                                    font=HELVETICA)
+        paste_all_title = ttk.Label(
+            paste_all_frame,
+            text='Edit > Paste (All Files)',
+            font=HELVETICA,
+        )
         paste_all_title.grid(row=0, column=2, sticky='EW')
-        paste_all_description = ttk.Label(paste_all_frame,
-                                text='Pastes contents of the clipboard into ' \
-                                     'all fields of all\nfiles.')
+        paste_all_description = ttk.Label(
+            paste_all_frame,
+            text=(
+                'Pastes contents of the clipboard into all fields of all\n'
+                'files.'
+            ),
+        )
         paste_all_description.grid(row=1, column=2, sticky='EW')
         paste_all_frame.grid(row=3, column=0, pady=(MARGIN/2, 0), sticky='NSEW')
 
         descriptions_frame.grid(row=0, column=2, sticky='NSEW')
 
-        edit_menu_frame.grid(row=controls_row, column=0, padx=MARGIN,
-                             pady=MARGIN, sticky='NSEW')
+        edit_menu_frame.grid(
+            row=controls_row,
+            column=0,
+            padx=MARGIN,
+            pady=MARGIN,
+            sticky='NSEW',
+        )
 
         # Shortcuts tab
         shortcuts = gui.ScrollableTab(help_book, 'Shortcuts',
@@ -1450,19 +1545,33 @@ class Help(tk.Toplevel):
         enter_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         enter_frame.rowconfigure(0, minsize=ROW_SIZE)
         enter_frame.rowconfigure(1, minsize=ROW_SIZE)
-        enter_label = ttk.Label(enter_frame, text='<Enter>', anchor='center',
-                                font=VERDANA)
+        enter_label = ttk.Label(
+            enter_frame,
+            text='<Enter>',
+            anchor='center',
+            font=VERDANA,
+        )
         enter_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
                          sticky='NSEW')
-        enter_separator = gui.Separator(enter_frame, orientation='vertical',
-                                        padding=((0, 10), 0))
+        enter_separator = gui.Separator(
+            enter_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         enter_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        enter_title = ttk.Label(enter_frame, text='Keypress: Enter',
-                                font=HELVETICA)
+        enter_title = ttk.Label(
+            enter_frame,
+            text='Keypress: Enter',
+            font=HELVETICA,
+        )
         enter_title.grid(row=0, column=2, sticky='EW')
-        enter_description = ttk.Label(enter_frame,
-                text='Bound to the [Plot] button.\nTakes the user\'s inputs ' \
-                     'and plots the data.')
+        enter_description = ttk.Label(
+            enter_frame,
+            text=(
+                "Bound to the [Plot] button.\n"
+                "Takes the user's inputs and plots the data."
+            ),
+        )
         enter_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1471,21 +1580,37 @@ class Help(tk.Toplevel):
         create_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         create_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         create_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        create_row_label = ttk.Label(create_row_frame, text='<Ctrl>\n+ <+>',
-                                    anchor='center', font=VERDANA)
-        create_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
-                              sticky='NSEW')
-        create_row_separator = gui.Separator(create_row_frame,
-                                             orientation='vertical',
-                                             padding=((0, 10), 0))
+        create_row_label = ttk.Label(
+            create_row_frame, text='<Ctrl>\n+ <+>',
+            anchor='center',
+            font=VERDANA,
+        )
+        create_row_label.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(20, 10),
+            sticky='NSEW',
+        )
+        create_row_separator = gui.Separator(
+            create_row_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         create_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        create_row_title = ttk.Label(create_row_frame,
-                                     text='Combination: Control + Plus',
-                                     font=HELVETICA)
+        create_row_title = ttk.Label(
+            create_row_frame,
+                text='Combination: Control + Plus',
+                font=HELVETICA,
+        )
         create_row_title.grid(row=0, column=2, sticky='EW')
-        create_row_description = ttk.Label(create_row_frame,
-                                text='Bound to the [+] button.\nCreates a '\
-                                     'new row in the selected tab.')
+        create_row_description = ttk.Label(
+            create_row_frame,
+            text=(
+                'Bound to the [+] button.\n'
+                'Creates a new row in the selected tab.'
+            ),
+        )
         create_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1494,21 +1619,38 @@ class Help(tk.Toplevel):
         delete_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         delete_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         delete_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        delete_row_label = ttk.Label(delete_row_frame, text='<Ctrl>\n+ <->',
-                                     anchor='center', font=VERDANA)
-        delete_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
-                              sticky='NSEW')
-        delete_row_separator = gui.Separator(delete_row_frame,
-                                             orientation='vertical',
-                                             padding=((0, 10), 0))
+        delete_row_label = ttk.Label(
+            delete_row_frame,
+            text='<Ctrl>\n+ <->',
+            anchor='center',
+            font=VERDANA,
+        )
+        delete_row_label.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(20, 10),
+            sticky='NSEW',
+        )
+        delete_row_separator = gui.Separator(
+            delete_row_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         delete_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        delete_row_title = ttk.Label(delete_row_frame,
-                                     text='Combination: Control + Minus',
-                                     font=HELVETICA)
+        delete_row_title = ttk.Label(
+            delete_row_frame,
+            text='Combination: Control + Minus',
+            font=HELVETICA,
+        )
         delete_row_title.grid(row=0, column=2, sticky='EW')
-        delete_row_description = ttk.Label(delete_row_frame,
-                                 text='Bound to the [-] button.\nDeletes the ' \
-                                      'bottom row of the selected tab.')
+        delete_row_description = ttk.Label(
+            delete_row_frame,
+            text=(
+                'Bound to the [-] button.\n'
+                'Deletes the bottom row of the selected tab.'
+            ),
+        )
         delete_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1517,18 +1659,30 @@ class Help(tk.Toplevel):
         insert_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         insert_frame.rowconfigure(0, minsize=ROW_SIZE)
         insert_frame.rowconfigure(1, minsize=ROW_SIZE)
-        insert_label = ttk.Label(insert_frame, text='<Insert>', anchor='center',
-                                 font=VERDANA)
+        insert_label = ttk.Label(
+            insert_frame,
+            text='<Insert>',
+            anchor='center',
+            font=VERDANA,
+        )
         insert_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
                           sticky='NSEW')
-        insert_separator = gui.Separator(insert_frame, orientation='vertical',
-                                         padding=((0, 10), 0))
+        insert_separator = gui.Separator(
+            insert_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         insert_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        insert_title = ttk.Label(insert_frame, text='Keypress: Insert',
-                                 font=HELVETICA)
+        insert_title = ttk.Label(
+            insert_frame,
+            text='Keypress: Insert',
+            font=HELVETICA,
+        )
         insert_title.grid(row=0, column=2, sticky='EW')
-        insert_description = ttk.Label(insert_frame,
-                                       text='Selects the previous tab.')
+        insert_description = ttk.Label(
+            insert_frame,
+            text='Selects the previous tab.',
+        )
         insert_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1537,18 +1691,35 @@ class Help(tk.Toplevel):
         page_up_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         page_up_frame.rowconfigure(0, minsize=ROW_SIZE)
         page_up_frame.rowconfigure(1, minsize=ROW_SIZE)
-        page_up_label = ttk.Label(page_up_frame, text='<PgUp>', anchor='center',
-                                  font=VERDANA)
-        page_up_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
-                           sticky='NSEW')
-        page_up_separator = gui.Separator(page_up_frame, orientation='vertical',
-                                          padding=((0, 10), 0))
+        page_up_label = ttk.Label(
+            page_up_frame,
+            text='<PgUp>',
+            anchor='center',
+            font=VERDANA,
+        )
+        page_up_label.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(20, 10),
+            sticky='NSEW',
+        )
+        page_up_separator = gui.Separator(
+            page_up_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         page_up_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        page_up_title = ttk.Label(page_up_frame, text='Keypress: Page Up',
-                                  font=HELVETICA)
+        page_up_title = ttk.Label(
+            page_up_frame,
+            text='Keypress: Page Up',
+            font=HELVETICA,
+        )
         page_up_title.grid(row=0, column=2, sticky='EW')
-        page_up_description = ttk.Label(page_up_frame,
-                                        text='Selects the next tab.')
+        page_up_description = ttk.Label(
+            page_up_frame,
+            text='Selects the next tab.',
+        )
         page_up_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1557,20 +1728,35 @@ class Help(tk.Toplevel):
         previous_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         previous_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         previous_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        previous_row_label = ttk.Label(previous_row_frame,
-                                       text='  <Ctrl>\n+ <Shift>\n + <Tab>',
-                                       anchor='center', font=VERDANA)
-        previous_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
-                                sticky='NSEW')
-        previous_row_separator = gui.Separator(previous_row_frame,
-                                               orientation='vertical',
-                                               padding=((0, 10), 0))
+        previous_row_label = ttk.Label(
+            previous_row_frame,
+            text='  <Ctrl>\n+ <Shift>\n + <Tab>',
+            anchor='center',
+            font=VERDANA,
+        )
+        previous_row_label.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(20, 10),
+            sticky='NSEW',
+        )
+        previous_row_separator = gui.Separator(
+            previous_row_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         previous_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        previous_row_title = ttk.Label(previous_row_frame,
-            text='Combination: Control + Shift + Tab ', font=HELVETICA)
+        previous_row_title = ttk.Label(
+            previous_row_frame,
+            text='Combination: Control + Shift + Tab ',
+            font=HELVETICA,
+        )
         previous_row_title.grid(row=0, column=2, sticky='EW')
-        previous_row_description = ttk.Label(previous_row_frame,
-            text='Selects the currently selected field of the\nprevious row.')
+        previous_row_description = ttk.Label(
+            previous_row_frame,
+            text='Selects the currently selected field of the\nprevious row.',
+        )
         previous_row_description.grid(row=1, column=2, sticky='EW')
         shortcuts_row += 1
 
@@ -1579,21 +1765,38 @@ class Help(tk.Toplevel):
         next_row_frame.columnconfigure(0, minsize=COLUMN_SIZE)
         next_row_frame.rowconfigure(0, minsize=ROW_SIZE)
         next_row_frame.rowconfigure(1, minsize=ROW_SIZE)
-        next_row_label = ttk.Label(next_row_frame, text='  <Ctrl>\n+ <Tab>',
-            anchor='center', font=VERDANA)
-        next_row_label.grid(row=0, column=0, rowspan=2, padx=(20, 10),
-                            sticky='NSEW')
-        next_row_separator = gui.Separator(next_row_frame,
-                                           orientation='vertical',
-                                           padding=((0, 10), 0))
+        next_row_label = ttk.Label(
+            next_row_frame,
+            text='  <Ctrl>\n+ <Tab>',
+            anchor='center',
+            font=VERDANA,
+        )
+        next_row_label.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(20, 10),
+            sticky='NSEW',
+        )
+        next_row_separator = gui.Separator(
+            next_row_frame,
+            orientation='vertical',
+            padding=((0, 10), 0),
+        )
         next_row_separator.grid(row=0, column=1, rowspan=2, sticky='NSEW')
-        next_row_title = ttk.Label(next_row_frame,
-                                   text='Combination: Control + Tab ',
-                                   font=HELVETICA)
+        next_row_title = ttk.Label(
+            next_row_frame,
+            text='Combination: Control + Tab ',
+            font=HELVETICA,
+        )
         next_row_title.grid(row=0, column=2, sticky='EW')
-        next_row_description = ttk.Label(next_row_frame,
-                               text='Selects the currently selected field of ' \
-                                    'the\nnext row.')
+        next_row_description = ttk.Label(
+            next_row_frame,
+            text=(
+                'Selects the currently selected field of the\n'
+                'next row.'
+            ),
+        )
         next_row_description.grid(row=1, column=2, sticky='EW')
 
         gui.CenterWindow(self)
