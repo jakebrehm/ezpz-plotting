@@ -751,8 +751,10 @@ class Application(gui.Application):
 
         # Exit the function if the currently selected file is not basic
         if not isinstance(self.files[current], BasicFile):
-            message = "The 'Paste (Selected File)' feature only works for " \
-                      "basic files."
+            message = (
+                "The 'Paste (Selected File)' feature only works for basic "
+                "files."
+            )
             msg.showinfo('Invalid type', message)
             return
 
@@ -762,27 +764,28 @@ class Application(gui.Application):
         # Iterate through the rows of the currently selected file and delete the
         # contents of every field, then insert the contents of the clipboard.
         for row in range(len(self.files[current]._rows)):
+            tab = self.files[current]
             if self.clipboard['title']:
-                self.files[current]._titles[row].delete(0, 'end')
-                self.files[current]._titles[row].insert(0, self.clipboard['title'])
+                tab._titles[row].delete(0, 'end')
+                tab._titles[row].insert(0, self.clipboard['title'])
             if self.clipboard['x column']:
-                self.files[current]._x_columns[row].delete(0, 'end')
-                self.files[current]._x_columns[row].insert(0, self.clipboard['x column'])
+                tab._x_columns[row].delete(0, 'end')
+                tab._x_columns[row].insert(0, self.clipboard['x column'])
             if self.clipboard['y1 columns']:
-                self.files[current]._y1_columns[row].delete(0, 'end')
-                self.files[current]._y1_columns[row].insert(0, self.clipboard['y1 columns'])
+                tab._y1_columns[row].delete(0, 'end')
+                tab._y1_columns[row].insert(0, self.clipboard['y1 columns'])
             if self.clipboard['y2 columns']:
-                self.files[current]._y2_columns[row].delete(0, 'end')
-                self.files[current]._y2_columns[row].insert(0, self.clipboard['y2 columns'])
+                tab._y2_columns[row].delete(0, 'end')
+                tab._y2_columns[row].insert(0, self.clipboard['y2 columns'])
             if self.clipboard['x label']:
-                self.files[current]._x_labels[row].delete(0, 'end')
-                self.files[current]._x_labels[row].insert(0, self.clipboard['x label'])
+                tab._x_labels[row].delete(0, 'end')
+                tab._x_labels[row].insert(0, self.clipboard['x label'])
             if self.clipboard['y1 label']:
-                self.files[current]._y1_labels[row].delete(0, 'end')
-                self.files[current]._y1_labels[row].insert(0, self.clipboard['y1 label'])
+                tab._y1_labels[row].delete(0, 'end')
+                tab._y1_labels[row].insert(0, self.clipboard['y1 label'])
             if self.clipboard['y2 label']:
-                self.files[current]._y2_labels[row].delete(0, 'end')
-                self.files[current]._y2_labels[row].insert(0, self.clipboard['y2 label'])
+                tab._y2_labels[row].insert(0, self.clipboard['y2 label'])
+                tab._y2_labels[row].delete(0, 'end')
 
 
     def paste_all(self):
@@ -793,32 +796,32 @@ class Application(gui.Application):
 
         # Iterate through the rows of each file and delete the contents of
         # every field, then insert the contents of the clipboard.
-        for file in self.files:
-            if not isinstance(file, BasicFile): continue
+        for tab in self.files:
+            if not isinstance(tab, BasicFile): continue
             # Clear all files
-            file.clear_all(delete_header=False)
-            for row in range(len(file._rows)):
+            tab.clear_all(delete_header=False)
+            for row in range(len(tab._rows)):
                 if self.clipboard['title']:
-                    file._titles[row].delete(0, 'end')
-                    file._titles[row].insert(0, self.clipboard['title'])
+                    tab._titles[row].delete(0, 'end')
+                    tab._titles[row].insert(0, self.clipboard['title'])
                 if self.clipboard['x column']:
-                    file._x_columns[row].delete(0, 'end')
-                    file._x_columns[row].insert(0, self.clipboard['x column'])
+                    tab._x_columns[row].delete(0, 'end')
+                    tab._x_columns[row].insert(0, self.clipboard['x column'])
                 if self.clipboard['y1 columns']:
-                    file._y1_columns[row].delete(0, 'end')
-                    file._y1_columns[row].insert(0, self.clipboard['y1 columns'])
+                    tab._y1_columns[row].delete(0, 'end')
+                    tab._y1_columns[row].insert(0, self.clipboard['y1 columns'])
                 if self.clipboard['y2 columns']:
-                    file._y2_columns[row].delete(0, 'end')
-                    file._y2_columns[row].insert(0, self.clipboard['y2 columns'])
+                    tab._y2_columns[row].delete(0, 'end')
+                    tab._y2_columns[row].insert(0, self.clipboard['y2 columns'])
                 if self.clipboard['x label']:
-                    file._x_labels[row].delete(0, 'end')
-                    file._x_labels[row].insert(0, self.clipboard['x label'])
+                    tab._x_labels[row].delete(0, 'end')
+                    tab._x_labels[row].insert(0, self.clipboard['x label'])
                 if self.clipboard['y1 label']:
-                    file._y1_labels[row].delete(0, 'end')
-                    file._y1_labels[row].insert(0, self.clipboard['y1 label'])
+                    tab._y1_labels[row].delete(0, 'end')
+                    tab._y1_labels[row].insert(0, self.clipboard['y1 label'])
                 if self.clipboard['y2 label']:
-                    file._y2_labels[row].delete(0, 'end')
-                    file._y2_labels[row].insert(0, self.clipboard['y2 label'])
+                    tab._y2_labels[row].delete(0, 'end')
+                    tab._y2_labels[row].insert(0, self.clipboard['y2 label'])
 
 
     def clear_all(self):
