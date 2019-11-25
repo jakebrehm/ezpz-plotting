@@ -505,366 +505,11 @@ class PeakValleyFile(gui.ScrollableTab):
 	def add_plot(self):
 		"""Create a new plot object and hold a reference to it."""
 
-		class Plot:
-			"""Object that holds information about a singular plot."""
-
-			def __init__(self):
-				# self.FAILURES_DETERMINED = False
-				# self.DATA_SPLIT = False
-				self.lower = None
-				self.upper = None
-
-			def _x_data(self, x_column):
-				"""Pull the appropriate x-information from the data."""
-
-				return self.section.data.iloc[:, x_column-1].copy(deep=True)
-
-			def _y_data(self, y_column):
-				"""Pull the appropriate y-information from the data."""
-
-				return self.section.data.iloc[:, y_column-1].copy(deep=True)
-
-			def _get_pairings(self):
-
-				average = self.y1_original.mean().item()
-				data = self.y1_original.values.flatten().tolist()
-
-				pairs = []
-				temporary = []
-				for i in range(len(data)):
-					if len(temporary) == 0:
-						temporary.append(data[i])
-						if data[i] > average:
-							pairs.append(temporary)
-							temporary = []
-					elif len(temporary) == 1:
-						if temporary[0] > average or data[i] <= average:
-							pairs.append(temporary)
-							temporary = []
-						temporary.append(data[i])
-					elif len(temporary) == 2:
-						pairs.append(temporary)
-						temporary = [data[i]]
-				else:
-					pairs.append(temporary)
-
-				return pairs
-
-			def convert(self):
-
-				self.x = self.x / 2
-
-				for i in range(len(self.x)):
-					self.x.iloc[i] = math.floor(self.x.iloc[i])
-
-				self.DATA_CONVERTED = True
-
-			def determine_failures(self, lower, upper):
-
-				self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
-				self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
-				# self.fail_index = self.y_failed.index.values
-
-				self.x_passed = self.x[~self.y1.isin(self.y_failed)]
-				self.y_passed = self.y1[~self.y1.isin(self.y_failed)]
-				# self.pass_index = self.y_passed.index.values
-
-				self.total = len(self.y1)
-				self.fail_count = len(self.y_failed)
-				self.pass_count = len(self.y_passed)
-
-				self.x = [self.x_failed, self.x_passed]
-				self.y1 = [self.y_failed, self.y_passed]
-
-				self.FAILURES_DETERMINED = True
-				self.lower = lower
-				self.upper = upper
-				self.count_failures()
-
-			def count_counter(self):
-
-				pairs = self._get_pairings()
-				data = self.y1_original.values.flatten().tolist()
-
-				self.total_segments = len(data)
-				self.total_cycles = len(pairs)
-
-			def count_failures(self):
-
-				pairs = self._get_pairings()
-				data = self.y1_original.values.flatten().tolist()
-
-				LOWER = self.lower
-				UPPER = self.upper
-				booleans = []
-				for pair in pairs:
-					if len(pair) == 1:
-						if LOWER <= pair[0] <= UPPER:
-							booleans.append(False)
-						else:
-							booleans.append(True)
-					elif len(pair) == 2:
-						temporary = []
-						for item in pair:
-							temporary.append(False if LOWER <= item <= UPPER else True)
-						if all(item is True for item in temporary):
-							booleans.append(True)
-						else:
-							booleans.append(False)
-
-				# self.total_segments = len(data)
-				# self.total_cycles = len(pairs)
-
-				self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
-				self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
-
-				self.passed_cycles = booleans.count(True)
-				self.failed_cycles = booleans.count(False)
-
-			def split(self):
-
-				average = sum(self.y1_original) / len(self.y1_original)
-				if not self.FAILURES_DETERMINED:
-					x_valleys = self.x[self.y1 < average]
-					x_peaks = self.x[self.y1 > average]
-					y_valleys = self.y1[self.y1 < average]
-					y_peaks = self.y1[self.y1 > average]
-					self.x = [x_valleys, x_peaks]
-					self.y1 = [y_valleys, y_peaks]
-				else:
-					x_valleys = self.x[1][self.y1[1] < average]
-					x_peaks = self.x[1][self.y1[1] > average]
-					y_valleys = self.y1[1][self.y1[1] < average]
-					y_peaks = self.y1[1][self.y1[1] > average]
-					self.x = [self.x[0], x_valleys, x_peaks]
-					self.y1 = [self.y1[0], y_valleys, y_peaks]
-
-				self.DATA_SPLIT = True
-
-			def zero(self):
-
-				first = None
-				if isinstance(self.x, list):
-					for item in self.x:
-						if item.empty: continue
-						minimum = min(item)
-						if first is None:
-							first = minimum
-						else:
-							if minimum < first:
-								first = minimum
-				elif isinstance(self.x, pd.Series):
-					first = min(self.x)
-
-				for i in range(len(self.x)):
-					self.x[i] = self.x[i] - first + 1
-
-				self.DATA_ZEROED = True
-
-			def _generate(self, section, counter, labels,
-						  x_column, y_column, units=None):
-				"""The main function for the object which stores the inputs and calls
-				other relevant functions."""
-
-				# Reset certain variables each time this function runs
-				# (typically when the plot button is pressed)
-				self.FAILURES_DETERMINED = False
-				self.DATA_CONVERTED = False
-				self.DATA_SPLIT = False
-				self.DATA_ZEROED = False
-
-				# Store the inputs as instance variables
-				self.section = section
-				self.counter = counter
-				self.labels = labels
-				# self.units = units # Rename due to conflict? Necessary?
-				self.unit_row = units # Rename due to conflict? Necessary?
-				self.x_column = x_column
-				self.y_column = y_column
-
-				# Grab the relevant data and store as instance variables
-				self.x = self._x_data(self.x_column)
-				self.y1 = self._y_data(self.y_column)
-				self.x_original = self.x.copy()
-				self.y1_original = self.y1.copy()
-
-				self.section.parse_labels(labels)
-				self.labels = self.section.labels
-				self.section.parse_units(units)
-				self.units = self.section.units if units is not None else None
-
-				self.count_counter()
-
-			def construct_labels(self):
-				x_label = self.labels.iloc[self.x_column - 1]
-				x_unit = self.units.iloc[self.x_column - 1] if self.units is not None else None
-				self.x_label = f'{x_label} ({x_unit})' if x_unit else f'{x_label}'
-				
-				y1_label = self.labels.iloc[self.y_column - 1]
-				y1_unit = self.units.iloc[self.y_column - 1] if self.units is not None else None
-				self.y1_label = f'{y1_label} ({y1_unit})' if y1_unit else f'{y1_label}'
-
-				date = self.section.date
-				time = self.section.time
-
-				if self.counter == 'cycles' or self.DATA_CONVERTED:
-					counter_type = 'Cycles'
-				elif self.counter == 'segments':
-					counter_type = 'Segments'
-				elif self.counter == 'other':
-					counter_type = 'Count'
-
-				# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
-				total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
-				self.title = f'{date} {time}' + '\n' \
-							 f'{counter_type} 1 to {total}' + '\n' \
-							 f'{y1_label} vs. {x_label}'
-
-			def update_plot(self, flipbook, file_number, plot_number):
-
-				# Create a reference to the flipbook's primary axis for shorthand
-				primary = flipbook.primary
-
-				# Display the filename of the current plot
-				filename = flipbook.info[file_number].filename
-				flipbook.filename.set(f'{filename} - Plot {plot_number + 1}')
-
-				# Essentially reset the secondary axis by clearing and turning it off if it exists,
-				# then setting the self.secondary variable to None
-				if flipbook.secondary:
-				    flipbook.secondary.clear()
-				    flipbook.secondary.axis('off')
-				flipbook.secondary = None
-
-				# Clear the primary axis as well
-				primary.clear()
-
-				# Set the appropriate coordinates format to display on the flipbook
-				primary.set_zorder(1000)
-				primary.format_coord = flipbook._coordinates(flipbook.primary, None, False)
-
-				# Plot the data as a scatterplot
-				MARKER_SIZE = 1.5 ** 2
-				if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x, self.y1, c=pv_colors['general'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['general'])
-				elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
-					primary.scatter(self.x[2], self.y1[2], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
-				elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
-					primary.scatter(self.x[1], self.y1[1], c=pv_colors['pass'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['pass'])
-				elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-					primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
-					primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
-
-				# Plot horizontal lines showing pass/fail criteria
-				if self.FAILURES_DETERMINED:
-					primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.3)
-					primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.3)
-
-				# Determine the minimum and maximum values of the x data
-				min_x = None
-				max_x = None
-				if isinstance(self.x, list):
-					for item in self.x:
-						if item.empty: continue
-						minimum = min(item.dropna())
-						if min_x is None or minimum < min_x:
-							min_x = minimum
-						maximum = max(item.dropna())
-						if max_x is None or maximum > max_x:
-							max_x = maximum
-				elif isinstance(self.x, pd.Series):
-					min_x = min(self.x.dropna())
-					max_x = max(self.x.dropna())
-				# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
-				padding = (max_x - min_x) * (100/90) * (0.05)
-				# Store the original x-axis limits to allow the user to revert to them if desired.
-				self.x_lower_original = min_x - padding
-				self.x_upper_original = max_x + padding
-				primary.set_xlim(self.x_lower_original, self.x_upper_original)
-				# Store the original y-axis limits to allow the user to revert to them if desired.
-				self.y1_lower_original = primary.get_ylim()[0]
-				self.y1_upper_original = primary.get_ylim()[1]
-
-				# Turn the grid on, with both major and minor gridlines
-				primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
-				primary.minorticks_on()
-				primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
-
-				# Set the title
-				flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=12)
-				# Construct the axis labels further if necessary
-				if self.counter == 'segments' and self.DATA_CONVERTED:
-					self.x_label = self.x_label.replace('segments', 'cycles')
-				# Set the axis labels
-				primary.set_xlabel(self.x_label)
-				primary.set_ylabel(self.y1_label)
-
-				# If pass/fail criteria were specified...
-				if self.FAILURES_DETERMINED:
-					if self.counter != 'other':
-						# Add a text box listing the number of passes and fails
-						props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-						if self.counter == 'cycles' or self.DATA_CONVERTED:
-							counter_type = 'Cycles'
-							failed = self.failed_cycles
-							passed = self.passed_cycles
-						elif self.counter == 'segments':
-							counter_type = 'Segments'
-							failed = self.failed_segments
-							passed = self.passed_segments
-						elif self.counter == 'other':
-							counter_type = ''
-							failed = self.failed_segments
-							passed = self.passed_segments
-						text = f'{failed} Failed {counter_type}' + '\n' \
-							f'{passed} Passed {counter_type}'
-						primary.text(0.80, 1.05, text, transform=primary.transAxes,
-									fontsize=12, bbox=props)
-					# Add text boxes describing the limit lines
-					upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
-					x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
-					primary.text(x_position, upper_y,
-								f'Minimum Peak: {self.upper}',
-								fontsize=10, bbox=props, ha='center', va='top')
-					lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
-					primary.text(x_position, lower_y,
-								f'Maximum Valley: {self.lower}',
-								fontsize=10, bbox=props, ha='center', va='bottom')
-
-				# Determine the maximum number of columns in the legend
-				columns = len(self.x) if isinstance(self.x, list) else 1
-				# Create the legend
-				legend = flipbook.primary.legend(
-								loc = 'lower left',
-								fancybox = True,
-								shadow = True,
-								ncol = columns,
-								mode = 'expand',
-								bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
-					)
-				# Make the legend draggable (possibly a control in the future)
-				legend.set_draggable(state=True)
-
-				# Use the seaborn plot style
-				plt.style.use('seaborn')
-
-				# Load the Tactair image and display it on the plot
-				image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
-				x_low, x_high = primary.get_xlim()
-				y_low, y_high = primary.get_ylim()
-				primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
-
-			def on_click(self, event, flipbook):
-				pass
-
 		# Enable the header
 		self._enable_header()
 
 		# Create a new plot object and hold a reference to it
-		plot = Plot()
+		plot = PeakValleyPlot()
 		self.plots.append(plot)
 
 
@@ -925,6 +570,363 @@ class PeakValleyFile(gui.ScrollableTab):
 			if zero: plot.zero()
 
 			plot.construct_labels()
+
+
+
+class PeakValleyPlot:
+	"""Object that holds information about a singular plot."""
+
+	def __init__(self):
+		# self.FAILURES_DETERMINED = False
+		# self.DATA_SPLIT = False
+		self.lower = None
+		self.upper = None
+
+	def _x_data(self, x_column):
+		"""Pull the appropriate x-information from the data."""
+
+		return self.section.data.iloc[:, x_column-1].copy(deep=True)
+
+	def _y_data(self, y_column):
+		"""Pull the appropriate y-information from the data."""
+
+		return self.section.data.iloc[:, y_column-1].copy(deep=True)
+
+	def _get_pairings(self):
+
+		average = self.y1_original.mean().item()
+		data = self.y1_original.values.flatten().tolist()
+
+		pairs = []
+		temporary = []
+		for i in range(len(data)):
+			if len(temporary) == 0:
+				temporary.append(data[i])
+				if data[i] > average:
+					pairs.append(temporary)
+					temporary = []
+			elif len(temporary) == 1:
+				if temporary[0] > average or data[i] <= average:
+					pairs.append(temporary)
+					temporary = []
+				temporary.append(data[i])
+			elif len(temporary) == 2:
+				pairs.append(temporary)
+				temporary = [data[i]]
+		else:
+			pairs.append(temporary)
+
+		return pairs
+
+	def convert(self):
+
+		self.x = self.x / 2
+
+		for i in range(len(self.x)):
+			self.x.iloc[i] = math.floor(self.x.iloc[i])
+
+		self.DATA_CONVERTED = True
+
+	def determine_failures(self, lower, upper):
+
+		self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
+		self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
+		# self.fail_index = self.y_failed.index.values
+
+		self.x_passed = self.x[~self.y1.isin(self.y_failed)]
+		self.y_passed = self.y1[~self.y1.isin(self.y_failed)]
+		# self.pass_index = self.y_passed.index.values
+
+		self.total = len(self.y1)
+		self.fail_count = len(self.y_failed)
+		self.pass_count = len(self.y_passed)
+
+		self.x = [self.x_failed, self.x_passed]
+		self.y1 = [self.y_failed, self.y_passed]
+
+		self.FAILURES_DETERMINED = True
+		self.lower = lower
+		self.upper = upper
+		self.count_failures()
+
+	def count_counter(self):
+
+		pairs = self._get_pairings()
+		data = self.y1_original.values.flatten().tolist()
+
+		self.total_segments = len(data)
+		self.total_cycles = len(pairs)
+
+	def count_failures(self):
+
+		pairs = self._get_pairings()
+		data = self.y1_original.values.flatten().tolist()
+
+		LOWER = self.lower
+		UPPER = self.upper
+		booleans = []
+		for pair in pairs:
+			if len(pair) == 1:
+				if LOWER <= pair[0] <= UPPER:
+					booleans.append(False)
+				else:
+					booleans.append(True)
+			elif len(pair) == 2:
+				temporary = []
+				for item in pair:
+					temporary.append(False if LOWER <= item <= UPPER else True)
+				if all(item is True for item in temporary):
+					booleans.append(True)
+				else:
+					booleans.append(False)
+
+		# self.total_segments = len(data)
+		# self.total_cycles = len(pairs)
+
+		self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
+		self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
+
+		self.passed_cycles = booleans.count(True)
+		self.failed_cycles = booleans.count(False)
+
+	def split(self):
+
+		average = sum(self.y1_original) / len(self.y1_original)
+		if not self.FAILURES_DETERMINED:
+			x_valleys = self.x[self.y1 < average]
+			x_peaks = self.x[self.y1 > average]
+			y_valleys = self.y1[self.y1 < average]
+			y_peaks = self.y1[self.y1 > average]
+			self.x = [x_valleys, x_peaks]
+			self.y1 = [y_valleys, y_peaks]
+		else:
+			x_valleys = self.x[1][self.y1[1] < average]
+			x_peaks = self.x[1][self.y1[1] > average]
+			y_valleys = self.y1[1][self.y1[1] < average]
+			y_peaks = self.y1[1][self.y1[1] > average]
+			self.x = [self.x[0], x_valleys, x_peaks]
+			self.y1 = [self.y1[0], y_valleys, y_peaks]
+
+		self.DATA_SPLIT = True
+
+	def zero(self):
+
+		first = None
+		if isinstance(self.x, list):
+			for item in self.x:
+				if item.empty: continue
+				minimum = min(item)
+				if first is None:
+					first = minimum
+				else:
+					if minimum < first:
+						first = minimum
+		elif isinstance(self.x, pd.Series):
+			first = min(self.x)
+
+		for i in range(len(self.x)):
+			self.x[i] = self.x[i] - first + 1
+
+		self.DATA_ZEROED = True
+
+	def _generate(self, section, counter, labels,
+					x_column, y_column, units=None):
+		"""The main function for the object which stores the inputs and calls
+		other relevant functions."""
+
+		# Reset certain variables each time this function runs
+		# (typically when the plot button is pressed)
+		self.FAILURES_DETERMINED = False
+		self.DATA_CONVERTED = False
+		self.DATA_SPLIT = False
+		self.DATA_ZEROED = False
+
+		# Store the inputs as instance variables
+		self.section = section
+		self.counter = counter
+		self.labels = labels
+		# self.units = units # Rename due to conflict? Necessary?
+		self.unit_row = units # Rename due to conflict? Necessary?
+		self.x_column = x_column
+		self.y_column = y_column
+
+		# Grab the relevant data and store as instance variables
+		self.x = self._x_data(self.x_column)
+		self.y1 = self._y_data(self.y_column)
+		self.x_original = self.x.copy()
+		self.y1_original = self.y1.copy()
+
+		self.section.parse_labels(labels)
+		self.labels = self.section.labels
+		self.section.parse_units(units)
+		self.units = self.section.units if units is not None else None
+
+		self.count_counter()
+
+	def construct_labels(self):
+		x_label = self.labels.iloc[self.x_column - 1]
+		x_unit = self.units.iloc[self.x_column - 1] if self.units is not None else None
+		self.x_label = f'{x_label} ({x_unit})' if x_unit else f'{x_label}'
+		
+		y1_label = self.labels.iloc[self.y_column - 1]
+		y1_unit = self.units.iloc[self.y_column - 1] if self.units is not None else None
+		self.y1_label = f'{y1_label} ({y1_unit})' if y1_unit else f'{y1_label}'
+
+		date = self.section.date
+		time = self.section.time
+
+		if self.counter == 'cycles' or self.DATA_CONVERTED:
+			counter_type = 'Cycles'
+		elif self.counter == 'segments':
+			counter_type = 'Segments'
+		elif self.counter == 'other':
+			counter_type = 'Count'
+
+		# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
+		total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
+		self.title = f'{date} {time}' + '\n' \
+						f'{counter_type} 1 to {total}' + '\n' \
+						f'{y1_label} vs. {x_label}'
+
+	def update_plot(self, flipbook, file_number, plot_number):
+
+		# Create a reference to the flipbook's primary axis for shorthand
+		primary = flipbook.primary
+
+		# Display the filename of the current plot
+		filename = flipbook.info[file_number].filename
+		flipbook.filename.set(f'{filename} - Plot {plot_number + 1}')
+
+		# Essentially reset the secondary axis by clearing and turning it off if it exists,
+		# then setting the self.secondary variable to None
+		if flipbook.secondary:
+			flipbook.secondary.clear()
+			flipbook.secondary.axis('off')
+		flipbook.secondary = None
+
+		# Clear the primary axis as well
+		primary.clear()
+
+		# Set the appropriate coordinates format to display on the flipbook
+		primary.set_zorder(1000)
+		primary.format_coord = flipbook._coordinates(flipbook.primary, None, False)
+
+		# Plot the data as a scatterplot
+		MARKER_SIZE = 1.5 ** 2
+		if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
+			primary.scatter(self.x, self.y1, c=pv_colors['general'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['general'])
+		elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+			primary.scatter(self.x[2], self.y1[2], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
+		elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['pass'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['pass'])
+		elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
+
+		# Plot horizontal lines showing pass/fail criteria
+		if self.FAILURES_DETERMINED:
+			primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.3)
+			primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.3)
+
+		# Determine the minimum and maximum values of the x data
+		min_x = None
+		max_x = None
+		if isinstance(self.x, list):
+			for item in self.x:
+				if item.empty: continue
+				minimum = min(item.dropna())
+				if min_x is None or minimum < min_x:
+					min_x = minimum
+				maximum = max(item.dropna())
+				if max_x is None or maximum > max_x:
+					max_x = maximum
+		elif isinstance(self.x, pd.Series):
+			min_x = min(self.x.dropna())
+			max_x = max(self.x.dropna())
+		# Determine adequate padding for the x-axis and set the x-axis limits accordingly.
+		padding = (max_x - min_x) * (100/90) * (0.05)
+		# Store the original x-axis limits to allow the user to revert to them if desired.
+		self.x_lower_original = min_x - padding
+		self.x_upper_original = max_x + padding
+		primary.set_xlim(self.x_lower_original, self.x_upper_original)
+		# Store the original y-axis limits to allow the user to revert to them if desired.
+		self.y1_lower_original = primary.get_ylim()[0]
+		self.y1_upper_original = primary.get_ylim()[1]
+
+		# Turn the grid on, with both major and minor gridlines
+		primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
+		primary.minorticks_on()
+		primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
+
+		# Set the title
+		flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=12)
+		# Construct the axis labels further if necessary
+		if self.counter == 'segments' and self.DATA_CONVERTED:
+			self.x_label = self.x_label.replace('segments', 'cycles')
+		# Set the axis labels
+		primary.set_xlabel(self.x_label)
+		primary.set_ylabel(self.y1_label)
+
+		# If pass/fail criteria were specified...
+		if self.FAILURES_DETERMINED:
+			if self.counter != 'other':
+				# Add a text box listing the number of passes and fails
+				props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+				if self.counter == 'cycles' or self.DATA_CONVERTED:
+					counter_type = 'Cycles'
+					failed = self.failed_cycles
+					passed = self.passed_cycles
+				elif self.counter == 'segments':
+					counter_type = 'Segments'
+					failed = self.failed_segments
+					passed = self.passed_segments
+				elif self.counter == 'other':
+					counter_type = ''
+					failed = self.failed_segments
+					passed = self.passed_segments
+				text = f'{failed} Failed {counter_type}' + '\n' \
+					f'{passed} Passed {counter_type}'
+				primary.text(0.80, 1.05, text, transform=primary.transAxes,
+							fontsize=12, bbox=props)
+			# Add text boxes describing the limit lines
+			upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+			x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
+			primary.text(x_position, upper_y,
+						f'Minimum Peak: {self.upper}',
+						fontsize=10, bbox=props, ha='center', va='top')
+			lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+			primary.text(x_position, lower_y,
+						f'Maximum Valley: {self.lower}',
+						fontsize=10, bbox=props, ha='center', va='bottom')
+
+		# Determine the maximum number of columns in the legend
+		columns = len(self.x) if isinstance(self.x, list) else 1
+		# Create the legend
+		legend = flipbook.primary.legend(
+						loc = 'lower left',
+						fancybox = True,
+						shadow = True,
+						ncol = columns,
+						mode = 'expand',
+						bbox_to_anchor = (-0.15, -0.2, 1.265, 0.1),
+			)
+		# Make the legend draggable (possibly a control in the future)
+		legend.set_draggable(state=True)
+
+		# Use the seaborn plot style
+		plt.style.use('seaborn')
+
+		# Load the Tactair image and display it on the plot
+		image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
+		x_low, x_high = primary.get_xlim()
+		y_low, y_high = primary.get_ylim()
+		primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
+
+	def on_click(self, event, flipbook):
+		pass
 
 
 class PeakValleyControls(ttk.Notebook):
