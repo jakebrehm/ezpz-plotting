@@ -74,13 +74,13 @@ class PeakValleyFile(gui.ScrollableTab):
 		criteria.rowconfigure(0, weight=1)
 		criteria.rowconfigure(1, weight=1)
 
-		lower_label = tk.Label(criteria, text='Valley Maximum:')
+		lower_label = tk.Label(criteria, text='Valley Criteria:')
 		lower_label.grid(row=0, column=0, sticky='E')
 
 		self.lower_entry = ttk.Entry(criteria, width=10)
 		self.lower_entry.grid(row=0, column=1, padx=5, sticky='EW')
 
-		upper_label = tk.Label(criteria, text='Peak Minimum:')
+		upper_label = tk.Label(criteria, text='Peak Criteria:')
 		upper_label.grid(row=1, column=0, sticky='E')
 
 		self.upper_entry = ttk.Entry(criteria, width=10)
@@ -666,14 +666,12 @@ class PeakValleyPlot:
 		self.fail_count = len(self.y_failed)
 		self.pass_count = len(self.y_passed)
 
-		print(f'Total: {self.total}\nPassed: {self.pass_count}\nFailed: {self.fail_count}')
+		# print(f'Total: {self.total}\nPassed: {self.pass_count}\nFailed: {self.fail_count}')
 
 		self.x = [self.x_failed, self.x_passed]
 		self.y1 = [self.y_failed, self.y_passed]
 
 		self.FAILURES_DETERMINED = True
-		# self.lower = valley
-		# self.upper = peak
 		self.valley = valley
 		self.peak = peak
 		self.count_failures()
@@ -734,59 +732,21 @@ class PeakValleyPlot:
 				else:
 					booleans.append(False)
 
-
-
-
-
-
-		# LOWER = self.lower
-		# UPPER = self.upper
-		# booleans = []
-		# for pair in pairs:
-		# 	if len(pair) == 1:
-		# 		if LOWER <= pair[0] <= UPPER:
-		# 			booleans.append(False)
-		# 		else:
-		# 			booleans.append(True)
-		# 	elif len(pair) == 2:
-		# 		temporary = []
-		# 		for item in pair:
-		# 			temporary.append(False if LOWER <= item <= UPPER else True)
-		# 		if all(item is True for item in temporary):
-		# 			booleans.append(True)
-		# 		else:
-		# 			booleans.append(False)
-
 		self.total_segments = len(data)
 		self.total_cycles = len(pairs)
-
-		# self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
-		# self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
-
-		# self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
-		# self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
 
 		self.passed_segments = self.pass_count
 		self.failed_segments = self.fail_count
 
 		self.passed_cycles = booleans.count(True)
 		self.failed_cycles = booleans.count(False)
-
-		# self.total_segments = 1
-		# self.total_cycles = 1
-
-		# self.passed_segments = 1
-		# self.failed_segments = 1
-
-		# self.passed_cycles = 1
-		# self.failed_cycles = 1
 		
-		print(f'self.total_segments: {self.total_segments}')
-		print(f'self.total_cycles: {self.total_cycles}')
-		print(f'self.passed_segments: {self.passed_segments}')
-		print(f'self.failed_segments: {self.failed_segments}')
-		print(f'self.passed_cycles: {self.passed_cycles}')
-		print(f'self.failed_cycles: {self.failed_cycles}')
+		# print(f'self.total_segments: {self.total_segments}')
+		# print(f'self.total_cycles: {self.total_cycles}')
+		# print(f'self.passed_segments: {self.passed_segments}')
+		# print(f'self.failed_segments: {self.failed_segments}')
+		# print(f'self.passed_cycles: {self.passed_cycles}')
+		# print(f'self.failed_cycles: {self.failed_cycles}')
 
 	def split(self):
 

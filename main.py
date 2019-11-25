@@ -1802,6 +1802,9 @@ class Help(tk.Toplevel):
         gui.CenterWindow(self)
 
 
+if os.path.exists('qt.conf'):
+    os.remove('qt.conf')
+
 # Initialize the application
 app = Application()
 # # Run a test function
