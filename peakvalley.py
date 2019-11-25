@@ -526,9 +526,20 @@ class PeakValleyFile(gui.ScrollableTab):
 		zero = self.zero_checkbox.instate(['selected'])
 		split = self.split_checkbox.instate(['selected'])
 
-		# Store the label row and corresponding labels as instance variables
-		lower = float(self.lower_entry.get()) if self.lower_entry.get() else None
-		upper = float(self.upper_entry.get()) if self.upper_entry.get() else None
+		# # Store the label row and corresponding labels as instance variables
+		# lower = float(self.lower_entry.get()) if self.lower_entry.get() else None
+		# upper = float(self.upper_entry.get()) if self.upper_entry.get() else None
+
+		# Parse and store the peak and valley entries
+		if self.lower_entry.get():
+			valley = [float(item) for item in self.lower_entry.get().split('-')]
+		else:
+			valley = None
+			
+		if self.upper_entry.get():
+			peak = [float(item) for item in self.upper_entry.get().split('-')]
+		else:
+			peak = None
 
 		for p, plot in enumerate(self.plots):
 			section_number = int(self._sections[p].get())
@@ -563,8 +574,11 @@ class PeakValleyFile(gui.ScrollableTab):
 
 			if convert and counter == 'segments': plot.convert()
 
-			if lower is not None and upper is not None:
-				plot.determine_failures(lower, upper)
+			# if lower is not None and upper is not None:
+			# 	plot.determine_failures(lower, upper)
+
+			if valley is not None and peak is not None:
+				plot.determine_failures(valley, peak)
 
 			if split: plot.split()
 			if zero: plot.zero()
@@ -616,7 +630,7 @@ class PeakValleyPlot:
 		else:
 			pairs.append(temporary)
 
-		return pairs
+		return pairs, average
 
 	def convert(self):
 
@@ -627,31 +641,46 @@ class PeakValleyPlot:
 
 		self.DATA_CONVERTED = True
 
-	def determine_failures(self, lower, upper):
+	def determine_failures(self, valley, peak):
 
-		self.x_failed = self.x[(lower < self.y1) & (self.y1 < upper)]
-		self.y_failed = self.y1[(lower < self.y1) & (self.y1 < upper)]
-		# self.fail_index = self.y_failed.index.values
+		self.valley_mode = 'range' if len(valley) == 2 else 'threshold'
+		self.peak_mode = 'range' if len(peak) == 2 else 'threshold'
+
+		if self.valley_mode == 'threshold':
+			self.valley_failed = self.y1[(max(valley) < self.y1)]
+		elif self.valley_mode == 'range':
+			self.valley_failed = self.y1[(max(valley) < self.y1) | (self.y1 < min(valley))]
+
+		if self.peak_mode == 'threshold':
+			self.peak_failed = self.y1[(self.y1 < min(peak))]
+		elif self.peak_mode == 'range':
+			self.peak_failed = self.y1[(self.y1 < min(peak)) | (self.y1 > max(peak))]
+
+		self.x_failed = self.x[(self.y1.isin(self.valley_failed)) & (self.y1.isin(self.peak_failed))]
+		self.y_failed = self.y1[(self.y1.isin(self.valley_failed)) & (self.y1.isin(self.peak_failed))]
 
 		self.x_passed = self.x[~self.y1.isin(self.y_failed)]
 		self.y_passed = self.y1[~self.y1.isin(self.y_failed)]
-		# self.pass_index = self.y_passed.index.values
 
 		self.total = len(self.y1)
 		self.fail_count = len(self.y_failed)
 		self.pass_count = len(self.y_passed)
 
+		print(f'Total: {self.total}\nPassed: {self.pass_count}\nFailed: {self.fail_count}')
+
 		self.x = [self.x_failed, self.x_passed]
 		self.y1 = [self.y_failed, self.y_passed]
 
 		self.FAILURES_DETERMINED = True
-		self.lower = lower
-		self.upper = upper
+		# self.lower = valley
+		# self.upper = peak
+		self.valley = valley
+		self.peak = peak
 		self.count_failures()
 
 	def count_counter(self):
 
-		pairs = self._get_pairings()
+		pairs, _ = self._get_pairings()
 		data = self.y1_original.values.flatten().tolist()
 
 		self.total_segments = len(data)
@@ -659,35 +688,105 @@ class PeakValleyPlot:
 
 	def count_failures(self):
 
-		pairs = self._get_pairings()
+		pairs, average = self._get_pairings()
 		data = self.y1_original.values.flatten().tolist()
 
-		LOWER = self.lower
-		UPPER = self.upper
+		VALLEY = self.valley
+		PEAK = self.peak
 		booleans = []
 		for pair in pairs:
+			
 			if len(pair) == 1:
-				if LOWER <= pair[0] <= UPPER:
-					booleans.append(False)
-				else:
-					booleans.append(True)
+				
+				which = 'valley' if pair[0] < average else 'peak'
+
+				if which == 'valley':
+					if self.valley_mode == 'threshold':
+						booleans.append(item <= max(VALLEY))
+					elif self.valley_mode == 'peak':
+						booleans.append(min(VALLEY) <= pair[0] <= max(VALLEY))
+				elif which == 'peak':
+					if self.peak_mode == 'threshold':
+						booleans.append(item >= min(PEAK))
+					elif self.peak_mode == 'range':
+						booleans.append(min(PEAK) <= pair[0] <= max(PEAK))
+
 			elif len(pair) == 2:
+				
 				temporary = []
 				for item in pair:
-					temporary.append(False if LOWER <= item <= UPPER else True)
+					
+					which = 'valley' if item < average else 'peak'
+
+					if which == 'valley':
+						if self.valley_mode == 'threshold':
+							temporary.append(item <= max(VALLEY))
+						elif self.valley_mode == 'range':
+							temporary.append(min(VALLEY) <= item <= max(VALLEY))
+					elif which == 'peak':
+						if self.peak_mode == 'threshold':
+							temporary.append(item >= min(PEAK))
+						elif self.peak_mode == 'range':
+							temporary.append(min(PEAK) <= item <= max(PEAK))
+					
 				if all(item is True for item in temporary):
 					booleans.append(True)
 				else:
 					booleans.append(False)
 
-		# self.total_segments = len(data)
-		# self.total_cycles = len(pairs)
 
-		self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
-		self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
+
+
+
+
+		# LOWER = self.lower
+		# UPPER = self.upper
+		# booleans = []
+		# for pair in pairs:
+		# 	if len(pair) == 1:
+		# 		if LOWER <= pair[0] <= UPPER:
+		# 			booleans.append(False)
+		# 		else:
+		# 			booleans.append(True)
+		# 	elif len(pair) == 2:
+		# 		temporary = []
+		# 		for item in pair:
+		# 			temporary.append(False if LOWER <= item <= UPPER else True)
+		# 		if all(item is True for item in temporary):
+		# 			booleans.append(True)
+		# 		else:
+		# 			booleans.append(False)
+
+		self.total_segments = len(data)
+		self.total_cycles = len(pairs)
+
+		# self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
+		# self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
+
+		# self.passed_segments = sum(0 if LOWER <= d <= UPPER else 1 for d in data)
+		# self.failed_segments = sum(1 if LOWER <= d <= UPPER else 0 for d in data)
+
+		self.passed_segments = self.pass_count
+		self.failed_segments = self.fail_count
 
 		self.passed_cycles = booleans.count(True)
 		self.failed_cycles = booleans.count(False)
+
+		# self.total_segments = 1
+		# self.total_cycles = 1
+
+		# self.passed_segments = 1
+		# self.failed_segments = 1
+
+		# self.passed_cycles = 1
+		# self.failed_cycles = 1
+		
+		print(f'self.total_segments: {self.total_segments}')
+		print(f'self.total_cycles: {self.total_cycles}')
+		print(f'self.passed_segments: {self.passed_segments}')
+		print(f'self.failed_segments: {self.failed_segments}')
+		print(f'self.passed_cycles: {self.passed_cycles}')
+		print(f'self.failed_cycles: {self.failed_cycles}')
 
 	def split(self):
 
@@ -828,8 +927,9 @@ class PeakValleyPlot:
 
 		# Plot horizontal lines showing pass/fail criteria
 		if self.FAILURES_DETERMINED:
-			primary.axhline(y=self.lower, color='r', linestyle='--', alpha=0.3)
-			primary.axhline(y=self.upper, color='r', linestyle='--', alpha=0.3)
+			for peak_valley in (self.valley, self.peak):
+				for value in peak_valley:
+					primary.axhline(y=value, color='r', linestyle='--', alpha=0.3)
 
 		# Determine the minimum and maximum values of the x data
 		min_x = None
@@ -892,14 +992,26 @@ class PeakValleyPlot:
 				primary.text(0.80, 1.05, text, transform=primary.transAxes,
 							fontsize=12, bbox=props)
 			# Add text boxes describing the limit lines
-			upper_y = float(self.upper) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+			upper_y = float(min(self.peak)) - 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
 			x_position = primary.get_xlim()[0] + (primary.get_xlim()[1]-primary.get_xlim()[0])/2
+			# if len(self.peak) == 1:
+			if self.peak_mode == 'threshold':
+				peak_string = f'Minimum Peak: {min(self.peak)}'
+			# elif len(self.peak) == 2:
+			elif self.peak_mode == 'range':
+				peak_string = f'Valid Peak Range: {min(self.peak)} --> {max(self.peak)}'
 			primary.text(x_position, upper_y,
-						f'Minimum Peak: {self.upper}',
+						peak_string,
 						fontsize=10, bbox=props, ha='center', va='top')
-			lower_y = float(self.lower) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+			lower_y = float(max(self.valley)) + 0.05*(primary.get_ylim()[1]-primary.get_ylim()[0])
+			# if len(self.valley) == 1:
+			if self.valley_mode == 'threshold':
+				valley_string = f'Maximum Valley: {max(self.valley)}'
+			# elif len(self.valley) == 2:
+			elif self.valley_mode == 'range':
+				valley_string = f'Valid Valley Range: {min(self.valley)} --> {max(self.valley)}'
 			primary.text(x_position, lower_y,
-						f'Maximum Valley: {self.lower}',
+						valley_string,
 						fontsize=10, bbox=props, ha='center', va='bottom')
 
 		# Determine the maximum number of columns in the legend
