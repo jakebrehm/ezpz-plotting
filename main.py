@@ -679,7 +679,7 @@ class Application(gui.Application):
             if length:
                 if count == 1:
                     message += (
-                        "It looks like you\'ve entered more than one row or "
+                        "It looks like you've entered more than one row or "
                         "column in a field that cannot accept it."
                     )
                 else:

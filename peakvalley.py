@@ -885,12 +885,6 @@ class PeakValleyPlot:
 			primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
 			primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
 
-		# Plot horizontal lines showing pass/fail criteria
-		if self.FAILURES_DETERMINED:
-			for peak_valley in (self.valley, self.peak):
-				for value in peak_valley:
-					primary.axhline(y=value, color='r', linestyle='--', alpha=0.3)
-
 		# Determine the minimum and maximum values of the x data
 		min_x = None
 		max_x = None
@@ -915,6 +909,19 @@ class PeakValleyPlot:
 		# Store the original y-axis limits to allow the user to revert to them if desired.
 		self.y1_lower_original = primary.get_ylim()[0]
 		self.y1_upper_original = primary.get_ylim()[1]
+
+		# Plot horizontal lines showing pass/fail criteria
+		if self.FAILURES_DETERMINED:
+			# Visual pass/fail criteria indication for valley
+			if self.valley_mode == 'threshold':
+				primary.axhline(y=max(self.valley), color='r', linestyle='--', alpha=0.3)
+			elif self.valley_mode == 'range':
+				primary.fill_between(primary.get_xlim(), min(self.valley), max(self.valley), color='b', alpha=0.3)
+			# Visual pass/fail criteria indication for peak
+			if self.peak_mode == 'threshold':
+				primary.axhline(y=max(self.peak), color='r', linestyle='--', alpha=0.3)
+			elif self.peak_mode == 'range':
+				primary.fill_between(primary.get_xlim(), min(self.peak), max(self.peak), color='b', alpha=0.3)
 
 		# Turn the grid on, with both major and minor gridlines
 		primary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
