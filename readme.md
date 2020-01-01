@@ -138,6 +138,7 @@ Special plots are extra plot types added upon request. They are tailored to a sp
 - Add support for other operating systems
 - Refactor the code now that it has been changed heavily
 - Keep settings for each plot in preset files
+- Make the executable file smaller
 
 ---
 
