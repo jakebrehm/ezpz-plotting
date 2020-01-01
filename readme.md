@@ -51,7 +51,10 @@ Pressing the `Browse...` button or selecting `File > Load Files` will allow you 
 
 Alternatively, selecting `File > Add File` will only let you add a single file. This feature is primarily used when you already have files loaded and you just want to add one more.
 
-<!-- Insert gif here -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/loading_files.gif"
+  alt="Loading Files into EZPZ Plotting"/>
+</p>
 
 ## Providing plot information
 
@@ -73,13 +76,19 @@ Now, you must tell the program what you want to plot. Each plot will be held wit
 
 To specify more than one column in the *y1 columns* and *y2 columns* fields, separate the column numbers by any character other than a number. Conventionally, semicolons are used, e.g. `2;3;4`.
 
-<!-- Insert image here of an example data file and the program -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/plot_information.gif"
+  alt="Specifying Plot Information"/>
+</p>
 
 ## Adding or removing plots
 
 To make another plot for the currently selected data file, press the `+` or `-` buttons at the bottom left of the program.
 
-<!-- Insert gif of adding and removing plots -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/adding_removing_plots.gif"
+  alt="Adding and Removing Plots"/>
+</p>
 
 This will either add or remove a plot **from the current tab**.
 
@@ -89,7 +98,10 @@ To add another file after loading the initial file(s), select `File > Add File` 
 
 To remove a file, select `File > Remove File`, which will remove the currently selected tab/data file.
 
-<!-- Insert gif of adding/removing a file -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/adding_removing_files.gif"
+  alt="Adding and Removing Files"/>
+</p>
 
 ## Plotting and navigating the flipbook
 
@@ -97,7 +109,10 @@ When you are ready to generate your plots, press the `Plot` button in the bottom
 
 If you made more than one plot, you can "flip" between them by pressing the left or right arrows buttons on either side of the flipbook, or you can press the <kbd>←</kbd> or <kbd>→</kbd> arrow keys on your keyboard.
 
-<!-- Insert gif of flipping between plots -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/using_the_flipbook.gif"
+  alt="Using the Flipbook"/>
+</p>
 
 ## Manipulating the plots
 
@@ -107,7 +122,10 @@ The controls window will appear, and it holds multiple tabs, each holding their 
 
 Each plot has its own "memory"/settings. You can close and reopen the flipbook and these changes will remain intact.
 
-<!-- Insert gif of changing controls -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jakebrehm/ezpz-plotting/master/img/controls_window.gif"
+  alt="Using the Controls Window"/>
+</p>
 
 ## Special plots
 
