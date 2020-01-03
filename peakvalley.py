@@ -531,15 +531,34 @@ class PeakValleyFile(gui.ScrollableTab):
 		# upper = float(self.upper_entry.get()) if self.upper_entry.get() else None
 
 		# Parse and store the peak and valley entries
-		if self.lower_entry.get():
-			valley = [float(item) for item in self.lower_entry.get().split('-')]
+		valley_entry = self.lower_entry.get()
+		if valley_entry:
+			# valley = [float(item) for item in valley_entry.split('-')]
+			# valley = [float(item) for item in valley_entry.split('-') if item]
+			# valley = list(filter(None, valley))
+			try:
+				valley = [int(valley_entry)]
+			except ValueError:
+				valley = [float(item) for item in valley_entry if item]
+
 		else:
 			valley = None
-			
-		if self.upper_entry.get():
-			peak = [float(item) for item in self.upper_entry.get().split('-')]
+		
+		peak_entry = self.upper_entry.get()
+		if peak_entry:
+			# peak = [float(item) for item in peak_entry.split('-')]
+			# peak = [float(item) for item in peak_entry.split('-') if item]
+			# peak = list(filter(None, peak))
+
+			try:
+				peak = [int(peak_entry)]
+			except ValueError:
+				peak = [float(item) for item in peak_entry if item]
 		else:
 			peak = None
+
+		print(valley)
+		print(peak)
 
 		for p, plot in enumerate(self.plots):
 			section_number = int(self._sections[p].get())
@@ -607,6 +626,10 @@ class PeakValleyPlot:
 		return self.section.data.iloc[:, y_column-1].copy(deep=True)
 
 	def _get_pairings(self):
+		print('get pairings')
+
+		import time
+		start = time.time()
 
 		average = self.y1_original.mean().item()
 		data = self.y1_original.values.flatten().tolist()
@@ -630,18 +653,19 @@ class PeakValleyPlot:
 		else:
 			pairs.append(temporary)
 
+		print('get pairings:', time.time() - start)
+
 		return pairs, average
 
 	def convert(self):
+		print('convert')
 
-		self.x = self.x / 2
-
-		for i in range(len(self.x)):
-			self.x.iloc[i] = math.floor(self.x.iloc[i])
+		self.x = self.x // 2
 
 		self.DATA_CONVERTED = True
 
 	def determine_failures(self, valley, peak):
+		print('determine failures')
 
 		self.valley_mode = 'range' if len(valley) == 2 else 'threshold'
 		self.peak_mode = 'range' if len(peak) == 2 else 'threshold'
@@ -677,6 +701,7 @@ class PeakValleyPlot:
 		self.count_failures()
 
 	def count_counter(self):
+		print('count counter')
 
 		pairs, _ = self._get_pairings()
 		data = self.y1_original.values.flatten().tolist()
@@ -685,6 +710,7 @@ class PeakValleyPlot:
 		self.total_cycles = len(pairs)
 
 	def count_failures(self):
+		print('count failures')
 
 		pairs, average = self._get_pairings()
 		data = self.y1_original.values.flatten().tolist()
@@ -692,7 +718,9 @@ class PeakValleyPlot:
 		VALLEY = self.valley
 		PEAK = self.peak
 		booleans = []
-		for pair in pairs:
+		# for pair in pairs:
+		for p, pair in enumerate(pairs):
+			print(p)
 			
 			if len(pair) == 1:
 				
@@ -700,12 +728,14 @@ class PeakValleyPlot:
 
 				if which == 'valley':
 					if self.valley_mode == 'threshold':
-						booleans.append(item <= max(VALLEY))
+						# booleans.append(item <= max(VALLEY))
+						booleans.append(pair[0] <= max(VALLEY))
 					elif self.valley_mode == 'peak':
 						booleans.append(min(VALLEY) <= pair[0] <= max(VALLEY))
 				elif which == 'peak':
 					if self.peak_mode == 'threshold':
-						booleans.append(item >= min(PEAK))
+						# booleans.append(item >= min(PEAK))
+						booleans.append(pair[0] >= min(PEAK))
 					elif self.peak_mode == 'range':
 						booleans.append(min(PEAK) <= pair[0] <= max(PEAK))
 
@@ -749,6 +779,7 @@ class PeakValleyPlot:
 		# print(f'self.failed_cycles: {self.failed_cycles}')
 
 	def split(self):
+		print('split')
 
 		average = sum(self.y1_original) / len(self.y1_original)
 		if not self.FAILURES_DETERMINED:
@@ -769,6 +800,7 @@ class PeakValleyPlot:
 		self.DATA_SPLIT = True
 
 	def zero(self):
+		print('zero')
 
 		first = None
 		if isinstance(self.x, list):
