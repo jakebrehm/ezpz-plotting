@@ -49,14 +49,14 @@ class Application(gui.Application):
         gui.Application.__init__(self, padding=PADDING)
         self.configure(
             title='EZPZ Plotting',
-            icon=gui.ResourcePath('Assets\\icon.ico'),
+            icon=gui.ResourcePath('assets\\icon.ico'),
             resizable=False,
         )
 
         # Add a header/logo to the top of the application
         header = gui.Header(
             self,
-            logo=gui.ResourcePath('Assets\\logo.png'),
+            logo=gui.ResourcePath('assets\\logo.png'),
             downscale=10,
         )
         header.grid(row=0, column=0, sticky='NSEW')
@@ -72,7 +72,7 @@ class Application(gui.Application):
             ('Excel Spreadsheet (*.xlsx)', '*.xlsx'),
             ('Data File (*.dat)', '*.dat'),
         ]
-        browse_image = gui.RenderImage('Assets\\browse.png', downscale=9)
+        browse_image = gui.RenderImage('assets\\browse.png', downscale=9)
         self.listbox = gui.InputField(
             self,
             quantity='multiple',
@@ -116,7 +116,7 @@ class Application(gui.Application):
         row_controls.grid(row=0, column=0, sticky='NSEW')
 
         # Add a create row button
-        plus_image = gui.RenderImage('Assets\\plus.png', downscale=9)
+        plus_image = gui.RenderImage('assets\\plus.png', downscale=9)
         self.plus_button = ttk.Button(
             row_controls,
             takefocus=0,
@@ -128,7 +128,7 @@ class Application(gui.Application):
         self.plus_button.grid(row=0, column=0, padx=2, sticky='NSEW')
 
         # Add a delete row button
-        minus_image = gui.RenderImage('Assets\\minus.png', downscale=9)
+        minus_image = gui.RenderImage('assets\\minus.png', downscale=9)
         self.minus_button = ttk.Button(
             row_controls,
             takefocus=0,
@@ -140,7 +140,7 @@ class Application(gui.Application):
         self.minus_button.grid(row=0, column=1, padx=2, sticky='NSEW')
 
         # Add a plot button
-        plot_image = gui.RenderImage('Assets\\plot.png', downscale=9)
+        plot_image = gui.RenderImage('assets\\plot.png', downscale=9)
         self.plot_button = ttk.Button(
             footer,
             takefocus=0,
@@ -951,7 +951,7 @@ class Flipbook(tk.Toplevel):
 
         # Create a button that allows the user to open the controls window
         controls_image = gui.RenderImage(
-            gui.ResourcePath('Assets\\controls.png'),
+            gui.ResourcePath('assets\\controls.png'),
             downscale=9,
         )
         controls_button = ttk.Button(toolbar_frame, text='Controls',
@@ -1153,7 +1153,7 @@ class Controls(tk.Toplevel):
 
 
     def flip_page(self, page):
-        """Upon changing this page of the flipbook, update instance
+        """Upon changing the page of the flipbook, update instance
         attributes, remove the old controls from view, and show the
         controls of the current page."""
 
@@ -1296,7 +1296,7 @@ class Help(tk.Toplevel):
         controls_row = 0
 
         plus_frame = tk.Frame(controls)
-        plus_image = gui.RenderImage('Assets\\plus.png', downscale=5)
+        plus_image = gui.RenderImage('assets\\plus.png', downscale=5)
         plus_label = ttk.Button(plus_frame, takefocus=0, image=plus_image)
         plus_label.image = plus_image
         plus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
@@ -1323,7 +1323,7 @@ class Help(tk.Toplevel):
         controls_row += 1
 
         minus_frame = tk.Frame(controls)
-        minus_image = gui.RenderImage('Assets\\minus.png', downscale=5)
+        minus_image = gui.RenderImage('assets\\minus.png', downscale=5)
         minus_label = ttk.Button(minus_frame, takefocus=0, image=minus_image)
         minus_label.image = minus_image
         minus_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
@@ -1345,7 +1345,7 @@ class Help(tk.Toplevel):
         controls_row += 1
 
         copy_frame = tk.Frame(controls)
-        copy_image = gui.RenderImage('Assets\\copy.png', downscale=5)
+        copy_image = gui.RenderImage('assets\\copy.png', downscale=5)
         copy_label = ttk.Button(copy_frame, takefocus=0, image=copy_image)
         copy_label.image = copy_image
         copy_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
@@ -1372,7 +1372,7 @@ class Help(tk.Toplevel):
         controls_row += 1
 
         paste_frame = tk.Frame(controls)
-        paste_image = gui.RenderImage('Assets\\paste.png', downscale=5)
+        paste_image = gui.RenderImage('assets\\paste.png', downscale=5)
         paste_label = ttk.Button(paste_frame, takefocus=0, image=paste_image)
         paste_label.image = paste_image
         paste_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
@@ -1399,7 +1399,7 @@ class Help(tk.Toplevel):
         controls_row += 1
 
         clear_frame = tk.Frame(controls)
-        clear_image = gui.RenderImage('Assets\\clear.png', downscale=5)
+        clear_image = gui.RenderImage('assets\\clear.png', downscale=5)
         clear_label = ttk.Button(clear_frame, takefocus=0, image=clear_image)
         clear_label.image = clear_image
         clear_label.grid(row=0, column=0, rowspan=2, padx=(0, 10), sticky="EW")
