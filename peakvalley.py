@@ -712,15 +712,18 @@ class PeakValleyPlot:
 	def count_failures(self):
 		print('count failures')
 
+
 		pairs, average = self._get_pairings()
+		print(pairs, average)
 		data = self.y1_original.values.flatten().tolist()
 
 		VALLEY = self.valley
 		PEAK = self.peak
 		booleans = []
-		# for pair in pairs:
-		for p, pair in enumerate(pairs):
-			print(p)
+		for pair in pairs:
+		# print(pairs)
+		# for p, pair in enumerate(pairs):
+		# 	print(p)
 			
 			if len(pair) == 1:
 				
