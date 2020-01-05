@@ -631,10 +631,12 @@ class BasicPlot:
         self.background.set('None')
         self.background_path = None
 
-        # Keep track of label properties
+        # Keep track of title and label properties
+        self.title_weight = 'Bold'
         self.x_label_weight = 'Normal'
         self.y1_label_weight = 'Normal'
         self.y2_label_weight = 'Normal'
+        self.title_size = 14
         self.x_label_size = 10
         self.y1_label_size = 10
         self.y2_label_size = 10
@@ -812,7 +814,8 @@ class BasicPlot:
             flipbook.secondary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
 
         # Set the title and labels according to user input
-        flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=14)
+        title_font = {'weight': self.title_weight.lower(), 'size': self.title_size}
+        flipbook.figure.suptitle(self.title, **title_font)
         # Set the axis labels
         x_font = {'weight': self.x_label_weight.lower(), 'size': self.x_label_size}
         flipbook.primary.set_xlabel(self.x_label, fontdict=x_font)
@@ -1186,6 +1189,8 @@ class BasicControls(ttk.Notebook):
         # ========================
 
         # Set the font properties for each label
+        self.label_properties.title_weight = current.title_weight
+        self.label_properties.title_size = current.title_size
         self.label_properties.x_weight = current.x_label_weight
         self.label_properties.x_size = current.x_label_size
         self.label_properties.y1_weight = current.y1_label_weight
@@ -1321,6 +1326,8 @@ class BasicControls(ttk.Notebook):
         # ========================
 
         # Set the font properties for each label
+        current.title_weight = self.label_properties.title_weight
+        current.title_size = self.label_properties.title_size
         current.x_label_weight = self.label_properties.x_weight
         current.x_label_size = self.label_properties.x_size
         current.y1_label_weight = self.label_properties.y1_weight
@@ -1573,23 +1580,37 @@ class LabelProperties(tk.Frame):
         # weights = ['Normal', 'Italics', 'Bold', 'Bold Italics']
         weights = ['Normal', 'Bold', 'Heavy', 'Light']
 
+        self.title_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
+        self.title_weight_entry.grid(row=0, column=0, padx=10, sticky='NSEW')
+
+        self.title_size_entry = LabeledEntry(container, 'x label size:')
+        self.title_size_entry.grid(row=0, column=1, padx=10, sticky='NSEW')
+
         self.x_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
-        self.x_weight_entry.grid(row=0, column=0, padx=10, sticky='NSEW')
+        self.x_weight_entry.grid(row=1, column=0, padx=10, sticky='NSEW')
 
         self.x_size_entry = LabeledEntry(container, 'x label size:')
-        self.x_size_entry.grid(row=0, column=1, padx=10, sticky='NSEW')
+        self.x_size_entry.grid(row=1, column=1, padx=10, sticky='NSEW')
         
         self.y1_weight_entry = LabeledCombobox(container, 'y1 label weight:', values=weights)
-        self.y1_weight_entry.grid(row=1, column=0, padx=10, sticky='NSEW')
+        self.y1_weight_entry.grid(row=2, column=0, padx=10, sticky='NSEW')
 
         self.y1_size_entry = LabeledEntry(container, 'y1 label size:')
-        self.y1_size_entry.grid(row=1, column=1, padx=10, sticky='NSEW')
+        self.y1_size_entry.grid(row=2, column=1, padx=10, sticky='NSEW')
         
         self.y2_weight_entry = LabeledCombobox(container, 'y2 label weight:', values=weights)
-        self.y2_weight_entry.grid(row=2, column=0, padx=10, sticky='NSEW')
+        self.y2_weight_entry.grid(row=3, column=0, padx=10, sticky='NSEW')
 
         self.y2_size_entry = LabeledEntry(container, 'y2 label size:')
-        self.y2_size_entry.grid(row=2, column=1, padx=10, sticky='NSEW')
+        self.y2_size_entry.grid(row=3, column=1, padx=10, sticky='NSEW')
+
+    @property
+    def title_weight(self):
+        return self.title_weight_entry.get()
+
+    @title_weight.setter
+    def title_weight(self, value):
+        self.title_weight_entry.set(value)
 
     @property
     def x_weight(self):
@@ -1614,6 +1635,14 @@ class LabelProperties(tk.Frame):
     @y2_weight.setter
     def y2_weight(self, value):
         self.y2_weight_entry.set(value)
+
+    @property
+    def title_size(self):
+        return float(self.title_size_entry.get())
+
+    @title_size.setter
+    def title_size(self, value):
+        self.title_size_entry.set(value)
 
     @property
     def x_size(self):
