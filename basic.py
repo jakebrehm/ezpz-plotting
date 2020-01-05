@@ -32,7 +32,6 @@ class BasicFile(gui.ScrollableTab):
         # Store a reference to the root/main application
         self.app = app
         # self.app = self.nametowidget(self.winfo_toplevel())
-        # print(self.nametowidget(self.app))
 
         # Initialize internal variables and field-reference storage lists
         self._count = 0
@@ -570,6 +569,7 @@ class BasicFile(gui.ScrollableTab):
         for p, plot in enumerate(self.plots):
             # Grab all entries in each field
             title = self._titles[p].get()
+            print(title)
             x_column = int(self._x_columns[p].get())
             self.y1_columns = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
             self.y2_columns = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
@@ -670,7 +670,7 @@ class BasicPlot:
         return [self.data[self.labels[column-1]] for column in y_columns]
 
     def _generate(self, data, labels, x_column, y1_columns, y2_columns=None,
-                    units=None):
+                  units=None):
         """The main function for the object which stores the inputs and calls
         other relevant functions."""
 
@@ -692,10 +692,10 @@ class BasicPlot:
         the _generate method solely because it didn't feel like it fit there."""
 
         # Store the label inputs as instance variables
-        self.title = title if title else None
-        self.x_label = x_label if x_label else None
-        self.y1_label = y1_label if y1_label else None
-        self.y2_label = y2_label if y2_label else None
+        self.title = title.replace('\\n', '\n') if title else None
+        self.x_label = x_label.replace('\\n', '\n') if x_label else None
+        self.y1_label = y1_label.replace('\\n', '\n') if y1_label else None
+        self.y2_label = y2_label.replace('\\n', '\n') if y2_label else None
 
     def update_plot(self, flipbook, file, number):
 
@@ -811,7 +811,7 @@ class BasicPlot:
         if self.secondary_axis:
             flipbook.secondary.grid(b=True, which='major', color='#666666', linestyle='-', alpha=0.5)
 
-        # Set the title, x axis label, and y axes labels according to user input
+        # Set the title and labels according to user input
         flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=14)
         # Set the axis labels
         x_font = {'weight': self.x_label_weight.lower(), 'size': self.x_label_size}
@@ -821,10 +821,6 @@ class BasicPlot:
         if self.secondary_axis:
             y2_font = {'weight': self.y2_label_weight.lower(), 'size': self.y2_label_size}
             flipbook.secondary.set_ylabel(self.y2_label, fontdict=y2_font)
-        # # Use the official representation of the object in case tex expressions are used
-        # flipbook.primary.set_xlabel(repr(self.x_label)[1:-1])
-        # flipbook.primary.set_ylabel(repr(self.y1_label)[1:-1])
-        # if self.secondary_axis: flipbook.secondary.set_ylabel(repr(self.y2_label)[1:-1])
 
         # Determine the number of lines being plotted
         lines = len(flipbook.primary.lines)
@@ -962,7 +958,6 @@ class BasicPlot:
         if not isinstance(event.artist, mpl.lines.Line2D): return
         # Get a reference to the legend line and the original line
         legend_line = event.artist
-        # print(self.line_map)
         original_line = self.line_map[legend_line]
         # Determine whether to show or hide the original line
         visible = not original_line.get_visible()
@@ -978,7 +973,7 @@ class BasicControls(ttk.Notebook):
     def __init__(self, *args, **kwargs):
 
         ttk.Notebook.__init__(self, *args, **kwargs)
-        
+
         # Add scrollable tabs to the notebook
         figure = gui.ScrollableTab(self, 'Figure', cheight=400, cwidth=400)
         appearance = gui.ScrollableTab(self, 'Appearance', cheight=400, cwidth=400)
@@ -1284,23 +1279,11 @@ class BasicControls(ttk.Notebook):
         # AXES LIMITS CONTROLS
         # ====================
 
-        # def update_axis(entry, original):
         def update_axis(value, original):
             """If a value was changed, convert it from a string to a float. Otherwise,
             use the original value."""
 
-            # return float(entry.get()) if entry.get() else float(original)
-            # return float(entry.get() if entry.get() else original)
             return float(value if value else original)
-
-        # # Store the axes limits values in the corresponding plot object attributes
-        # current.x_lower = update_axis(self.axis_limits.x_lower_entry, current.x_lower_original)
-        # current.x_upper = update_axis(self.axis_limits.x_upper_entry, current.x_upper_original)
-        # current.y1_lower = update_axis(self.axis_limits.y1_lower_entry, current.y1_lower_original)
-        # current.y1_upper = update_axis(self.axis_limits.y1_upper_entry, current.y1_upper_original)
-        # if current.secondary_axis:
-        #     current.y2_lower = update_axis(self.axis_limits.y2_lower_entry, current.y2_lower_original)
-        #     current.y2_upper = update_axis(self.axis_limits.y2_upper_entry, current.y2_upper_original)
 
         # Store the axes limits values in the corresponding plot object attributes
         current.x_lower = update_axis(self.axis_limits.x_lower, current.x_lower_original)
