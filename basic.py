@@ -631,7 +631,15 @@ class BasicPlot:
         self.background.set('None')
         self.background_path = None
 
-        # Keep tracks of tolerance band information
+        # Keep track of label properties
+        self.x_label_weight = 'Normal'
+        self.y1_label_weight = 'Normal'
+        self.y2_label_weight = 'Normal'
+        self.x_label_size = 10
+        self.y1_label_size = 10
+        self.y2_label_size = 10
+
+        # Keep track of tolerance band information
         self.bands = ToleranceBands()
         self.series = []
         self.color = []
@@ -806,9 +814,13 @@ class BasicPlot:
         # Set the title, x axis label, and y axes labels according to user input
         flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=14)
         # Set the axis labels
-        flipbook.primary.set_xlabel(self.x_label)
-        flipbook.primary.set_ylabel(self.y1_label)
-        if self.secondary_axis: flipbook.secondary.set_ylabel(self.y2_label)
+        x_font = {'weight': self.x_label_weight.lower(), 'size': self.x_label_size}
+        flipbook.primary.set_xlabel(self.x_label, fontdict=x_font)
+        y1_font = {'weight': self.y1_label_weight.lower(), 'size': self.y1_label_size}
+        flipbook.primary.set_ylabel(self.y1_label, fontdict=y1_font)
+        if self.secondary_axis:
+            y2_font = {'weight': self.y2_label_weight.lower(), 'size': self.y2_label_size}
+            flipbook.secondary.set_ylabel(self.y2_label, fontdict=y2_font)
         # # Use the official representation of the object in case tex expressions are used
         # flipbook.primary.set_xlabel(repr(self.x_label)[1:-1])
         # flipbook.primary.set_ylabel(repr(self.y1_label)[1:-1])
@@ -1096,6 +1108,14 @@ class BasicControls(ttk.Notebook):
         style_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
         style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
 
+        # Add a separator
+        separator = gui.Separator(appearance, orientation='horizontal', padding=(0, (10, 0)))
+        separator.grid(row=1, column=0, sticky='NSEW')
+
+        # Add the label properties controls
+        self.label_properties = LabelProperties(appearance)
+        self.label_properties.grid(row=2, column=0, padx=20, pady=20, sticky='NSEW')
+
         # ============
         # ANALYSIS TAB
         # ============
@@ -1204,6 +1224,26 @@ class BasicControls(ttk.Notebook):
 
         # Set the current background combobox selection to the stored background value
         self.background_choice.set(current.background.get())
+
+        # ========================
+        # LABEL PROPERTY CONTROLS
+        # ========================
+
+        # Set the font properties for each label
+        self.label_properties.x_weight = current.x_label_weight
+        self.label_properties.x_size = current.x_label_size
+        self.label_properties.y1_weight = current.y1_label_weight
+        self.label_properties.y1_size = current.y1_label_size
+        if current.secondary_axis:
+            self.label_properties.y2_size_entry['state'] = 'normal'
+            self.label_properties.y2_size = current.y2_label_size
+            self.label_properties.y2_weight_entry['state'] = 'normal'
+            self.label_properties.y2_weight = current.y2_label_weight
+        else:
+            self.label_properties.y2_size_entry['state'] = 'disabled'
+            self.label_properties.y2_size_entry.clear()
+            self.label_properties.y2_weight_entry['state'] = 'disabled'
+            self.label_properties.y2_weight_entry.clear()
 
         # =======================
         # TOLERANCE BAND CONTROLS
@@ -1321,6 +1361,19 @@ class BasicControls(ttk.Notebook):
         # Store the currently selected value from the background combobox
         current.background.set(self.background_choice.get())
 
+        # ========================
+        # LABEL PROPERTY CONTROLS
+        # ========================
+
+        # Set the font weights for each label
+        current.x_label_weight = self.label_properties.x_weight
+        current.y1_label_weight = self.label_properties.y1_weight
+        current.y2_label_weight = self.label_properties.y2_weight
+        # Store the font sizes for each label
+        current.x_label_size = self.label_properties.x_size
+        current.y1_label_size = self.label_properties.y1_size
+        current.y2_label_size = self.label_properties.y2_size
+
         # =======================
         # TOLERANCE BAND CONTROLS
         # =======================
@@ -1385,3 +1438,163 @@ class ValidatableEntry(ttk.Entry):
 
     def is_invalid(self):
         self['style'] = 'Invalid.TEntry'
+
+
+class LabeledEntry(tk.Frame):
+
+    def __init__(self, master, text, *args, **kwargs):
+
+        tk.Frame.__init__(self, master, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        label = tk.Label(self, text=text)
+        label.grid(row=0, column=0, sticky='NSEW')
+
+        self.entry = ttk.Entry(self)
+        self.entry.grid(row=1, column=0, sticky='NSEW')
+
+    def clear(self):
+        original_state = self.entry['state']
+        self.entry['state'] = 'normal'
+        self.entry.delete(0, 'end')
+        self.entry['state'] = original_state
+
+    def get(self):
+        return self.entry.get()
+
+    def set(self, value):
+        original_state = self.entry['state']
+        self.entry['state'] = 'normal'
+        self.entry.delete(0, 'end')
+        self.entry.insert(0, value)
+        self.entry['state'] = original_state
+
+    def __getitem__(self, item):
+        return self.entry[item]
+    
+    def __setitem__(self, item, value):
+        self.entry[item] = value
+
+
+class LabeledCombobox(tk.Frame):
+
+    def __init__(self, master, text, values, *args, **kwargs):
+
+        tk.Frame.__init__(self, master, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        label = tk.Label(self, text=text)
+        label.grid(row=0, column=0, sticky='NSEW')
+
+        self.combobox = ttk.Combobox(self, values=values, state='readonly')
+        # self.combobox.set(values[0])
+        self.combobox.grid(row=1, column=0, sticky='NSEW')
+
+    def clear(self):
+        # original_state = self.entry['state']
+        # self.entry['state'] = 'normal'
+        self.combobox.set('')
+        # self.entry['state'] = original_state
+
+    def get(self):
+        return self.combobox.get()
+
+    def set(self, value):
+        # original_state = self.combobox['state']
+        # self.combobox['state'] = 'normal'
+        self.combobox.set(value)
+        # self.combobox.set('Bold')
+        # self.combobox['state'] = original_state
+
+    def __getitem__(self, item):
+        return self.combobox[item]
+    
+    def __setitem__(self, item, value):
+        self.combobox[item] = value
+
+
+class LabelProperties(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        # Add the title of the section
+        general_title = tk.Label(self, text='Label Properties',
+                                 font=('TkDefaultFont', 10, 'bold'))
+        general_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+
+        container = tk.Frame(self)
+        container.grid(row=1, column=0, sticky='NSEW')
+        container.columnconfigure(0, weight=1)
+        container.columnconfigure(1, weight=1)
+
+        # weights = ['Normal', 'Italics', 'Bold', 'Bold Italics']
+        weights = ['Normal', 'Bold', 'Heavy', 'Light']
+
+        self.x_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
+        self.x_weight_entry.grid(row=0, column=0, padx=10, sticky='NSEW')
+
+        self.x_size_entry = LabeledEntry(container, 'x label size:')
+        self.x_size_entry.grid(row=0, column=1, padx=10, sticky='NSEW')
+        
+        self.y1_weight_entry = LabeledCombobox(container, 'y1 label weight:', values=weights)
+        self.y1_weight_entry.grid(row=1, column=0, padx=10, sticky='NSEW')
+
+        self.y1_size_entry = LabeledEntry(container, 'y1 label size:')
+        self.y1_size_entry.grid(row=1, column=1, padx=10, sticky='NSEW')
+        
+        self.y2_weight_entry = LabeledCombobox(container, 'y2 label weight:', values=weights)
+        self.y2_weight_entry.grid(row=2, column=0, padx=10, sticky='NSEW')
+
+        self.y2_size_entry = LabeledEntry(container, 'y2 label size:')
+        self.y2_size_entry.grid(row=2, column=1, padx=10, sticky='NSEW')
+
+    @property
+    def x_weight(self):
+        return self.x_weight_entry.get()
+
+    @x_weight.setter
+    def x_weight(self, value):
+        self.x_weight_entry.set(value)
+
+    @property
+    def y1_weight(self):
+        return self.y1_weight_entry.get()
+
+    @y1_weight.setter
+    def y1_weight(self, value):
+        self.y1_weight_entry.set(value)
+
+    @property
+    def y2_weight(self):
+        return self.y2_weight_entry.get()
+
+    @y2_weight.setter
+    def y2_weight(self, value):
+        self.y2_weight_entry.set(value)
+
+    @property
+    def x_size(self):
+        return float(self.x_size_entry.get())
+
+    @x_size.setter
+    def x_size(self, value):
+        self.x_size_entry.set(value)
+
+    @property
+    def y1_size(self):
+        return float(self.y1_size_entry.get())
+
+    @y1_size.setter
+    def y1_size(self, value):
+        self.y1_size_entry.set(value)
+
+    @property
+    def y2_size(self):
+        return float(self.y2_size_entry.get())
+
+    @y2_size.setter
+    def y2_size(self, value):
+        self.y2_size_entry.set(value)
