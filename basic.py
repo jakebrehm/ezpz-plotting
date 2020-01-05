@@ -996,54 +996,15 @@ class BasicControls(ttk.Notebook):
         # ==========
 
         # Create the limits frame which will hold fields for each axis limit
-        limits = gui.PaddedFrame(figure)
-        limits.grid(row=0, column=0, sticky='NSEW')
-        limits.columnconfigure(0, weight=1)
-        limits.columnconfigure(1, weight=1)
-        # Define amount of padding to use around widgets
-        LIMITS_PADDING = 10
-        # Add the title of the section
-        limits_title = tk.Label(limits, text='Axis Limits',
-                         font=('TkDefaultFont', 10, 'bold'))
-        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
-        # Create a lower x-axis label and entry
-        x_lower_label = tk.Label(limits, text='x-lower:')
-        x_lower_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.x_lower_entry = ttk.Entry(limits, width=20)
-        self.x_lower_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper x-axis label and entry
-        x_upper_label = tk.Label(limits, text='x-upper:')
-        x_upper_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.x_upper_entry = ttk.Entry(limits, width=20)
-        self.x_upper_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        # Add some vertical spacing between widgets
-        gui.Space(limits, row=3, column=0, columnspan=2)
-        # Create a lower y1-axis label and entry
-        y1_lower_label = tk.Label(limits, text='y1-lower:')
-        y1_lower_label.grid(row=4, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y1_lower_entry = ttk.Entry(limits, width=20)
-        self.y1_lower_entry.grid(row=5, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper y1-axis label and entry
-        y1_upper_label = tk.Label(limits, text='y1-upper:')
-        y1_upper_label.grid(row=4, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y1_upper_entry = ttk.Entry(limits, width=20)
-        self.y1_upper_entry.grid(row=5, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        # Add some vertical spacing between widgets
-        gui.Space(limits, row=6, column=0, columnspan=2)
-        # Create a lower y2-axis label and entry
-        y2_lower_label = tk.Label(limits, text='y2_lower:')
-        y2_lower_label.grid(row=7, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y2_lower_entry = ttk.Entry(limits, width=20)
-        self.y2_lower_entry.grid(row=8, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create an upper y2-axis label and entry
-        y2_upper_label = tk.Label(limits, text='y2_upper:')
-        y2_upper_label.grid(row=7, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.y2_upper_entry = ttk.Entry(limits, width=20)
-        self.y2_upper_entry.grid(row=8, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        self.axis_limits = AxisLimits(figure)
+        self.axis_limits.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
 
         # Add a separator
         separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
         separator.grid(row=1, column=0, sticky='NSEW')
+
+        # Define amount of padding to use around widgets
+        LIMITS_PADDING = 10
 
         # Create the ticks frame which will hold fields for each axis tick field
         ticks = gui.PaddedFrame(figure)
@@ -1171,34 +1132,34 @@ class BasicControls(ttk.Notebook):
         # AXES LIMITS CONTROLS
         # ====================
 
-        def fill_entry(entry, value, original):
-            """Clear the entry and insert the changed value if it exists, otherwise
-            insert the original value."""
-            entry.delete(0, 'end')
-            entry.insert(0, value if value else original)
-
         # Fill in each field with their respective values
-        fill_entry(self.x_lower_entry, current.x_lower, current.x_lower_original)
-        fill_entry(self.x_upper_entry, current.x_upper, current.x_upper_original)
-        fill_entry(self.y1_lower_entry, current.y1_lower, current.y1_lower_original)
-        fill_entry(self.y1_upper_entry, current.y1_upper, current.y1_upper_original)
+        self.axis_limits.x_lower = (current.x_lower, current.x_lower_original)
+        self.axis_limits.x_upper = (current.x_upper, current.x_upper_original)
+        self.axis_limits.y1_lower = (current.y1_lower, current.y1_lower_original)
+        self.axis_limits.y1_upper = (current.y1_upper, current.y1_upper_original)
         # Disable the secondary axis entry fields if there is no secondary axis,
         # otherwise enable and fill the entry fields corresponding to the secondary axis.
         if current.secondary_axis:
-            self.y2_lower_entry['state'] = 'normal'
-            fill_entry(self.y2_lower_entry, current.y2_lower, current.y2_lower_original)
-            self.y2_upper_entry['state'] = 'normal'
-            fill_entry(self.y2_upper_entry, current.y2_upper, current.y2_upper_original)
+            self.axis_limits.y2_lower_entry['state'] = 'normal'
+            self.axis_limits.y2_lower = (current.y2_lower, current.y2_lower_original)
+            self.axis_limits.y2_upper_entry['state'] = 'normal'
+            self.axis_limits.y2_upper = (current.y2_upper, current.y2_upper_original)
         else:
-            self.y2_lower_entry.delete(0, 'end')
-            self.y2_lower_entry['state'] = 'disabled'
-            self.y2_upper_entry.delete(0, 'end')
-            self.y2_upper_entry['state'] = 'disabled'
+            self.axis_limits.y2_lower_entry.clear()
+            self.axis_limits.y2_lower_entry['state'] = 'disabled'
+            self.axis_limits.y2_upper_entry.clear()
+            self.axis_limits.y2_upper_entry['state'] = 'disabled'
 
         # ===================
         # AXIS TICKS CONTROLS
         # ===================
 
+        def fill_entry(entry, value, original):
+            """Clear the entry and insert the changed value if it exists, otherwise
+            insert the original value."""
+            entry.delete(0, 'end')
+            entry.insert(0, value if value else original)
+            
         # Fill the primary and secondary tick fields with the appropriate stored value
         fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
         fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
@@ -1323,21 +1284,32 @@ class BasicControls(ttk.Notebook):
         # AXES LIMITS CONTROLS
         # ====================
 
-        def update_axis(entry, original):
+        # def update_axis(entry, original):
+        def update_axis(value, original):
             """If a value was changed, convert it from a string to a float. Otherwise,
             use the original value."""
 
             # return float(entry.get()) if entry.get() else float(original)
-            return float(entry.get() if entry.get() else original)
+            # return float(entry.get() if entry.get() else original)
+            return float(value if value else original)
+
+        # # Store the axes limits values in the corresponding plot object attributes
+        # current.x_lower = update_axis(self.axis_limits.x_lower_entry, current.x_lower_original)
+        # current.x_upper = update_axis(self.axis_limits.x_upper_entry, current.x_upper_original)
+        # current.y1_lower = update_axis(self.axis_limits.y1_lower_entry, current.y1_lower_original)
+        # current.y1_upper = update_axis(self.axis_limits.y1_upper_entry, current.y1_upper_original)
+        # if current.secondary_axis:
+        #     current.y2_lower = update_axis(self.axis_limits.y2_lower_entry, current.y2_lower_original)
+        #     current.y2_upper = update_axis(self.axis_limits.y2_upper_entry, current.y2_upper_original)
 
         # Store the axes limits values in the corresponding plot object attributes
-        current.x_lower = update_axis(self.x_lower_entry, current.x_lower_original)
-        current.x_upper = update_axis(self.x_upper_entry, current.x_upper_original)
-        current.y1_lower = update_axis(self.y1_lower_entry, current.y1_lower_original)
-        current.y1_upper = update_axis(self.y1_upper_entry, current.y1_upper_original)
+        current.x_lower = update_axis(self.axis_limits.x_lower, current.x_lower_original)
+        current.x_upper = update_axis(self.axis_limits.x_upper, current.x_upper_original)
+        current.y1_lower = update_axis(self.axis_limits.y1_lower, current.y1_lower_original)
+        current.y1_upper = update_axis(self.axis_limits.y1_upper, current.y1_upper_original)
         if current.secondary_axis:
-            current.y2_lower = update_axis(self.y2_lower_entry, current.y2_lower_original)
-            current.y2_upper = update_axis(self.y2_upper_entry, current.y2_upper_original)
+            current.y2_lower = update_axis(self.axis_limits.y2_lower, current.y2_lower_original)
+            current.y2_upper = update_axis(self.axis_limits.y2_upper, current.y2_upper_original)
 
         # ===================
         # AXIS TICKS CONTROLS
@@ -1457,7 +1429,6 @@ class LabeledEntry(tk.Frame):
         original_state = self.entry['state']
         self.entry['state'] = 'normal'
         self.entry.delete(0, 'end')
-        print(original_state)
         self.entry['state'] = original_state
 
     def get(self):
@@ -1512,6 +1483,91 @@ class LabeledCombobox(tk.Frame):
     
     def __setitem__(self, item, value):
         self.combobox[item] = value
+
+
+class AxisLimits(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        # Define amount of padding to use around widgets
+        PADDING = 10
+        # Add the title of the section
+        limits_title = tk.Label(self, text='Axis Limits',
+                         font=('TkDefaultFont', 10, 'bold'))
+        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a lower x-axis label and entry
+        self.x_lower_entry = LabeledEntry(self, 'x-lower:')
+        self.x_lower_entry.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper x-axis label and entry
+        self.x_upper_entry = LabeledEntry(self, 'x-upper:')
+        self.x_upper_entry.grid(row=2, column=1, padx=PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(self, row=3, column=0, columnspan=2)
+        # Create a lower y1-axis label and entry
+        self.y1_lower_entry = LabeledEntry(self, 'y1-lower:')
+        self.y1_lower_entry.grid(row=5, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper y1-axis label and entry
+        self.y1_upper_entry = LabeledEntry(self, 'y1-upper:')
+        self.y1_upper_entry.grid(row=5, column=1, padx=PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(self, row=6, column=0, columnspan=2)
+        # Create a lower y2-axis label and entry
+        self.y2_lower_entry = LabeledEntry(self, 'y2_lower:')
+        self.y2_lower_entry.grid(row=8, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper y2-axis label and entry
+        self.y2_upper_entry = LabeledEntry(self, 'y2_upper:')
+        self.y2_upper_entry.grid(row=8, column=1, padx=PADDING, sticky='NSEW')
+
+    @property
+    def x_lower(self):
+        return self.x_lower_entry.get()
+    
+    @x_lower.setter
+    def x_lower(self, value):
+        self.x_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def x_upper(self):
+        return self.x_upper_entry.get()
+    
+    @x_upper.setter
+    def x_upper(self, value):
+        self.x_upper_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y1_lower(self):
+        return self.y1_lower_entry.get()
+    
+    @y1_lower.setter
+    def y1_lower(self, value):
+        self.y1_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y1_upper(self):
+        return self.y1_upper_entry.get()
+    
+    @y1_upper.setter
+    def y1_upper(self, value):
+        self.y1_upper_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y2_lower(self):
+        return self.y2_lower_entry.get()
+    
+    @y2_lower.setter
+    def y2_lower(self, value):
+        self.y2_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y2_upper(self):
+        return self.y2_upper_entry.get()
+    
+    @y2_upper.setter
+    def y2_upper(self, value):
+        self.y2_upper_entry.set(value[0] if value[0] else value[1])
 
 
 class LabelProperties(tk.Frame):
