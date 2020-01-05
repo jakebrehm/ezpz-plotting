@@ -820,7 +820,7 @@ class BasicPlot:
         flipbook.primary.set_ylabel(self.y1_label, fontdict=y1_font)
         if self.secondary_axis:
             y2_font = {'weight': self.y2_label_weight.lower(), 'size': self.y2_label_size}
-            y2_font = {'weight': self.y2_label_weight.lower(), 'size': self.y2_label_size}
+            flipbook.secondary.set_ylabel(self.y2_label, fontdict=y2_font)
         # # Use the official representation of the object in case tex expressions are used
         # flipbook.primary.set_xlabel(repr(self.x_label)[1:-1])
         # flipbook.primary.set_ylabel(repr(self.y1_label)[1:-1])
@@ -1235,15 +1235,15 @@ class BasicControls(ttk.Notebook):
         self.label_properties.y1_weight = current.y1_label_weight
         self.label_properties.y1_size = current.y1_label_size
         if current.secondary_axis:
-            self.label_properties.y2_size_entry['state'] = 'readonly'
-            self.label_properties.y2_size = current.y2_label_size
             self.label_properties.y2_weight_entry['state'] = 'readonly'
             self.label_properties.y2_weight = current.y2_label_weight
+            self.label_properties.y2_size_entry['state'] = 'normal'
+            self.label_properties.y2_size = current.y2_label_size
         else:
-            self.label_properties.y2_size_entry['state'] = 'disabled'
-            self.label_properties.y2_size_entry.clear()
             self.label_properties.y2_weight_entry['state'] = 'disabled'
             self.label_properties.y2_weight_entry.clear()
+            self.label_properties.y2_size_entry['state'] = 'disabled'
+            self.label_properties.y2_size_entry.clear()
 
         # =======================
         # TOLERANCE BAND CONTROLS
@@ -1457,6 +1457,7 @@ class LabeledEntry(tk.Frame):
         original_state = self.entry['state']
         self.entry['state'] = 'normal'
         self.entry.delete(0, 'end')
+        print(original_state)
         self.entry['state'] = original_state
 
     def get(self):
