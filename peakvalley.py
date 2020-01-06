@@ -99,14 +99,14 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		self.zero = tk.IntVar()
 		self.zero_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
-											 variable=self.zero)
+											variable=self.zero)
 		self.zero_checkbox['text'] = 'Zero-out counter column'
 		self.zero_checkbox.grid(row=1, column=0, sticky='EW')
 		self.zero_checkbox.state(['!alternate', 'selected'])
 
 		self.split = tk.IntVar()
 		self.split_checkbox = ttk.Checkbutton(checkboxes, takefocus=0,
-											  variable=self.split)
+											variable=self.split)
 		self.split_checkbox['text'] = 'Split peaks and valleys'
 		self.split_checkbox.grid(row=2, column=0, sticky='EW')
 		self.split_checkbox.state(['!alternate', 'selected'])
@@ -181,7 +181,7 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		frame = tk.LabelFrame(self, text=f'Plot {self._count + 1}')
 		frame.grid(row=self._count + 1, column=0,
-				   padx=MARGIN, pady=(0, MARGIN*2), sticky='NSEW')
+				padx=MARGIN, pady=(0, MARGIN*2), sticky='NSEW')
 		frame.columnconfigure(0, weight=1)
 
 		# Create a frame that everything else will be placed inside of
@@ -243,7 +243,7 @@ class PeakValleyFile(gui.ScrollableTab):
 		edit_controls.columnconfigure(0, weight=1)
 		edit_controls.columnconfigure(1, weight=1)
 
-        # Create a copy button
+		# Create a copy button
 		copy_image = gui.RenderImage('Assets\\copy.png', downscale=12)
 		copy_button = ttk.Button(edit_controls, takefocus=0, width=3, image=copy_image, text='C')
 		copy_button['command'] = lambda ID=self._count: self.copy(ID)
@@ -313,7 +313,7 @@ class PeakValleyFile(gui.ScrollableTab):
 	def clear_all(self):
 		"""Clear the contents of every field."""
 
-        # Iterate through each file, resetting the contents of each field
+		# Iterate through each file, resetting the contents of each field
 		self.lower_entry.delete(0, 'end')
 		self.upper_entry.delete(0, 'end')
 		self.convert.set(False)
@@ -349,14 +349,14 @@ class PeakValleyFile(gui.ScrollableTab):
 		# The rest of the inputs are specific to each plot. Iterate through each
 		# plot, recording each one's inputs under a different subsection.
 		for p in range(len(file.plots)):
-		    preset[f'File {f+1}'][f'Plot {p+1}'] = {
-		        'section': file._sections[p].get(),
-		        'counter': file._counters[p].get(),
-		        'x column': file._x_columns[p].get(),
-		        'y column': file._y_columns[p].get(),
-		        'label row': file._labels[p].get(),
-		        'unit row': file._units[p].get(),
-		    }
+			preset[f'File {f+1}'][f'Plot {p+1}'] = {
+				'section': file._sections[p].get(),
+				'counter': file._counters[p].get(),
+				'x column': file._x_columns[p].get(),
+				'y column': file._y_columns[p].get(),
+				'label row': file._labels[p].get(),
+				'unit row': file._units[p].get(),
+			}
 
 
 	def load_preset(self, master, tab_index, rows, info):
@@ -605,7 +605,6 @@ class PeakValleyFile(gui.ScrollableTab):
 			plot.construct_labels()
 
 
-
 class PeakValleyPlot:
 	"""Object that holds information about a singular plot."""
 
@@ -614,6 +613,8 @@ class PeakValleyPlot:
 		# self.DATA_SPLIT = False
 		self.lower = None
 		self.upper = None
+
+		self.marker_size = 1.5 ** 2
 
 	def _x_data(self, x_column):
 		"""Pull the appropriate x-information from the data."""
@@ -878,14 +879,23 @@ class PeakValleyPlot:
 
 		# total = self.total_cycles if self.DATA_CONVERTED and self.counter == 'segments' else self.total_segments
 		total = self.total_cycles if self.DATA_CONVERTED or self.counter == 'cycles' else self.total_segments
-		self.title = f'{date} {time}' + '\n' \
-						f'{counter_type} 1 to {total}' + '\n' \
-						f'{y1_label} vs. {x_label}'
+		self.title = (
+			f'{date} {time}\n'
+			f'{counter_type} 1 to {total}\n'
+			f'{y1_label} vs. {x_label}'
+		)
+		
+		self.title_original = self.title
+		self.x_label_original = self.x_label
+		self.y1_label_original = self.y1_label
 
 	def update_plot(self, flipbook, file_number, plot_number):
 
 		# Create a reference to the flipbook's primary axis for shorthand
 		primary = flipbook.primary
+
+		# Reset style to default to avoid weird changes on update
+		plt.style.use('default')
 
 		# Display the filename of the current plot
 		filename = flipbook.info[file_number].filename
@@ -906,19 +916,18 @@ class PeakValleyPlot:
 		primary.format_coord = flipbook._coordinates(flipbook.primary, None, False)
 
 		# Plot the data as a scatterplot
-		MARKER_SIZE = 1.5 ** 2
 		if not self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-			primary.scatter(self.x, self.y1, c=pv_colors['general'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['general'])
+			primary.scatter(self.x, self.y1, c=pv_colors['general'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['general'])
 		elif self.FAILURES_DETERMINED and self.DATA_SPLIT:
-			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
-			primary.scatter(self.x[1], self.y1[1], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
-			primary.scatter(self.x[2], self.y1[2], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['valley'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+			primary.scatter(self.x[2], self.y1[2], c=pv_colors['peak'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
 		elif self.FAILURES_DETERMINED and not self.DATA_SPLIT:
-			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
-			primary.scatter(self.x[1], self.y1[1], c=pv_colors['pass'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['pass'])
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['fail'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['fail'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['pass'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['pass'])
 		elif not self.FAILURES_DETERMINED and self.DATA_SPLIT:
-			primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
-			primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=MARKER_SIZE, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
+			primary.scatter(self.x[0], self.y1[0], c=pv_colors['valley'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['valley'])
+			primary.scatter(self.x[1], self.y1[1], c=pv_colors['peak'], s=self.marker_size, edgecolors='k', linewidth=0.10, label=pv_labels['peak'])
 
 		# Determine the minimum and maximum values of the x data
 		min_x = None
@@ -964,6 +973,7 @@ class PeakValleyPlot:
 		primary.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
 
 		# Set the title
+		print('About to show this title:', self.title)
 		flipbook.figure.suptitle(self.title, fontweight='bold', fontsize=12)
 		# Construct the axis labels further if necessary
 		if self.counter == 'segments' and self.DATA_CONVERTED:
@@ -989,8 +999,9 @@ class PeakValleyPlot:
 					counter_type = ''
 					failed = self.failed_segments
 					passed = self.passed_segments
-				text = f'{failed} Failed {counter_type}' + '\n' \
-					f'{passed} Passed {counter_type}'
+				# text = f'{failed} Failed {counter_type}' + '\n' \
+				# 	f'{passed} Passed {counter_type}'
+				text = f'{passed} Passed {counter_type}'
 				primary.text(0.80, 1.05, text, transform=primary.transAxes,
 							fontsize=12, bbox=props)
 			# Add text boxes describing the limit lines
@@ -1034,7 +1045,7 @@ class PeakValleyPlot:
 		plt.style.use('seaborn')
 
 		# Load the Tactair image and display it on the plot
-		image = plt.imread(gui.ResourcePath('Assets\\tactair.bmp'))
+		image = plt.imread(gui.ResourcePath('assets\\tactair.bmp'))
 		x_low, x_high = primary.get_xlim()
 		y_low, y_high = primary.get_ylim()
 		primary.imshow(image, extent=[x_low, x_high, y_low, y_high], aspect='auto')
@@ -1058,27 +1069,152 @@ class PeakValleyControls(ttk.Notebook):
 		self.current = None
 		self.flipbook = None
 
+		# Create a section for axis label controls
+		self.axis_labels = AxisLabels(appearance)
+		self.axis_labels.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
+
+		# Create a section for scatterplot property controls
+		self.scatterplot_properties = ScatterplotProperties(appearance)
+		self.scatterplot_properties.grid(row=1, column=0, padx=20, pady=20, sticky='NSEW')
+
 
 	def refresh(self):
 		"""Refresh the controls window fields with the currently stored values."""
 
-		# # Get a reference to the current plot object
-		# current = self.current
+		# Get a reference to the current plot object
+		current = self.current
 
-		pass
+		self.axis_labels.title = (current.title, current.title_original)
+		self.axis_labels.x_label = (current.x_label, current.x_label_original)
+		self.axis_labels.y1_label = (current.y1_label, current.y1_label_original)
+
+		self.scatterplot_properties.marker_size = current.marker_size
+
 
 	def update(self):
 		"""Update the current plot object with the user-entered values and refresh
 		both the plot and the controls window."""
 
-		# # Get a reference to the current plot object
-		# current = self.current
+		# Get a reference to the current plot object
+		current = self.current
 
-		pass
+		current.title = self.axis_labels.title if self.axis_labels.title else current.title_original
+		current.x_label = self.axis_labels.x_label if self.axis_labels.x_label else current.x_label_original
+		current.y1_label = self.axis_labels.y1_label if self.axis_labels.y1_label else current.y1_label_original
 
-		# # Update the plot and refresh the controls window
-		# self.flipbook.update_plot()
-		# self.refresh()
+		current.marker_size = self.scatterplot_properties.marker_size
+
+		# Update the plot and refresh the controls window
+		self.flipbook.update_plot()
+		self.refresh()
+
+
+class LabeledEntry(tk.Frame):
+
+	def __init__(self, master, text, *args, **kwargs):
+
+		tk.Frame.__init__(self, master, *args, **kwargs)
+		self.columnconfigure(0, weight=1)
+
+		label = tk.Label(self, text=text)
+		label.grid(row=0, column=0, sticky='NSEW')
+
+		self.entry = ttk.Entry(self)
+		self.entry.grid(row=1, column=0, sticky='NSEW')
+
+	def clear(self):
+		original_state = self.entry['state']
+		self.entry['state'] = 'normal'
+		self.entry.delete(0, 'end')
+		self.entry['state'] = original_state
+
+	def get(self):
+		return self.entry.get()
+
+	def set(self, value):
+		original_state = self.entry['state']
+		self.entry['state'] = 'normal'
+		self.entry.delete(0, 'end')
+		self.entry.insert(0, value)
+		self.entry['state'] = original_state
+
+	def __getitem__(self, item):
+		return self.entry[item]
+	
+	def __setitem__(self, item, value):
+		self.entry[item] = value
+
+
+class AxisLabels(tk.Frame):
+
+	def __init__(self, *args, **kwargs):
+
+		tk.Frame.__init__(self, *args, **kwargs)
+		self.columnconfigure(0, weight=1)
+		# Define amount of padding to use around widgets
+		PADDING = 10
+		# Add the title of the section
+		labels_title = tk.Label(self, text='Axis Labels',
+						font=('TkDefaultFont', 10, 'bold'))
+		labels_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+		# Create title entry
+		self.title_entry = LabeledEntry(self, 'title:')
+		self.title_entry.grid(row=1, column=0, padx=PADDING, sticky='NSEW')
+		# Create an x-axis label entry
+		self.x_label_entry = LabeledEntry(self, 'x-label:')
+		self.x_label_entry.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
+		# Create a y1-axis label entry
+		self.y1_label_entry = LabeledEntry(self, 'y1-label:')
+		self.y1_label_entry.grid(row=3, column=0, padx=PADDING, sticky='NSEW')
+
+	@property
+	def title(self):
+		return self.title_entry.get().replace('\\n', '\n')
+
+	@title.setter
+	def title(self, value):
+		self.title_entry.set((value[0] if value[0] else value[1]).replace('\n', '\\n'))
+
+	@property
+	def x_label(self):
+		return self.x_label_entry.get().replace('\\n', '\n')
+
+	@x_label.setter
+	def x_label(self, value):
+		self.x_label_entry.set((value[0] if value[0] else value[1]).replace('\n', '\\n'))
+
+	@property
+	def y1_label(self):
+		return self.y1_label_entry.get().replace('\\n', '\n')
+
+	@y1_label.setter
+	def y1_label(self, value):
+		self.y1_label_entry.set((value[0] if value[0] else value[1]).replace('\n', '\\n'))
+
+
+class ScatterplotProperties(tk.Frame):
+
+	def __init__(self, *args, **kwargs):
+
+		tk.Frame.__init__(self, *args, **kwargs)
+		self.columnconfigure(0, weight=1)
+		# Define amount of padding to use around widgets
+		PADDING = 10
+		# Add the title of the section
+		scatterplot_title = tk.Label(self, text='Scatterplot Properties',
+						font=('TkDefaultFont', 10, 'bold'))
+		scatterplot_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+		# Create title entry
+		self.marker_size_entry = LabeledEntry(self, 'marker size:', width=10)
+		self.marker_size_entry.grid(row=1, column=0, padx=PADDING, sticky='NS')
+
+	@property
+	def marker_size(self):
+		return float(self.marker_size_entry.get())
+
+	@marker_size.setter
+	def marker_size(self, value):
+		self.marker_size_entry.set(value)
 
 
 if __name__ == '__main__':

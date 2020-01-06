@@ -1,9 +1,10 @@
-Data/
-Presets/
+data/
+presets/
 *.txt
-Assets/*.psd
+assets/*.psd
 build/
 dist/
 __pycache__/
 *.code-workspace
 qt.conf
+plotting/

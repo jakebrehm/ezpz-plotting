@@ -1093,7 +1093,7 @@ class BasicControls(ttk.Notebook):
         self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
         self.horizontal_lines.columnconfigure(0, weight=1)
 
-        
+
     def _custom_background(self, event=None):
         """Allow the user to navigate to and select a custom background.
 
@@ -1157,7 +1157,7 @@ class BasicControls(ttk.Notebook):
             insert the original value."""
             entry.delete(0, 'end')
             entry.insert(0, value if value else original)
-            
+
         # Fill the primary and secondary tick fields with the appropriate stored value
         fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
         fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
