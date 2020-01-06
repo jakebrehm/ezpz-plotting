@@ -537,9 +537,9 @@ class PeakValleyFile(gui.ScrollableTab):
 			# valley = [float(item) for item in valley_entry.split('-') if item]
 			# valley = list(filter(None, valley))
 			try:
-				valley = [int(valley_entry)]
+				valley = [float(valley_entry)]
 			except ValueError:
-				valley = [float(item) for item in valley_entry if item]
+				valley = [float(item) for item in valley_entry.split('->') if item]
 
 		else:
 			valley = None
@@ -551,9 +551,9 @@ class PeakValleyFile(gui.ScrollableTab):
 			# peak = list(filter(None, peak))
 
 			try:
-				peak = [int(peak_entry)]
+				peak = [float(peak_entry)]
 			except ValueError:
-				peak = [float(item) for item in peak_entry if item]
+				peak = [float(item) for item in peak_entry.split('->') if item]
 		else:
 			peak = None
 
@@ -1059,7 +1059,7 @@ class PeakValleyControls(ttk.Notebook):
 	def __init__(self, *args, **kwargs):
 
 		ttk.Notebook.__init__(self, *args, **kwargs)
-		
+
 		# Add scrollable tabs to the notebook
 		figure = gui.ScrollableTab(self, 'Figure', cheight=400, cwidth=400)
 		appearance = gui.ScrollableTab(self, 'Appearance', cheight=400, cwidth=400)
