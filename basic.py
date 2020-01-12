@@ -1,20 +1,20 @@
 import math
-import numpy as np
-import pandas as pd
-import lemons.gui as gui
-import tkinter as tk
-from tkinter import ttk
+import os
 import re
-import configobj
-
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import messagebox as msg
-import os
-# from controls import LimitLines, ToleranceBands
-from controls import LimitLines, ToleranceBands, AxisLimits, LabelProperties, AxisTicks
-# from controls import *
+from tkinter import ttk
+
+import configobj
+import lemons.gui as gui
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from controls import (AxisLimits, AxisTicks, GeneralAppearance,
+                      LabelProperties, LimitLines, ToleranceBands)
 from settings import plot_colors
 
 
@@ -571,7 +571,6 @@ class BasicFile(gui.ScrollableTab):
         for p, plot in enumerate(self.plots):
             # Grab all entries in each field
             title = self._titles[p].get()
-            print(title)
             x_column = int(self._x_columns[p].get())
             self.y1_columns = [int(item) for item in re.findall(r'\d+', self._y1_columns[p].get())]
             self.y2_columns = [int(item) for item in re.findall(r'\d+', self._y2_columns[p].get())]
@@ -1011,44 +1010,10 @@ class BasicControls(ttk.Notebook):
         # APPEARANCE TAB
         # ==============
 
-        general = gui.PaddedFrame(appearance)
-        general.grid(row=0, column=0, sticky='NSEW')
-        general.columnconfigure(0, weight=1)
-        general.columnconfigure(1, weight=1)
-
-        # Add the title of the section
-        general_title = tk.Label(general, text='General Appearance',
-                         font=('TkDefaultFont', 10, 'bold'))
-        general_title.grid(row=0, column=0, pady=(0, 10), columnspan=2, sticky='W')
-
-        # Create a padded frame for the background controls
-        background = tk.Frame(general)
-        background.grid(row=1, column=0, sticky='NSEW')
-        background.columnconfigure(0, weight=1)
-        # Add a label for the background combobox
-        background_label = tk.Label(background, text='Background:')
-        background_label.grid(row=0, column=0, padx=10, sticky='NSEW')
-        # Add a combobox to control the background of the plot
-        self.background_choice = tk.StringVar()
-        background_combo = ttk.Combobox(background, width=20, state='readonly',
-                                        textvariable=self.background_choice)
-        background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
-        background_combo['values'] = ['None', 'Tactair', 'Young & Franklin', 'Custom']
-        background_combo.bind('<<ComboboxSelected>>', self._custom_background)
-
-        # Create a padded frame for the style controls
-        style = tk.Frame(general)
-        style.grid(row=1, column=1, sticky='NSEW')
-        style.columnconfigure(0, weight=1)
-        # Add a label for the style combobox
-        style_label = tk.Label(style, text='Style:')
-        style_label.grid(row=0, column=0, padx=10, sticky='NSEW')
-        # Add a combobox to control the style of the plot
-        self.style_choice = tk.StringVar()
-        style_combo = ttk.Combobox(style, width=20, state='readonly',
-                                        textvariable=self.style_choice)
-        style_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
-        style_combo['values'] = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
+        # Create the general appearance controls
+        self.general_appearance = GeneralAppearance(appearance)
+        # self.general_appearance = GeneralAppearance(appearance, self)
+        self.general_appearance.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
 
         # Add a separator
         separator = gui.Separator(appearance, orientation='horizontal', padding=(0, (10, 0)))
@@ -1075,32 +1040,6 @@ class BasicControls(ttk.Notebook):
         self.horizontal_lines = gui.PaddedFrame(annotations)
         self.horizontal_lines.grid(row=0, column=0, sticky='NSEW')
         self.horizontal_lines.columnconfigure(0, weight=1)
-
-
-    def _custom_background(self, event=None):
-        """Allow the user to navigate to and select a custom background.
-
-        This function is called whenever an option in the appropriate combobox is
-        selected. However, its purposes is to only execute when the 'Custom'
-        option is selected."""
-
-        # Get a reference to the current plot
-        current = self.current
-        # If the user chooses to use a custom background...
-        if self.background_choice.get() == 'Custom':
-            # Get the filepath of the selected file
-            path = fd.askopenfilename(title='Select the background image')
-            if path:
-                # If the user follows through, save the filepath
-                current.background_path = path
-            else:
-                # If the user cancels, set the plot's background_path attribute to None
-                # as well as the combobox value.
-                current.background_path = None
-                self.background_choice.set('None')
-        else:
-            # Otherwise, set the current plot's background_path attribute to None
-            current.background_path = None
 
 
     def refresh(self):
@@ -1149,14 +1088,16 @@ class BasicControls(ttk.Notebook):
         # ========================
 
         # Set the current style combobox selection to the stored style value
-        self.style_choice.set(current.style.get())
+        self.general_appearance.style = current.style.get()
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
         # =============================
 
+        # Pass the current plot object to the general appearance object
+        self.general_appearance.current = current
         # Set the current background combobox selection to the stored background value
-        self.background_choice.set(current.background.get())
+        self.general_appearance.background = current.background.get()
 
         # ========================
         # LABEL PROPERTY CONTROLS
@@ -1287,14 +1228,14 @@ class BasicControls(ttk.Notebook):
         # ========================
 
         # Store the currently selected value from the style combobox
-        current.style.set(self.style_choice.get())
+        current.style.set(self.general_appearance.style)
 
         # =============================
         # BACKGROUND SELECTION CONTROLS
         # =============================
 
         # Store the currently selected value from the background combobox
-        current.background.set(self.background_choice.get())
+        current.background.set(self.general_appearance.background)
 
         # ========================
         # LABEL PROPERTY CONTROLS

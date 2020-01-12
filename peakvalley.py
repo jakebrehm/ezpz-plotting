@@ -1,16 +1,17 @@
 import math
-import numpy as np
-import pandas as pd
-import lemons.gui as gui
+import re
 import tkinter as tk
 from tkinter import ttk
-import configobj
-import re
 
+import configobj
+import lemons.gui as gui
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from settings import pv_colors, pv_labels
+
 
 class PeakValleyFile(gui.ScrollableTab):
 

@@ -1,16 +1,16 @@
 import math
+import random
+import re
+import tkinter as tk
+from tkinter import filedialog as fd
+from tkinter import ttk
+
+import lemons.gui as gui
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import lemons.gui as gui
-import tkinter as tk
-from tkinter import ttk
-import re
-
-import random
 
 from settings import plot_colors
-
-import matplotlib.pyplot as plt
 
 
 class LabeledEntry(tk.Frame):
@@ -210,6 +210,84 @@ class AxisTicks(tk.Frame):
         self.secondary_ticks_entry.set(value[0] if value[0] else value[1])
 
 
+class GeneralAppearance(tk.Frame):
+
+    def __init__(self, master, *args, **kwargs):
+
+        # The current plot object will be passed by the control's refresh method
+        self.current = None
+
+        tk.Frame.__init__(self, master, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+        # Add the title of the section
+        general_title = tk.Label(self, text='General Appearance',
+                         font=('TkDefaultFont', 10, 'bold'))
+        general_title.grid(row=0, column=0, pady=(0, 10), columnspan=2, sticky='W')
+
+        # Add a combobox to control the background of the plot
+        self.background_choice = tk.StringVar()
+        background_choices = ['None', 'Tactair', 'Young & Franklin', 'Custom']
+        background_combo = LabeledCombobox(self, 'Background:', width=20,
+                                           values=background_choices)
+        background_combo['state'] = 'readonly'
+        background_combo['textvariable'] = self.background_choice
+        background_combo.grid(row=1, column=0, padx=10, sticky='NSEW')
+        # background_combo.bind('<<ComboboxSelected>>', self._custom_background)
+        background_combo.combobox.bind('<<ComboboxSelected>>', self._custom_background)
+
+        # Add a combobox to control the style of the plot
+        self.style_choice = tk.StringVar()
+        style_choices = ['Default', 'Classic', 'Seaborn', 'Fivethirtyeight']
+        style_combo = LabeledCombobox(self, 'Style:', values=style_choices,
+                                      width=20)
+        style_combo['state'] = 'readonly'
+        style_combo['textvariable'] = self.style_choice
+        style_combo.grid(row=1, column=1, padx=10, sticky='NSEW')
+   
+    def _custom_background(self, event=None):
+        """Allow the user to navigate to and select a custom background.
+
+        This function is called whenever an option in the appropriate combobox
+        is selected. However, its purpose is to only execute when the 'Custom'
+        option is selected."""
+
+        # Get a reference to the current plot
+        current = self.current
+        # If the user chooses to use a custom background...
+        if self.background_choice.get() == 'Custom':
+            # Get the filepath of the selected file
+            path = fd.askopenfilename(title='Select the background image')
+            if path:
+                # If the user follows through, save the filepath
+                current.background_path = path
+            else:
+                # If the user cancels, set the plot's background_path attribute to None
+                # as well as the combobox value.
+                current.background_path = None
+                self.background_choice.set('None')
+        else:
+            # Otherwise, set the current plot's background_path attribute to None
+            current.background_path = None
+
+    @property
+    def style(self):
+        return self.style_choice.get()
+
+    @style.setter
+    def style(self, value):
+        self.style_choice.set(value)
+
+    @property
+    def background(self):
+        return self.background_choice.get()
+
+    @background.setter
+    def background(self, value):
+        self.background_choice.set(value)
+
+
 class LabelProperties(tk.Frame):
 
     def __init__(self, *args, **kwargs):
@@ -230,10 +308,10 @@ class LabelProperties(tk.Frame):
         # weights = ['Normal', 'Italics', 'Bold', 'Bold Italics']
         weights = ['Normal', 'Bold', 'Heavy', 'Light']
 
-        self.title_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
+        self.title_weight_entry = LabeledCombobox(container, 'title weight:', values=weights)
         self.title_weight_entry.grid(row=0, column=0, padx=10, sticky='NSEW')
 
-        self.title_size_entry = LabeledEntry(container, 'x label size:')
+        self.title_size_entry = LabeledEntry(container, 'title size:')
         self.title_size_entry.grid(row=0, column=1, padx=10, sticky='NSEW')
 
         self.x_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
