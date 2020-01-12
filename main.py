@@ -839,9 +839,9 @@ class Application(gui.Application):
         """Function that loads a preset and opens the flipbook for
         testing purposes."""
 
-        self.load_preset('Presets\\pv.ini')
+        # self.load_preset('Presets\\pv.ini')
         # self.load_preset('Presets\\work2.ini')
-        # self.load_preset('Presets\\home2.ini')
+        self.load_preset('Presets\\home2.ini')
         self.open_flipbook()
 
 
@@ -1809,7 +1809,7 @@ if os.path.exists('qt.conf'):
 
 # Initialize the application
 app = Application()
-# # Run a test function
-# app.after(100, app.test)
+# Run a test function
+app.after(100, app.test)
 # Launch the application
 app.mainloop()

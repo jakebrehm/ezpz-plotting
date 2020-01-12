@@ -13,6 +13,305 @@ from settings import plot_colors
 import matplotlib.pyplot as plt
 
 
+class ValidatableEntry(ttk.Entry):
+
+    def __init__(self, *args, **kwargs):
+        ttk.Entry.__init__(self, *args, **kwargs)
+
+        # Create a new style because ttk.Entry widgets do not allow you to
+        # change the fieldbackground attribute. Wrap it in a try/except block
+        # or else an error will occur saying that an element with the name
+        # invalid.field already exists (class variables throw another error)
+        try:
+            INVALID = ttk.Style()
+            INVALID.element_create("invalid.field", "from", "clam")
+            INVALID.layout("Invalid.TEntry",
+                            [('Entry.invalid.field', {'children': [(
+                                'Entry.background', {'children': [(
+                                    'Entry.padding', {'children': [(
+                                        'Entry.textarea', {'sticky': 'nswe'})],
+                                'sticky': 'nswe'})], 'sticky': 'nswe'})],
+                                'border':'2', 'sticky': 'nswe'})])
+            INVALID.configure("Invalid.TEntry",
+                            foreground="black",
+                            fieldbackground="yellow")
+        except tk.TclError:
+            pass
+
+    def is_valid(self):
+        self['style'] = 'TEntry'
+
+    def is_invalid(self):
+        self['style'] = 'Invalid.TEntry'
+
+
+class LabeledEntry(tk.Frame):
+
+    def __init__(self, master, text, *args, **kwargs):
+
+        tk.Frame.__init__(self, master, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        label = tk.Label(self, text=text)
+        label.grid(row=0, column=0, sticky='NSEW')
+
+        self.entry = ttk.Entry(self)
+        self.entry.grid(row=1, column=0, sticky='NSEW')
+
+    def clear(self):
+        original_state = self.entry['state']
+        self.entry['state'] = 'normal'
+        self.entry.delete(0, 'end')
+        self.entry['state'] = original_state
+
+    def get(self):
+        return self.entry.get()
+
+    def set(self, value):
+        original_state = self.entry['state']
+        self.entry['state'] = 'normal'
+        self.entry.delete(0, 'end')
+        self.entry.insert(0, value)
+        self.entry['state'] = original_state
+
+    def __getitem__(self, item):
+        return self.entry[item]
+    
+    def __setitem__(self, item, value):
+        self.entry[item] = value
+
+
+class LabeledCombobox(tk.Frame):
+
+    def __init__(self, master, text, values, *args, **kwargs):
+
+        tk.Frame.__init__(self, master, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        label = tk.Label(self, text=text)
+        label.grid(row=0, column=0, sticky='NSEW')
+
+        self.combobox = ttk.Combobox(self, values=values, state='readonly')
+        # self.combobox.set(values[0])
+        self.combobox.grid(row=1, column=0, sticky='NSEW')
+
+    def clear(self):
+        original_state = self.combobox['state']
+        self.combobox['state'] = 'normal'
+        self.combobox.set('')
+        self.combobox['state'] = original_state
+
+    def get(self):
+        return self.combobox.get()
+
+    def set(self, value):
+        # original_state = self.combobox['state']
+        # self.combobox['state'] = 'normal'
+        self.combobox.set(value)
+        # self.combobox.set('Bold')
+        # self.combobox['state'] = original_state
+
+    def __getitem__(self, item):
+        return self.combobox[item]
+    
+    def __setitem__(self, item, value):
+        self.combobox[item] = value
+
+
+class AxisLimits(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        # Define amount of padding to use around widgets
+        PADDING = 10
+        # Add the title of the section
+        limits_title = tk.Label(self, text='Axis Limits',
+                         font=('TkDefaultFont', 10, 'bold'))
+        limits_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a lower x-axis label and entry
+        self.x_lower_entry = LabeledEntry(self, 'x-lower:')
+        self.x_lower_entry.grid(row=2, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper x-axis label and entry
+        self.x_upper_entry = LabeledEntry(self, 'x-upper:')
+        self.x_upper_entry.grid(row=2, column=1, padx=PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(self, row=3, column=0, columnspan=2)
+        # Create a lower y1-axis label and entry
+        self.y1_lower_entry = LabeledEntry(self, 'y1-lower:')
+        self.y1_lower_entry.grid(row=5, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper y1-axis label and entry
+        self.y1_upper_entry = LabeledEntry(self, 'y1-upper:')
+        self.y1_upper_entry.grid(row=5, column=1, padx=PADDING, sticky='NSEW')
+        # Add some vertical spacing between widgets
+        gui.Space(self, row=6, column=0, columnspan=2)
+        # Create a lower y2-axis label and entry
+        self.y2_lower_entry = LabeledEntry(self, 'y2_lower:')
+        self.y2_lower_entry.grid(row=8, column=0, padx=PADDING, sticky='NSEW')
+        # Create an upper y2-axis label and entry
+        self.y2_upper_entry = LabeledEntry(self, 'y2_upper:')
+        self.y2_upper_entry.grid(row=8, column=1, padx=PADDING, sticky='NSEW')
+
+    @property
+    def x_lower(self):
+        return self.x_lower_entry.get()
+    
+    @x_lower.setter
+    def x_lower(self, value):
+        self.x_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def x_upper(self):
+        return self.x_upper_entry.get()
+    
+    @x_upper.setter
+    def x_upper(self, value):
+        self.x_upper_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y1_lower(self):
+        return self.y1_lower_entry.get()
+    
+    @y1_lower.setter
+    def y1_lower(self, value):
+        self.y1_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y1_upper(self):
+        return self.y1_upper_entry.get()
+    
+    @y1_upper.setter
+    def y1_upper(self, value):
+        self.y1_upper_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y2_lower(self):
+        return self.y2_lower_entry.get()
+    
+    @y2_lower.setter
+    def y2_lower(self, value):
+        self.y2_lower_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def y2_upper(self):
+        return self.y2_upper_entry.get()
+    
+    @y2_upper.setter
+    def y2_upper(self, value):
+        self.y2_upper_entry.set(value[0] if value[0] else value[1])
+
+
+class LabelProperties(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.columnconfigure(0, weight=1)
+
+        # Add the title of the section
+        general_title = tk.Label(self, text='Label Properties',
+                                 font=('TkDefaultFont', 10, 'bold'))
+        general_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+
+        container = tk.Frame(self)
+        container.grid(row=1, column=0, sticky='NSEW')
+        container.columnconfigure(0, weight=1)
+        container.columnconfigure(1, weight=1)
+
+        # weights = ['Normal', 'Italics', 'Bold', 'Bold Italics']
+        weights = ['Normal', 'Bold', 'Heavy', 'Light']
+
+        self.title_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
+        self.title_weight_entry.grid(row=0, column=0, padx=10, sticky='NSEW')
+
+        self.title_size_entry = LabeledEntry(container, 'x label size:')
+        self.title_size_entry.grid(row=0, column=1, padx=10, sticky='NSEW')
+
+        self.x_weight_entry = LabeledCombobox(container, 'x label weight:', values=weights)
+        self.x_weight_entry.grid(row=1, column=0, padx=10, sticky='NSEW')
+
+        self.x_size_entry = LabeledEntry(container, 'x label size:')
+        self.x_size_entry.grid(row=1, column=1, padx=10, sticky='NSEW')
+        
+        self.y1_weight_entry = LabeledCombobox(container, 'y1 label weight:', values=weights)
+        self.y1_weight_entry.grid(row=2, column=0, padx=10, sticky='NSEW')
+
+        self.y1_size_entry = LabeledEntry(container, 'y1 label size:')
+        self.y1_size_entry.grid(row=2, column=1, padx=10, sticky='NSEW')
+        
+        self.y2_weight_entry = LabeledCombobox(container, 'y2 label weight:', values=weights)
+        self.y2_weight_entry.grid(row=3, column=0, padx=10, sticky='NSEW')
+
+        self.y2_size_entry = LabeledEntry(container, 'y2 label size:')
+        self.y2_size_entry.grid(row=3, column=1, padx=10, sticky='NSEW')
+
+    @property
+    def title_weight(self):
+        return self.title_weight_entry.get()
+
+    @title_weight.setter
+    def title_weight(self, value):
+        self.title_weight_entry.set(value)
+
+    @property
+    def x_weight(self):
+        return self.x_weight_entry.get()
+
+    @x_weight.setter
+    def x_weight(self, value):
+        self.x_weight_entry.set(value)
+
+    @property
+    def y1_weight(self):
+        return self.y1_weight_entry.get()
+
+    @y1_weight.setter
+    def y1_weight(self, value):
+        self.y1_weight_entry.set(value)
+
+    @property
+    def y2_weight(self):
+        return self.y2_weight_entry.get()
+
+    @y2_weight.setter
+    def y2_weight(self, value):
+        self.y2_weight_entry.set(value)
+
+    @property
+    def title_size(self):
+        return float(self.title_size_entry.get())
+
+    @title_size.setter
+    def title_size(self, value):
+        self.title_size_entry.set(value)
+
+    @property
+    def x_size(self):
+        return float(self.x_size_entry.get())
+
+    @x_size.setter
+    def x_size(self, value):
+        self.x_size_entry.set(value)
+
+    @property
+    def y1_size(self):
+        return float(self.y1_size_entry.get())
+
+    @y1_size.setter
+    def y1_size(self, value):
+        self.y1_size_entry.set(value)
+
+    @property
+    def y2_size(self):
+        return float(self.y2_size_entry.get())
+
+    @y2_size.setter
+    def y2_size(self, value):
+        self.y2_size_entry.set(value)
+
+
 class ToleranceBands(tk.Frame):
     """Creates a GUI frame that can hold a dynamic amount of rows for
     tolerance band fields. Keeps track of inputs and band data as well."""

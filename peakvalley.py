@@ -533,9 +533,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		# Parse and store the peak and valley entries
 		valley_entry = self.lower_entry.get()
 		if valley_entry:
-			# valley = [float(item) for item in valley_entry.split('-')]
-			# valley = [float(item) for item in valley_entry.split('-') if item]
-			# valley = list(filter(None, valley))
 			try:
 				valley = [float(valley_entry)]
 			except ValueError:
@@ -546,10 +543,6 @@ class PeakValleyFile(gui.ScrollableTab):
 		
 		peak_entry = self.upper_entry.get()
 		if peak_entry:
-			# peak = [float(item) for item in peak_entry.split('-')]
-			# peak = [float(item) for item in peak_entry.split('-') if item]
-			# peak = list(filter(None, peak))
-
 			try:
 				peak = [float(peak_entry)]
 			except ValueError:
@@ -862,7 +855,7 @@ class PeakValleyPlot:
 		x_label = self.labels.iloc[self.x_column - 1]
 		x_unit = self.units.iloc[self.x_column - 1] if self.units is not None else None
 		self.x_label = f'{x_label} ({x_unit})' if x_unit else f'{x_label}'
-		
+
 		y1_label = self.labels.iloc[self.y_column - 1]
 		y1_unit = self.units.iloc[self.y_column - 1] if self.units is not None else None
 		self.y1_label = f'{y1_label} ({y1_unit})' if y1_unit else f'{y1_label}'
@@ -884,7 +877,7 @@ class PeakValleyPlot:
 			f'{counter_type} 1 to {total}\n'
 			f'{y1_label} vs. {x_label}'
 		)
-		
+
 		self.title_original = self.title
 		self.x_label_original = self.x_label
 		self.y1_label_original = self.y1_label
