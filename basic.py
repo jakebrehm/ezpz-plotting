@@ -13,7 +13,8 @@ from tkinter import filedialog as fd
 from tkinter import messagebox as msg
 import os
 # from controls import LimitLines, ToleranceBands
-from controls import *
+from controls import LimitLines, ToleranceBands, AxisLimits, LabelProperties, AxisTicks
+# from controls import *
 from settings import plot_colors
 
 
@@ -426,31 +427,31 @@ class BasicFile(gui.ScrollableTab):
                                  header=None, encoding='latin1')
 
     def set_all_valid(self):
-        self.data_row_entry.is_valid()
-        self.label_row_entry.is_valid()
+        self.data_row_entry.set_valid()
+        self.label_row_entry.set_valid()
         for entry in self._x_columns + self._y1_columns + self._y2_columns:
-            entry.is_valid()
+            entry.set_valid()
 
     def check_blanks(self):
         invalid = False
 
         if not self.data_row_entry.get():
             invalid = True
-            self.data_row_entry.is_invalid()
+            self.data_row_entry.set_invalid()
 
         if not self.label_row_entry.get():
             invalid = True
-            self.label_row_entry.is_invalid()
+            self.label_row_entry.set_invalid()
 
         for p in range(len(self.plots)):
 
             if not self._x_columns[p].get():
                 invalid = True
-                self._x_columns[p].is_invalid()
+                self._x_columns[p].set_invalid()
 
             if not self._y1_columns[p].get():
                 invalid = True
-                self._y1_columns[p].is_invalid()
+                self._y1_columns[p].set_invalid()
         
         return False if invalid else True
 
@@ -463,12 +464,12 @@ class BasicFile(gui.ScrollableTab):
 
         if label > data:
             invalid = True
-            self.label_row_entry.is_invalid()
+            self.label_row_entry.set_invalid()
 
         unit = self.unit_row_entry.get()
         if unit and int(unit) > data:
             invalid = True
-            self.unit_row_entry.is_invalid()
+            self.unit_row_entry.set_invalid()
 
         return False if invalid else True
 
@@ -483,17 +484,17 @@ class BasicFile(gui.ScrollableTab):
 
             if x not in valid:
                 invalid = True
-                self._x_columns[p].is_invalid()
+                self._x_columns[p].set_invalid()
 
             for column in y1:
                 if column not in valid:
                     invalid = True
-                    self._y1_columns[p].is_invalid()
+                    self._y1_columns[p].set_invalid()
 
             for column in y2:
                 if column not in valid:
                     invalid = True
-                    self._y2_columns[p].is_invalid()
+                    self._y2_columns[p].set_invalid()
 
         return False if invalid else True
 
@@ -503,19 +504,19 @@ class BasicFile(gui.ScrollableTab):
         data = [int(item) for item in re.findall(r'\d+', self.data_row_entry.get())]
         if len(data) > 1:
             invalid = True
-            self.data_row_entry.is_invalid()
+            self.data_row_entry.set_invalid()
 
         label = [int(item) for item in re.findall(r'\d+', self.label_row_entry.get())]
         if len(label) > 1:
             invalid = True
-            self.label_row_entry.is_invalid()
+            self.label_row_entry.set_invalid()
 
         for p in range(len(self.plots)):
             x = [int(item) for item in re.findall(r'\d+', self._x_columns[p].get())]
 
             if len(x) > 1:
                 invalid = True
-                self._x_columns[p].is_invalid()
+                self._x_columns[p].set_invalid()
 
         return False if invalid else True
 
@@ -1002,28 +1003,9 @@ class BasicControls(ttk.Notebook):
         separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
         separator.grid(row=1, column=0, sticky='NSEW')
 
-        # Define amount of padding to use around widgets
-        LIMITS_PADDING = 10
-
-        # Create the ticks frame which will hold fields for each axis tick field
-        ticks = gui.PaddedFrame(figure)
-        ticks.grid(row=2, column=0, sticky='NSEW')
-        ticks.columnconfigure(0, weight=1)
-        ticks.columnconfigure(1, weight=1)
-        # Add the title of the section
-        ticks_title = tk.Label(ticks, text='Axis Ticks',
-                         font=('TkDefaultFont', 10, 'bold'))
-        ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
-        # Create a label and an entry for the primary ticks
-        primary_ticks_label = tk.Label(ticks, text='Primary ticks:')
-        primary_ticks_label.grid(row=1, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        self.primary_ticks_entry = ttk.Entry(ticks)
-        self.primary_ticks_entry.grid(row=2, column=0, padx=LIMITS_PADDING, sticky='NSEW')
-        # Create a label and an entry for the secondary ticks
-        secondary_ticks_label = tk.Label(ticks, text='Secondary ticks:')
-        secondary_ticks_label.grid(row=1, column=1, padx=LIMITS_PADDING, sticky='NSEW')
-        self.secondary_ticks_entry = ttk.Entry(ticks)
-        self.secondary_ticks_entry.grid(row=2, column=1, padx=LIMITS_PADDING, sticky='NSEW')
+        # Create the ticks frame
+        self.axis_ticks = AxisTicks(figure)
+        self.axis_ticks.grid(row=2, column=0, padx=20, pady=20, sticky='NSEW')
 
         # ==============
         # APPEARANCE TAB
@@ -1153,23 +1135,14 @@ class BasicControls(ttk.Notebook):
         # AXIS TICKS CONTROLS
         # ===================
 
-        def fill_entry(entry, value, original):
-            """Clear the entry and insert the changed value if it exists, otherwise
-            insert the original value."""
-            entry.delete(0, 'end')
-            entry.insert(0, value if value else original)
-
-        # Fill the primary and secondary tick fields with the appropriate stored value
-        fill_entry(self.primary_ticks_entry, current.primary_ticks, '')
-        fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
-        # Disable the secondary axis entry field if there is no secondary axis,
-        # otherwise enable and fill the entry fields corresponding to the secondary axis.
+        # Fill in each field with their respective values
+        self.axis_ticks.primary_ticks = (current.primary_ticks, '')
         if current.secondary_axis:
-            self.secondary_ticks_entry['state'] = 'normal'
-            fill_entry(self.secondary_ticks_entry, current.secondary_ticks, '')
+            self.axis_ticks.secondary_ticks_entry['state'] = 'normal'
+            self.axis_ticks.secondary_ticks = (current.secondary_ticks, '')
         else:
-            self.secondary_ticks_entry.delete(0, 'end')
-            self.secondary_ticks_entry['state'] = 'disabled'
+            self.axis_ticks.secondary_ticks_entry.clear()
+            self.axis_ticks.secondary_ticks_entry['state'] = 'disabled'
 
         # ========================
         # STYLE SELECTION CONTROLS
@@ -1305,8 +1278,9 @@ class BasicControls(ttk.Notebook):
         # ===================
 
         # Store the values in the primary and secondary tick fields
-        current.primary_ticks = self.primary_ticks_entry.get()
-        current.secondary_ticks = self.secondary_ticks_entry.get()
+        current.primary_ticks = self.axis_ticks.primary_ticks
+        if current.secondary_axis:
+            current.secondary_ticks = self.axis_ticks.secondary_ticks
 
         # ========================
         # STYLE SELECTION CONTROLS
@@ -1369,3 +1343,35 @@ class BasicControls(ttk.Notebook):
         # Update the plot and refresh the controls window
         self.flipbook.update_plot()
         self.refresh()
+
+
+class ValidatableEntry(ttk.Entry):
+
+    def __init__(self, *args, **kwargs):
+        ttk.Entry.__init__(self, *args, **kwargs)
+
+        # Create a new style because ttk.Entry widgets do not allow you to
+        # change the fieldbackground attribute. Wrap it in a try/except block
+        # or else an error will occur saying that an element with the name
+        # invalid.field already exists (class variables throw another error)
+        try:
+            INVALID = ttk.Style()
+            INVALID.element_create("invalid.field", "from", "clam")
+            INVALID.layout("Invalid.TEntry",
+                            [('Entry.invalid.field', {'children': [(
+                                'Entry.background', {'children': [(
+                                    'Entry.padding', {'children': [(
+                                        'Entry.textarea', {'sticky': 'nswe'})],
+                                'sticky': 'nswe'})], 'sticky': 'nswe'})],
+                                'border':'2', 'sticky': 'nswe'})])
+            INVALID.configure("Invalid.TEntry",
+                            foreground="black",
+                            fieldbackground="yellow")
+        except tk.TclError:
+            pass
+
+    def set_valid(self):
+        self['style'] = 'TEntry'
+
+    def set_invalid(self):
+        self['style'] = 'Invalid.TEntry'

@@ -13,38 +13,6 @@ from settings import plot_colors
 import matplotlib.pyplot as plt
 
 
-class ValidatableEntry(ttk.Entry):
-
-    def __init__(self, *args, **kwargs):
-        ttk.Entry.__init__(self, *args, **kwargs)
-
-        # Create a new style because ttk.Entry widgets do not allow you to
-        # change the fieldbackground attribute. Wrap it in a try/except block
-        # or else an error will occur saying that an element with the name
-        # invalid.field already exists (class variables throw another error)
-        try:
-            INVALID = ttk.Style()
-            INVALID.element_create("invalid.field", "from", "clam")
-            INVALID.layout("Invalid.TEntry",
-                            [('Entry.invalid.field', {'children': [(
-                                'Entry.background', {'children': [(
-                                    'Entry.padding', {'children': [(
-                                        'Entry.textarea', {'sticky': 'nswe'})],
-                                'sticky': 'nswe'})], 'sticky': 'nswe'})],
-                                'border':'2', 'sticky': 'nswe'})])
-            INVALID.configure("Invalid.TEntry",
-                            foreground="black",
-                            fieldbackground="yellow")
-        except tk.TclError:
-            pass
-
-    def is_valid(self):
-        self['style'] = 'TEntry'
-
-    def is_invalid(self):
-        self['style'] = 'Invalid.TEntry'
-
-
 class LabeledEntry(tk.Frame):
 
     def __init__(self, master, text, *args, **kwargs):
@@ -201,6 +169,45 @@ class AxisLimits(tk.Frame):
     @y2_upper.setter
     def y2_upper(self, value):
         self.y2_upper_entry.set(value[0] if value[0] else value[1])
+
+
+class AxisTicks(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+
+        # Define amount of padding to use around widgets
+        PADDING = 10
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        # Add the title of the section
+        ticks_title = tk.Label(self, text='Axis Ticks',
+                         font=('TkDefaultFont', 10, 'bold'))
+        ticks_title.grid(row=0, column=0, pady=(0, 10), sticky='W')
+        # Create a label and an entry for the primary ticks
+        self.primary_ticks_entry = LabeledEntry(self, 'Primary ticks:')
+        self.primary_ticks_entry.grid(row=1, column=0, padx=PADDING, sticky='NSEW')
+        # Create a label and an entry for the secondary ticks
+        self.secondary_ticks_entry = LabeledEntry(self, 'Secondary ticks:')
+        self.secondary_ticks_entry.grid(row=1, column=1, padx=PADDING, sticky='NSEW')
+
+    @property
+    def primary_ticks(self):
+        return self.primary_ticks_entry.get()
+
+    @primary_ticks.setter
+    def primary_ticks(self, value):
+        self.primary_ticks_entry.set(value[0] if value[0] else value[1])
+
+    @property
+    def secondary_ticks(self):
+        return self.secondary_ticks_entry.get()
+
+    @secondary_ticks.setter
+    def secondary_ticks(self, value):
+        self.secondary_ticks_entry.set(value[0] if value[0] else value[1])
 
 
 class LabelProperties(tk.Frame):
