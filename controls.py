@@ -2,6 +2,7 @@ import math
 import random
 import re
 import tkinter as tk
+from tkinter import colorchooser as cc
 from tkinter import filedialog as fd
 from tkinter import ttk
 
@@ -1060,3 +1061,69 @@ class LimitLines(tk.Frame):
             for i in range(len(alphas)):
                 self.alpha_entries[i].delete(0, 'end')
                 self.alpha_entries[i].insert(0, alphas[i] if alphas[i] else '')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ColorSelector(tk.Frame):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Frame.__init__(self, *args, **kwargs)
+        self.grid_propagate(False)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.control = None
+        self.name = None
+
+        self.button = tk.Button(self, takefocus=0)
+        self.button.grid(row=0, column=0, sticky='NSEW')
+        self.button['command'] = self.change_color
+        self.button['state'] = 'normal'
+        self.button['takefocus'] = 0
+
+        self.original_color = self.button['background']
+
+    def change_color(self):
+        _, color_hex = cc.askcolor(title='Choose the color for the series')
+        self.color = color_hex
+
+    @property
+    def color(self):
+        return self.button['background']
+
+    @color.setter
+    def color(self, hex_code):
+        self.button['background'] = hex_code
+
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    selector = ColorSelector(root, width=50, height=50)
+    selector.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
+    print(selector.color)
+    root.mainloop()
