@@ -12,6 +12,8 @@ import pandas as pd
 
 from settings import pv_colors, pv_labels
 
+from controls import ToolTip, AxisLimits, AxisTicks
+
 
 class PeakValleyFile(gui.ScrollableTab):
 
@@ -86,6 +88,13 @@ class PeakValleyFile(gui.ScrollableTab):
 
 		self.upper_entry = ttk.Entry(criteria, width=10)
 		self.upper_entry.grid(row=1, column=1, padx=5, sticky='EW')
+
+		criteria_tooltip = (
+			'To specify a criteria range, separate the upper\nand lower '
+			'bounds with an arrow: ->'
+		)
+		ToolTip.create(self.lower_entry, criteria_tooltip, offset=10)
+		ToolTip.create(self.upper_entry, criteria_tooltip, offset=10)
 
 		checkboxes = tk.Frame(controls)
 		checkboxes.grid(row=0, column=2, padx=(0, 20), sticky='NSEW')
@@ -610,6 +619,21 @@ class PeakValleyPlot:
 
 		self.marker_size = 1.5 ** 2
 
+		# Keep track of original axis limits
+		self.x_lower_original = None
+		self.x_upper_original = None
+		self.y1_lower_original = None
+		self.y1_upper_original = None
+
+		# Keep track of axis limits
+		self.x_lower = None
+		self.x_upper = None
+		self.y1_lower = None
+		self.y1_upper = None
+
+		# Keep track of number of primary and secondary ticks
+		self.primary_ticks = None
+
 	def _x_data(self, x_column):
 		"""Pull the appropriate x-information from the data."""
 
@@ -621,10 +645,6 @@ class PeakValleyPlot:
 		return self.section.data.iloc[:, y_column-1].copy(deep=True)
 
 	def _get_pairings(self):
-		print('get pairings')
-
-		import time
-		start = time.time()
 
 		average = self.y1_original.mean().item()
 		data = self.y1_original.values.flatten().tolist()
@@ -648,19 +668,15 @@ class PeakValleyPlot:
 		else:
 			pairs.append(temporary)
 
-		print('get pairings:', time.time() - start)
-
 		return pairs, average
 
 	def convert(self):
-		print('convert')
 
 		self.x = self.x // 2
 
 		self.DATA_CONVERTED = True
 
 	def determine_failures(self, valley, peak):
-		print('determine failures')
 
 		self.valley_mode = 'range' if len(valley) == 2 else 'threshold'
 		self.peak_mode = 'range' if len(peak) == 2 else 'threshold'
@@ -696,7 +712,6 @@ class PeakValleyPlot:
 		self.count_failures()
 
 	def count_counter(self):
-		print('count counter')
 
 		pairs, _ = self._get_pairings()
 		data = self.y1_original.values.flatten().tolist()
@@ -705,11 +720,8 @@ class PeakValleyPlot:
 		self.total_cycles = len(pairs)
 
 	def count_failures(self):
-		print('count failures')
-
 
 		pairs, average = self._get_pairings()
-		print(pairs, average)
 		data = self.y1_original.values.flatten().tolist()
 
 		VALLEY = self.valley
@@ -777,7 +789,6 @@ class PeakValleyPlot:
 		# print(f'self.failed_cycles: {self.failed_cycles}')
 
 	def split(self):
-		print('split')
 
 		average = sum(self.y1_original) / len(self.y1_original)
 		if not self.FAILURES_DETERMINED:
@@ -798,7 +809,6 @@ class PeakValleyPlot:
 		self.DATA_SPLIT = True
 
 	def zero(self):
-		print('zero')
 
 		first = None
 		if isinstance(self.x, list):
@@ -948,6 +958,18 @@ class PeakValleyPlot:
 		self.y1_lower_original = primary.get_ylim()[0]
 		self.y1_upper_original = primary.get_ylim()[1]
 
+		# Set each axis limit to the user-specified value
+		if self.x_lower: flipbook.primary.set_xlim(left=self.x_lower)
+		if self.x_upper: flipbook.primary.set_xlim(right=self.x_upper)
+		if self.y1_lower: flipbook.primary.set_ylim(bottom=self.y1_lower)
+		if self.y1_upper: flipbook.primary.set_ylim(top=self.y1_upper)
+
+		# Set a standard number of axis ticks to make it easier to line up the gridlines
+		if self.primary_ticks:
+			PRIMARY = flipbook.primary.get_ylim()
+			flipbook.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1],
+										int(self.primary_ticks)))
+
 		# Plot horizontal lines showing pass/fail criteria
 		if self.FAILURES_DETERMINED:
 			# Visual pass/fail criteria indication for valley
@@ -1063,9 +1085,37 @@ class PeakValleyControls(ttk.Notebook):
 		self.current = None
 		self.flipbook = None
 
+		# ==========
+		# FIGURE TAB
+		# ==========
+
+		# Create the limits frame which will hold fields for each axis limit
+		self.axis_limits = AxisLimits(figure)
+		self.axis_limits.y2_lower_entry['state'] = 'disabled'
+		self.axis_limits.y2_upper_entry['state'] = 'disabled'
+		self.axis_limits.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
+
+		# Add a separator
+		separator = gui.Separator(figure, orientation='horizontal', padding=(0, (10, 0)))
+		separator.grid(row=1, column=0, sticky='NSEW')
+
+		# Create the ticks frame
+		self.axis_ticks = AxisTicks(figure)
+		self.axis_ticks.secondary_ticks_entry['state'] = 'disabled'
+		self.axis_ticks.grid(row=2, column=0, padx=20, pady=20, sticky='NSEW')
+
+		# ==============
+		# APPEARANCE TAB
+		# ==============
+
 		# Create a section for axis label controls
 		self.axis_labels = AxisLabels(appearance)
 		self.axis_labels.grid(row=0, column=0, padx=20, pady=20, sticky='NSEW')
+		ToolTip.create(
+			self.axis_labels.title_entry,
+			'To add a new line, use the new line character: \\n',
+			offset=10
+		)
 
 		# Create a section for scatterplot property controls
 		self.scatterplot_properties = ScatterplotProperties(appearance)
@@ -1082,6 +1132,15 @@ class PeakValleyControls(ttk.Notebook):
 		self.axis_labels.x_label = (current.x_label, current.x_label_original)
 		self.axis_labels.y1_label = (current.y1_label, current.y1_label_original)
 
+		# Fill in each field with their respective values
+		self.axis_limits.x_lower = (current.x_lower, current.x_lower_original)
+		self.axis_limits.x_upper = (current.x_upper, current.x_upper_original)
+		self.axis_limits.y1_lower = (current.y1_lower, current.y1_lower_original)
+		self.axis_limits.y1_upper = (current.y1_upper, current.y1_upper_original)
+
+		# Fill in each field with their respective values
+		self.axis_ticks.primary_ticks = (current.primary_ticks, '')
+
 		self.scatterplot_properties.marker_size = current.marker_size
 
 
@@ -1095,6 +1154,21 @@ class PeakValleyControls(ttk.Notebook):
 		current.title = self.axis_labels.title if self.axis_labels.title else current.title_original
 		current.x_label = self.axis_labels.x_label if self.axis_labels.x_label else current.x_label_original
 		current.y1_label = self.axis_labels.y1_label if self.axis_labels.y1_label else current.y1_label_original
+
+		def update_axis(value, original):
+			"""If a value was changed, convert it from a string to a float. Otherwise,
+			use the original value."""
+
+			return float(value if value else original)
+
+		# Store the axes limits values in the corresponding plot object attributes
+		current.x_lower = update_axis(self.axis_limits.x_lower, current.x_lower_original)
+		current.x_upper = update_axis(self.axis_limits.x_upper, current.x_upper_original)
+		current.y1_lower = update_axis(self.axis_limits.y1_lower, current.y1_lower_original)
+		current.y1_upper = update_axis(self.axis_limits.y1_upper, current.y1_upper_original)
+
+		# Store the values in the primary and secondary tick fields
+		current.primary_ticks = self.axis_ticks.primary_ticks
 
 		current.marker_size = self.scatterplot_properties.marker_size
 

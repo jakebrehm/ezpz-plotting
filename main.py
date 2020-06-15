@@ -1810,6 +1810,6 @@ if os.path.exists('qt.conf'):
 # Initialize the application
 app = Application()
 # Run a test function
-app.after(100, app.test)
+# app.after(100, app.test)
 # Launch the application
 app.mainloop()

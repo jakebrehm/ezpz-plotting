@@ -876,11 +876,11 @@ class BasicPlot:
         if self.primary_ticks:
             PRIMARY = flipbook.primary.get_ylim()
             flipbook.primary.set_yticks(np.linspace(PRIMARY[0], PRIMARY[1],
-                                    int(self.primary_ticks)))
+                                        int(self.primary_ticks)))
         if self.secondary_ticks:
             SECONDARY = flipbook.secondary.get_ylim()
             flipbook.secondary.set_yticks(np.linspace(SECONDARY[0], SECONDARY[1],
-                                    int(self.secondary_ticks)))
+                                          int(self.secondary_ticks)))
 
         # =============================
         # BACKGROUND SELECTION CONTROLS

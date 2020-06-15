@@ -14,6 +14,55 @@ import pandas as pd
 from settings import plot_colors
 
 
+class ToolTip(object):
+
+    def __init__(self, widget, offset=27):
+        self.widget = widget
+        self.tip_window = None
+        self.id = None
+        self.x = self.y = 0
+        self.offset = offset
+
+    def show_tip(self, text):
+        """Display text in tooltip window"""
+        self.text = text
+        if self.tip_window or not self.text:
+            return
+        x, y, _, cy = self.widget.bbox("insert")
+        x = x + self.widget.winfo_rootx() + self.offset
+        y = y + cy + self.widget.winfo_rooty() +self.offset
+        self.tip_window = tip_window = tk.Toplevel(self.widget)
+        tip_window.wm_overrideredirect(1)
+        tip_window.wm_geometry("+%d+%d" % (x, y))
+        try:
+            # For Mac OS
+            tip_window.tk.call("::tk::unsupported::MacWindowStyle",
+                       "style", tip_window._w,
+                       "help", "noActivates")
+        except tk.TclError:
+            pass
+        label = tk.Label(tip_window, text=self.text, justify='left',
+                      background="#ffffe0", relief='solid', borderwidth=1,
+                      font=("tahoma", "8", "normal"))
+        label.pack(ipadx=1)
+
+    def hide_tip(self):
+        tip_window = self.tip_window
+        self.tip_window = None
+        if tip_window:
+            tip_window.destroy()
+
+    @staticmethod
+    def create(widget, text, offset=27):
+        tooltip = ToolTip(widget, offset)
+        def enter(event):
+            tooltip.show_tip(text)
+        def leave(event):
+            tooltip.hide_tip()
+        widget.bind('<Enter>', enter)
+        widget.bind('<Leave>', leave)
+
+
 class LabeledEntry(tk.Frame):
 
     def __init__(self, master, text, *args, **kwargs):
